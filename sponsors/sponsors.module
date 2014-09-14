@@ -1,0 +1,18 @@
+<?php
+function sponsors_block_info() {
+  $blocks['sponsors'] = array(
+    'info' => t('Sponsors'),
+    'cache' => DRUPAL_CACHE_PER_ROLE,
+  );
+  return $blocks;
+}
+function sponsors_help($path, $arg) {
+}
+function sponsors_block_view($delta = '') {
+  switch ($delta) {
+    case 'sponsors':
+      $block['subject'] = t('sponsors');
+      $block['content'] = '<script type="text/javascript" src="'.drupal_get_path('module', 'sponsors').'/sponsors.js"></script>';
+      return $block;
+  }
+}

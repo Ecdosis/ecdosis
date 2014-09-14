@@ -1,0 +1,40 @@
+<?php
+function project_icon_block_info() {
+  $blocks['project_icon'] = array(
+    'info' => t('project icon'),
+    'cache' => DRUPAL_CACHE_PER_ROLE,
+  );
+  return $blocks;
+}
+function project_icon_help($path, $arg) {
+}
+function is_editor()
+{
+    global $user;
+    $res = false;
+    if ( $user )
+    {
+        foreach ( $user->roles as $role )
+        {
+            if ( $role == 'editor' )
+            {
+                $res = true;
+                break;
+            }
+        }
+    }
+    return $res;
+}
+function project_icon_block_view($delta = '') {
+  switch ($delta) {
+    case 'project_icon':
+      $block['subject'] = t('Project Icon');
+      $mod_path = drupal_get_path('module', 'project_icon');
+      $block['content'] = '<script type="text/javascript" src="'.$mod_path.'/project_icon.js'
+          .'?target=block-project-icon-project-icon';
+      if ( is_editor() )
+          $block['content'] .= '&role=editor';
+      $block['content'] .= '"></script>';
+      return $block;
+  }
+}

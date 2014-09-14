@@ -1,0 +1,5 @@
+name = Project Edit
+description = Edit, create and delete project information
+core = 7.x
+configure = admin/config/content/project_edit
+stylesheets[all][] = project_edit.css

@@ -1,0 +1,105 @@
+<?php
+function get_editors_list()
+{
+    $editors = "";
+    $users = entity_load('user');
+    foreach ( $users as $uid=>$value )
+    {
+        foreach ( $value as $ukey=>$uvalue )
+        {
+            if ( 'roles' == $ukey )
+            {
+                foreach ( $uvalue as $role )
+                {
+                    if ( $role == 'editor' )
+                    {
+                        if (strlen($editors)>0 )
+                            $editors += '$';
+                        $editors .= 'uid:'.$uid;
+                        $editors .= '#name:'.$value->{'name'};
+                        break;
+                    }
+                }
+            }
+        }
+    }
+    error_log($editors);
+    return $editors;
+}
+function project_edit_all()
+{
+    $mod_path = drupal_get_path('module', 'project_edit');
+    $editors = get_editors_list();
+    $html ='<script type="text/javascript" src="'.$mod_path
+          .'/project_edit.js?target=content&'
+          .'docid='.$_GET["docid"].'&editors='.$editors.'"></script>';
+    error_log($html);
+    return $html;
+}
+function project_edit_menu()
+{
+    $items = array();
+    $items['admin/config/content/project_edit'] = array(
+        'title'=>'Edit Project',
+        'description' => 'Allow editor to create, edit and delete projects',
+        'page callback' => 'drupal_get_form',
+        'page arguments' => array('project_edit_form'),
+        'access arguments' => array('access administration pages'),
+        'type' => MENU_NORMAL_ITEM
+    );
+    $items['project_edit'] = array(
+        'title' => 'Edit project',
+        'page callback' => 'project_edit_all',
+        'access arguments' => array('access content'),
+        'type' => MENU_CALLBACK
+    );
+    return $items;
+}
+function project_edit_block_info() {
+  $blocks['project_edit'] = array(
+    'info' => t('project edit'),
+    'cache' => DRUPAL_CACHE_PER_ROLE,
+  );
+  return $blocks;
+}
+function project_edit_help($path, $arg) {
+    switch ($path)
+    {
+        case "admin/help#project_edit":
+            return '<p>' .
+                t("Allows editors to manage a project.")
+                . '</p>';
+            break;
+    }
+}
+function project_edit_block_view($delta = '') {
+  switch ($delta) {
+    case 'project_edit':
+      $block['subject'] = t('Project Edit');
+      $mod_path = drupal_get_path('module', 'project_edit');
+      $block['content'] = '<script type="text/javascript" src="'.$mod_path
+          .'/project_edit.js?target=content&'
+          .$_GET["docid"].'"></script>';
+      return $block;
+  }
+}
+/**
+ * Page callback: Project edit settings
+ * @param form the form object to override
+ * @param form_state the current state of the form (keys->values)
+ * @return an updated form
+ * @see quote_ticker_menu()
+ */
+function project_edit_form($form, &$form_state)
+{
+    $form['project_edit_docid'] = array(
+        '#type' => 'textfield',
+        '#title' => t('Default docid'),
+        '#default_value' => 'italian/deroberto/ivicere',
+        '#size' => 128,
+        '#maxlength' => 256,
+        '#required' => TRUE
+    );
+    return $form;
+}
+
