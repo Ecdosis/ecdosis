@@ -1,0 +1,7 @@
+name = Documents
+description = List the documents in a project
+core = 7.x
+configure = admin/config/content/documents
+stylesheets[all][] = documents.css
+stylesheets[all][] = font-awesome.min.css
+

@@ -14,7 +14,7 @@ function get_editors_list()
                     if ( $role == 'editor' )
                     {
                         if (strlen($editors)>0 )
-                            $editors += '$';
+                            $editors .= '$';
                         $editors .= 'uid:'.$uid;
                         $editors .= '#name:'.$value->{'name'};
                         break;
@@ -23,16 +23,18 @@ function get_editors_list()
             }
         }
     }
-    error_log($editors);
+    error_log("the editors are:".$editors);
     return $editors;
 }
 function project_edit_all()
 {
     $mod_path = drupal_get_path('module', 'project_edit');
+    $doc_path = drupal_get_path('module', 'documents');
     $editors = get_editors_list();
     $html ='<script type="text/javascript" src="'.$mod_path
           .'/project_edit.js?target=content&'
-          .'docid='.$_GET["docid"].'&editors='.$editors.'"></script>';
+          .'docid='.$_GET["docid"].'&editors='.$editors
+          .'&docs='.$doc_path.'"></script>';
     error_log($html);
     return $html;
 }
@@ -77,9 +79,11 @@ function project_edit_block_view($delta = '') {
     case 'project_edit':
       $block['subject'] = t('Project Edit');
       $mod_path = drupal_get_path('module', 'project_edit');
+      $doc_path = drupal_get_path('module', 'documents');
       $block['content'] = '<script type="text/javascript" src="'.$mod_path
           .'/project_edit.js?target=content&'
-          .$_GET["docid"].'"></script>';
+          .'docid='.$_GET["docid"].'&editors='.$editors
+          .'&docs='.$doc_path.'"></script>';
       return $block;
   }
 }

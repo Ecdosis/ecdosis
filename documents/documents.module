@@ -1,0 +1,77 @@
+
+<?php
+function documents_all()
+{
+    $mod_path = drupal_get_path('module', 'documents');
+    $editors = get_editors_list();
+    $html ='<script type="text/javascript" src="'.$mod_path
+          .'/documents.js?target=content&'
+          .'docid='.$_GET['docid'].'"></script>';
+    return $html;
+}
+function documents_menu()
+{
+    $items = array();
+    $items['admin/config/content/documents'] = array(
+        'title'=>'List Documents',
+        'description' => 'List documents in a project, allow user to edit them',
+        'page callback' => 'drupal_get_form',
+        'page arguments' => array('documents_form'),
+        'access arguments' => array('access administration pages'),
+        'type' => MENU_NORMAL_ITEM
+    );
+    $items['documents'] = array(
+        'title' => 'List Documents',
+        'page callback' => 'documents_all',
+        'access arguments' => array('access content'),
+        'type' => MENU_CALLBACK
+    );
+    return $items;
+}
+function documents_block_info() {
+  $blocks['documents'] = array(
+    'info' => t('List documents'),
+    'cache' => DRUPAL_CACHE_PER_ROLE,
+  );
+  return $blocks;
+}
+function documents_help($path, $arg) {
+    switch ($path)
+    {
+        case "admin/help#documents":
+            return '<p>' .
+                t("List documents in a project.")
+                . '</p>';
+            break;
+    }
+}
+function documents_block_view($delta = '') {
+  switch ($delta) {
+    case 'documents':
+      $block['subject'] = t('List documents');
+      $mod_path = drupal_get_path('module', 'documents');
+      $block['content'] = '<script type="text/javascript" src="'.$mod_path
+          .'/documents.js?target=content&'
+          .$_GET["docid"].'"></script>';
+      return $block;
+  }
+}
+/**
+ * Page callback: Documents settings
+ * @param form the form object to override
+ * @param form_state the current state of the form (keys->values)
+ * @return an updated form
+ * @see documents_menu()
+ */
+function documents_form($form, &$form_state)
+{
+    $form['documents_docid'] = array(
+        '#type' => 'textfield',
+        '#title' => t('Default docid'),
+        '#default_value' => 'italian/deroberto/ivicere',
+        '#size' => 128,
+        '#maxlength' => 256,
+        '#required' => TRUE
+    );
+    return $form;
+}
