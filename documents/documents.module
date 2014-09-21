@@ -6,7 +6,8 @@ function documents_all()
     $editors = get_editors_list();
     $html ='<script type="text/javascript" src="'.$mod_path
           .'/documents.js?target=content&'
-          .'docid='.$_GET['docid'].'"></script>';
+          .'docid='.$_GET['docid'].'&work='.$_GET['work']
+          .'&author='.$_GET['author'].'"></script>';
     return $html;
 }
 function documents_menu()
@@ -52,7 +53,8 @@ function documents_block_view($delta = '') {
       $mod_path = drupal_get_path('module', 'documents');
       $block['content'] = '<script type="text/javascript" src="'.$mod_path
           .'/documents.js?target=content&'
-          .$_GET["docid"].'"></script>';
+          .$_GET["docid"].'&work='.$_GET['work']
+          .'&author='.$_GET['author'].'"></script>';
       return $block;
   }
 }

@@ -1,11 +1,15 @@
 /**
- * Object to represent documents in
+ * Object to represent documents in cortex collection
  * @param target the id of the element to add ourselves to as a child
  * @param docid the docid of the project e.g. italian/deroberto/ivicere
+ * @param work the name of the work
+ * @param author the name of the author
  */
-function documents(target,docid)
+function documents(target,docid,work,author)
 {
     this.target = target;
+    this.author = author;
+    this.work = work;
     /**
      * Copy the generated html into the document
      * @param the html to append to the target
@@ -18,7 +22,7 @@ function documents(target,docid)
     var self = this;
     jQuery.get( "http://"+window.location.hostname+"/project/documents/"+docid, function(data)
     {
-        var html = "";
+        var html = '<h2>'+author+': '+work+'</h2>\n';
         var pDoc = JSON.parse(data);
         /* {documents:[{docid:"italian/deroberto/ivicere/cap1",title:""I Vicerè",description:"I Vicerè"},...]} */
         html += '<ul class="documents">';
@@ -77,6 +81,6 @@ function getArgs( scrName )
 jQuery(document).ready( 
     function(){
         var params = getArgs('documents.js');
-        var editor = documents(params['target'],params['docid']);
+        var editor = documents(params['target'],params['docid'],params['work'],params['author']);
     }
 ); 

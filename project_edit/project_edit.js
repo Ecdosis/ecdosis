@@ -15,13 +15,22 @@ function project_edit(target,docid,users,docs)
         jQuery("#save_button").click( function() {
             jQuery("#form1").submit();
         });
+        var self = this;
         jQuery("#editdocs").click( function() {
             var base = window.location.pathname.split("/");
             var root = "";
             if ( base.length>1 )
                 root = base[1];  
             window.location.href = 'http://'+window.location.hostname+'/'+root
-            +'/documents?docid='+docid;
+            +'/documents?docid='+docid+'&work='+self.work+'&author='+self.author;
+        });
+        jQuery("#editevents").click( function() {
+            var base = window.location.pathname.split("/");
+            var root = "";
+            if ( base.length>1 )
+                root = base[1];
+            window.location.href = 'http://'+window.location.hostname+'/'+root
+            +'/events?docid='+docid+'&work='+self.work+'&author='+self.author;
         });
         jQuery("#gotosite").click( function() {
             window.location.href = jQuery("#site_url").val();
@@ -72,17 +81,20 @@ function project_edit(target,docid,users,docs)
         var language = (pDoc.language!=undefined)?pDoc.language:docid_parts[0];
         var author = (pDoc.author!=undefined)?pDoc.author:docid_parts[1];
         var work = (pDoc.work!=undefined)?pDoc.work:docid_parts[2];
+        self.work = work;
+        self.author= author;
         html += '<tr><td>';
         html += '<img class="project" src="'+pDoc.icon+'"></td><td><input type="file" name="icon_file"></input>';
         html += '</td></tr>';
-        html += '<tr><td>Language:</td><td><input readonly name="language" type="text" id="language" value="'+language+'"></input></td></tr>';
-        html += '<tr><td>Author:</td><td><input readonly name="author" type="text" id="author" value="'+author+'"></input></td></tr>';
-        html += '<tr><td>Work:</td><td><input readonly name="work" type="text" id="work" value="'+work+'"></input></td></tr>';
         html += '<tr><td>Description:</td><td><input name="description" type="text" id="description" value="'+pDoc.description+'"></input></td></tr>';
         html += '<tr><td>Documents:</td><td>';
         if ( pDoc.works != undefined )
             html += pDoc.works+' documents ';
-        html += '<input type="button" id="editdocs" value="edit..."></input></td></tr>'
+        html += '<input type="button" id="editdocs" value="edit..."></input></td></tr>';
+        html += '<tr><td>Events:</td><td>';
+        if ( pDoc.events != undefined )
+            html += pDoc.events+' events ';
+        html += '<input type="button" id="editevents" value="edit..."></input></td></tr>';
         html += '<tr><td>Site URL:</td><td><input name="site_url" type="text" id="site_url" value="'+pDoc.url+'"></input>'
             +'<input type="button" id="gotosite" value="Go to"></input></td></tr>';
         html += '<tr><td>Owner:</td>';
