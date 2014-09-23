@@ -35,24 +35,24 @@ function events(target,docid,author)
         jQuery("#goleft").click( function() {
             if ( jQuery("#tinyeditor").length>0 )
                 self.restore_div();
-            var origAmt = jQuery("#centre-panel").scrollLeft();
+            var origAmt = jQuery("#wire_frame").scrollLeft();
             var afterAmt = origAmt-self.boxWidth;
             if ( afterAmt < 0 )
                 afterAmt = 0;
             else
                 afterAmt = ((afterAmt+self.boxWidth-1)/self.boxWidth)*self.boxWidth;
-            jQuery("#centre-panel").scrollLeft(afterAmt-origAmt);
+            jQuery("#wire_frame").scrollLeft(afterAmt-origAmt);
         });
         jQuery("#goright").click( function() {
             if ( jQuery("#tinyeditor").length>0 )
                 self.restore_div();
-            var origAmt = jQuery("#centre-panel").scrollLeft();
+            var origAmt = jQuery("#wire_frame").scrollLeft();
             var afterAmt = origAmt+self.boxWidth;
             if ( afterAmt < 0 )
                 afterAmt = 0;
             else
                 afterAmt = ((afterAmt+self.boxWidth-1)/self.boxWidth)*self.boxWidth;
-            jQuery("#centre-panel").scrollLeft(afterAmt-origAmt);
+            jQuery("#wire_frame").scrollLeft(afterAmt-origAmt);
         });
         jQuery("#search_box").click( function() {
             if ( jQuery("#tinyeditor").length>0 )
@@ -77,7 +77,7 @@ function events(target,docid,author)
                 self.restore_div();
         });
         // finally, set the width of the scroll pane
-        jQuery("#scroll-pane").width(this.boxWidth*this.pDoc.events.length);
+        jQuery("#scroll_pane").width(this.boxWidth*this.pDoc.events.length);
     };
     /**
      * The user clicked on an editable div
@@ -212,9 +212,10 @@ function events(target,docid,author)
         var events = self.pDoc.events;
         if ( events != undefined )
         {
-            html += '<div id="centre-panel">\n';
+            html += '<div id="centre_panel">\n';
             html += self.make_toolbar();
-            html += '<div id="scroll-pane">\n';
+            html += '<div id="wire_frame">';
+            html += '<div id="scroll_pane">\n';
             for ( var i=0;i<events.length;i++ )
             {
                 html += '<div class="box">';
@@ -228,6 +229,7 @@ function events(target,docid,author)
                 html += '</table>';
                 html += '</div>';
             }
+            html += '</div>';
             html += '</div>';
             html += '</div>';
         }
