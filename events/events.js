@@ -24,13 +24,14 @@ function events(target,docid,author)
     this.event_types = ['biography','composition','letter'];
     var self = this;
     /**
-     * Copy the generated html into the document
+     * Copy the generated html into the document and set everything up
      * @param the html to append to the target
      */
     this.setHtml = function( html )
     {
         var tgt = jQuery("#"+this.target);
         tgt.append(html);
+        // now the page is built we can set up the event-handlers
         jQuery("#goleft").click( function() {
             if ( jQuery("#tinyeditor").length>0 )
                 self.restore_div();
@@ -53,6 +54,11 @@ function events(target,docid,author)
                 afterAmt = ((afterAmt+self.boxWidth-1)/self.boxWidth)*self.boxWidth;
             jQuery("#centre-panel").scrollLeft(afterAmt-origAmt);
         });
+        jQuery("#search_box").click( function() {
+            if ( jQuery("#tinyeditor").length>0 )
+                self.restore_div();
+        });
+        // one of these for each panel
         jQuery("div.edit-region").click( function(e) {
             if ( jQuery("#tinyeditor").length>0 )
                 self.restore_div();
@@ -62,10 +68,6 @@ function events(target,docid,author)
             if ( index != undefined )
                 self.install_editor("div.edit-region:eq("+index+")");
         });
-        jQuery("#search_box").click( function() {
-            if ( jQuery("#tinyeditor").length>0 )
-                self.restore_div();
-        });
         jQuery(".type_select").change( function() {
             if ( jQuery("#tinyeditor").length>0 )
                 self.restore_div();
@@ -74,6 +76,7 @@ function events(target,docid,author)
             if ( jQuery("#tinyeditor").length>0 )
                 self.restore_div();
         });
+        // finally, set the width of the scroll pane
         jQuery("#scroll-pane").width(this.boxWidth*this.pDoc.events.length);
     };
     /**
@@ -107,6 +110,9 @@ function events(target,docid,author)
 	    resize: {cssclass: 'resize'}
         });
     };
+    /**
+     * Remove the editor and restore the old div with the new text
+     */
     this.restore_div = function() {
         var iframe = jQuery("#tinyeditor").next();
         var html = iframe[0].contentDocument.documentElement;
@@ -122,6 +128,12 @@ function events(target,docid,author)
                 self.install_editor("div.edit-region:eq("+index+")");
         });
     };
+    /**
+     * Make a dropdown (select) menu
+     * @param items the array of items
+     * @param value the item value to select
+     * @param sl_class a class name for the select element (optional)
+     */
     this.make_dropdown = function( items, value, sel_class )
     {
         var html = '<select';
@@ -138,11 +150,22 @@ function events(target,docid,author)
         html += '</select>';
         return html;
     };
+    /**
+     * Make a text-input box
+     * @param text the initial text for it
+     * @param name the class-name for the box
+     */
     this.make_text = function( text, name )
     {
         return '<input type="text" class="'+name+'" value="'+text+'"></input>';
     };
-    this.compose_row = function( prompt, type, value, classname )
+    /**
+     * Make a single row in the table containing input elements
+     * @param type the type of row content
+     * @param value different types of value for the input elements
+     * @param classname (optional) class name for text input rows
+     */
+    this.compose_row = function( type, value, classname )
     {
         var html = "";
         switch ( type )
@@ -167,6 +190,9 @@ function events(target,docid,author)
         }
         return html;
     };
+    /**
+     * Make the top-toolbar
+     */
     this.make_toolbar = function() {
         var  html = '<div id="event_toolbar">';
         html += '<div title="'+self.add_event+'" class="event-button"><i class="fa fa-plus-square fa-lg"></i></div>';
@@ -177,26 +203,26 @@ function events(target,docid,author)
         html += '</div>\n';
         return html;
     };
-    /* download all the events in compact form for this project */
+    /* Download all the events in compact form for this project */
     jQuery.get( "http://"+window.location.hostname+"/project/events/"+docid, function(data)
     {
-        var html = self.make_toolbar();
         self.pDoc = JSON.parse(data);
-        html += '<div class="events">';
+        var html = '<div class="events">';
         html += '<div id="left-sidebar"><i id="goleft" class="fa fa-chevron-left fa-3x"></i></div>';
         var events = self.pDoc.events;
         if ( events != undefined )
         {
             html += '<div id="centre-panel">\n';
+            html += self.make_toolbar();
             html += '<div id="scroll-pane">\n';
             for ( var i=0;i<events.length;i++ )
             {
                 html += '<div class="box">';
                 html += '<table>';
-                html += self.compose_row('Title','text',events[i].title,'title_box'); 
-                html += self.compose_row('Date','date',events[i].date);
-                html += self.compose_row('Description','textarea',events[i].description);
-                html += self.compose_row('References','textarea',events[i].references);
+                html += self.compose_row('text',events[i].title,'title_box'); 
+                html += self.compose_row('date',events[i].date);
+                html += self.compose_row('textarea',events[i].description);
+                html += self.compose_row('textarea',events[i].references);
                 html += '<input type="hidden" class="_id" value="'+events[i]._id+'"></input>';
                 html += '<input type="hidden" class="status" value="unchanged"></input>';
                 html += '</table>';
@@ -242,6 +268,7 @@ function getArgs( scrName )
     });
     return params;
 }
+/* main entry point - gets executed when the page is loaded */
 jQuery(document).ready( 
     function(){
         var params = getArgs('events.js');
