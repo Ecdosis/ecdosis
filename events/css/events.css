@@ -1,0 +1,17 @@
+#goright,#goleft { vertical-align:middle;opacity: 0.15;display:inline-block }
+#left-sidebar {display:inline}
+#right-sidebar {display:inline}
+#right-sidebar :hover {opacity:0.4;cursor:pointer}
+#left-sidebar :hover {opacity:0.4;cursor:pointer}
+#centre-panel {vertical-align:middle;display:inline-block;width:600px;overflow-x:scroll}
+#scroll-pane { width:1200px }
+div.box {width:600px;display:inline-block}
+div.box input[type="text"] {width:300px}
+.textarea-prompt {vertical-align:top;padding-top:7px}
+div.edit-region { border: 1px solid lightgrey;border-radius:3px;-moz-border-radius:3px;-webkit-border-radius:3px;
+    background-color:white;height:4em;padding: 3px 5px 3px 5px }
+input.year { width: 50px !important }
+.event-button { display:inline; border: 1px solid lightgrey;padding: 5px 5px 5px 5px;border-radius:3px;margin-right:10px;}
+div.event-button :hover { cursor:pointer; background-color:lightgrey}
+#search-box {margin-right:10px;}
+#event_toolbar {margin-left:30px;}

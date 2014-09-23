@@ -16,13 +16,27 @@ function project_edit(target,docid,users,docs)
             jQuery("#form1").submit();
         });
         var self = this;
+        /** 
+         * Shorten a standard docid to language/author
+         * @param docid a full docid
+         * @return a language/author shortened id
+         */
+        this.shortId = function( docid )
+        {
+             var parts = docid.split("/");
+             if ( parts.length >= 2 )
+                 return parts[0]+"/"+parts[1];
+             else
+                 return docid;
+        };
         jQuery("#editdocs").click( function() {
             var base = window.location.pathname.split("/");
             var root = "";
             if ( base.length>1 )
                 root = base[1];  
             window.location.href = 'http://'+window.location.hostname+'/'+root
-            +'/documents?docid='+docid+'&work='+self.work+'&author='+self.author;
+            +'/documents?docid='+docid+'&work='+self.work+'&author='+escape(self.author);
+            console.log(escape(self.author));
         });
         jQuery("#editevents").click( function() {
             var base = window.location.pathname.split("/");
@@ -30,7 +44,7 @@ function project_edit(target,docid,users,docs)
             if ( base.length>1 )
                 root = base[1];
             window.location.href = 'http://'+window.location.hostname+'/'+root
-            +'/events?docid='+docid+'&work='+self.work+'&author='+self.author;
+            +'/events?docid='+self.shortId(docid)+'&author='+self.author;
         });
         jQuery("#gotosite").click( function() {
             window.location.href = jQuery("#site_url").val();

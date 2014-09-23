@@ -23,7 +23,6 @@ function get_editors_list()
             }
         }
     }
-    error_log("the editors are:".$editors);
     return $editors;
 }
 function project_edit_all()
@@ -35,7 +34,6 @@ function project_edit_all()
           .'/project_edit.js?target=content&'
           .'docid='.$_GET["docid"].'&editors='.$editors
           .'&docs='.$doc_path.'"></script>';
-    error_log($html);
     return $html;
 }
 function project_edit_menu()

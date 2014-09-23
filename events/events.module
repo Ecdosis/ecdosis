@@ -1,0 +1,78 @@
+<?php
+function events_all()
+{
+    $mod_path = drupal_get_path('module', 'events');
+    $html ='<script type="text/javascript" src="'.$mod_path
+          .'/events.js?target=content&'
+          .'docid='.$_GET['docid']
+          .'&author='.$_GET['author'].'"></script>';
+    error_log($html);
+    return $html;
+}
+function events_menu()
+{
+    $items = array();
+    $items['admin/config/content/events'] = array(
+        'title'=>'Edit events',
+        'description' => 'Edit events for an author',
+        'page callback' => 'drupal_get_form',
+        'page arguments' => array('events_form'),
+        'access arguments' => array('access administration pages'),
+        'type' => MENU_NORMAL_ITEM
+    );
+    $items['events'] = array(
+        'title' => 'Edit events',
+        'page callback' => 'events_all',
+        'access arguments' => array('access content'),
+        'type' => MENU_CALLBACK
+    );
+    return $items;
+}
+function events_block_info() {
+  $blocks['events'] = array(
+    'info' => t('Edit events'),
+    'cache' => DRUPAL_CACHE_PER_ROLE,
+  );
+  return $blocks;
+}
+function events_help($path, $arg) {
+    switch ($path)
+    {
+        case "admin/help#events":
+            return '<p>' .
+                t("Edit events in the life of an author/production of a work.")
+                . '</p>';
+            break;
+    }
+}
+function events_block_view($delta = '') {
+  switch ($delta) {
+    case 'events':
+      $block['subject'] = t('Edit events');
+      $mod_path = drupal_get_path('module', 'events');
+      $block['content'] = '<script type="text/javascript" src="'.$mod_path
+          .'/events.js?target=content&'
+          .$_GET["docid"].'&author='.$_GET['author'].'"></script>';
+      error_log($block['content']);
+      return $block;
+  }
+}
+/**
+ * Page callback: Events settings
+ * @param form the form object to override
+ * @param form_state the current state of the form (keys->values)
+ * @return an updated form
+ * @see events_menu()
+ */
+function events_form($form, &$form_state)
+{
+    $form['events_docid'] = array(
+        '#type' => 'textfield',
+        '#title' => t('Default docid'),
+        '#default_value' => 'italian/deroberto',
+        '#size' => 128,
+        '#maxlength' => 256,
+        '#required' => TRUE
+    );
+    return $form;
+}

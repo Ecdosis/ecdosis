@@ -3,7 +3,6 @@
 function documents_all()
 {
     $mod_path = drupal_get_path('module', 'documents');
-    $editors = get_editors_list();
     $html ='<script type="text/javascript" src="'.$mod_path
           .'/documents.js?target=content&'
           .'docid='.$_GET['docid'].'&work='.$_GET['work']

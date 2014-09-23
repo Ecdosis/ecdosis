@@ -1,0 +1,8 @@
+name = Events
+description = Edit a set of events for a project
+core = 7.x
+configure = admin/config/content/events
+stylesheets[all][] = css/events.css
+stylesheets[all][] = css/tinyeditor.css
+stylesheets[all][] = css/font-awesome.min.css
+scripts[] = js/tiny.editor.packed.js
