@@ -3,9 +3,8 @@
 #right-sidebar {display:inline}
 #right-sidebar :hover {opacity:0.4;cursor:pointer}
 #left-sidebar :hover {opacity:0.4;cursor:pointer}
-#centre-panel {vertical-align:middle;display:inline-block;width:600px;overflow-x:scroll}
-#scroll-pane { width:1200px }
-div.box {width:600px;display:inline-block}
+#centre-panel {vertical-align:middle;display:inline-block;width:604px;overflow-x:scroll}
+div.box {width:604px;display:inline-block}
 div.box input[type="text"] {width:300px}
 .textarea-prompt {vertical-align:top;padding-top:7px}
 div.edit-region { border: 1px solid lightgrey;border-radius:3px;-moz-border-radius:3px;-webkit-border-radius:3px;

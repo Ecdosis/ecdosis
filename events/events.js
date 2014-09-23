@@ -8,11 +8,13 @@ function events(target,docid,author)
 {
     this.target = target;
     this.selector = undefined;
+    this.pDoc = undefined;
     this.author = author;
     this.save="save";
     this.delete_event="delete event";
     this.add_event="add event";
     this.search="search";
+    this.boxWidth=604;
     this.month_days = ['','1','2','3','4','5','6','7','8','9','10','11','12',
         '13','14','15','16','17','18','19','20','21','22','23','24','25','26','27','28',
         '29','30','31'];
@@ -33,22 +35,22 @@ function events(target,docid,author)
             if ( jQuery("#tinyeditor").length>0 )
                 self.restore_div();
             var origAmt = jQuery("#centre-panel").scrollLeft();
-            var afterAmt = origAmt-600;
+            var afterAmt = origAmt-this.boxWidth;
             if ( afterAmt < 0 )
                 afterAmt = 0;
             else
-                afterAmt = ((afterAmt+599)/600)*600;
+                afterAmt = ((afterAmt+this.boxWidth-1)/this.boxWidth)*this.boxWidth;
             jQuery("#centre-panel").scrollLeft(afterAmt-origAmt);
         });
         jQuery("#goright").click( function() {
             if ( jQuery("#tinyeditor").length>0 )
                 self.restore_div();
             var origAmt = jQuery("#centre-panel").scrollLeft();
-            var afterAmt = origAmt+600;
+            var afterAmt = origAmt+this.boxWidth;
             if ( afterAmt < 0 )
                 afterAmt = 0;
             else
-                afterAmt = ((afterAmt+599)/600)*600;
+                afterAmt = ((afterAmt+this.boxWidth-1)/this.boxWidth)*this.boxWidth;
             jQuery("#centre-panel").scrollLeft(afterAmt-origAmt);
         });
         jQuery("div.edit-region").click( function(e) {
@@ -72,6 +74,7 @@ function events(target,docid,author)
             if ( jQuery("#tinyeditor").length>0 )
                 self.restore_div();
         });
+        jQuery("#scroll-pane").width(this.boxWidth*this.pDoc.events.length);
     };
     /**
      * The user clicked on an editable div
@@ -178,10 +181,10 @@ function events(target,docid,author)
     jQuery.get( "http://"+window.location.hostname+"/project/events/"+docid, function(data)
     {
         var html = self.make_toolbar();
-        var pDoc = JSON.parse(data);
+        self.pDoc = JSON.parse(data);
         html += '<div class="events">';
         html += '<div id="left-sidebar"><i id="goleft" class="fa fa-chevron-left fa-3x"></i></div>';
-        var events = pDoc.events;
+        var events = self.pDoc.events;
         if ( events != undefined )
         {
             html += '<div id="centre-panel">\n';

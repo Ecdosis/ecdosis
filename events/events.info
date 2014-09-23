@@ -5,4 +5,4 @@ configure = admin/config/content/events
 stylesheets[all][] = css/events.css
 stylesheets[all][] = css/tinyeditor.css
 stylesheets[all][] = css/font-awesome.min.css
-scripts[] = js/tiny.editor.packed.js
+scripts[] = js/tiny.editor.js
