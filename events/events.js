@@ -35,22 +35,22 @@ function events(target,docid,author)
             if ( jQuery("#tinyeditor").length>0 )
                 self.restore_div();
             var origAmt = jQuery("#centre-panel").scrollLeft();
-            var afterAmt = origAmt-this.boxWidth;
+            var afterAmt = origAmt-self.boxWidth;
             if ( afterAmt < 0 )
                 afterAmt = 0;
             else
-                afterAmt = ((afterAmt+this.boxWidth-1)/this.boxWidth)*this.boxWidth;
+                afterAmt = ((afterAmt+self.boxWidth-1)/self.boxWidth)*self.boxWidth;
             jQuery("#centre-panel").scrollLeft(afterAmt-origAmt);
         });
         jQuery("#goright").click( function() {
             if ( jQuery("#tinyeditor").length>0 )
                 self.restore_div();
             var origAmt = jQuery("#centre-panel").scrollLeft();
-            var afterAmt = origAmt+this.boxWidth;
+            var afterAmt = origAmt+self.boxWidth;
             if ( afterAmt < 0 )
                 afterAmt = 0;
             else
-                afterAmt = ((afterAmt+this.boxWidth-1)/this.boxWidth)*this.boxWidth;
+                afterAmt = ((afterAmt+self.boxWidth-1)/self.boxWidth)*self.boxWidth;
             jQuery("#centre-panel").scrollLeft(afterAmt-origAmt);
         });
         jQuery("div.edit-region").click( function(e) {
@@ -97,7 +97,7 @@ function events(target,docid,author)
 	    controls: ['bold', 'italic', 'underline', 'strikethrough', '|', 'subscript', 'superscript', '|',
 		    'orderedlist', 'unorderedlist', '|', 'outdent', 'indent', '|', 'leftalign',
 		    'centeralign', 'rightalign', 'blockjustify', '|', 'unformat', '|', 'undo', 'redo', 'n',
-		    'font', 'size', 'style', '|', 'image', 'hr', 'link', 'unlink', '|', 'print'],
+		    'font', 'size', 'style', '|', 'image', 'hr', 'link', 'unlink'],
 	    footer: true,
 	    fonts: ['Verdana','Arial','Georgia','Trebuchet MS'],
 	    xhtml: true,
