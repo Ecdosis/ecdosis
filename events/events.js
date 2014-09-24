@@ -178,6 +178,18 @@ function events(target,docid,author)
             self.pDoc.events[index].status = "changed";
         });
     }; 
+    this.post_obj = function( url, service, obj ) {
+        var success = true;
+        jQuery.ajax( url,
+        {
+            type: "POST",
+            data: obj,
+            error: function(jqXHR, textStatus, errorThrown ) {
+                success = false;
+            }
+        });
+        return success;
+    };
     /**
      * Copy the generated html into the document and set everything up
      * @param the html to append to the target
@@ -198,6 +210,9 @@ function events(target,docid,author)
                 self.restore_div();
         });
         // toolbar buttons
+        /**
+         * Add a new empty event in the GUI. Don't save it yet.
+         */
         jQuery("#add_button").click( function() {
             var currScrollPos = jQuery("#wire_frame").scrollLeft();
             var boxIndex = Math.floor(currScrollPos/self.boxWidth);
@@ -218,6 +233,11 @@ function events(target,docid,author)
             self.init_editables(jQuery("div.edit-region:eq("+(newIndex*2+1)+")"));
             self.init_dates(newIndex);
         });        
+        /**
+         * Delete an event in teh GUI. If added recently just remove it, else 
+         * move it to the delted_events array for later confirmation on server. 
+         * It won't be deleted until the user clicks "save".  
+         */
         jQuery("#delete_button").click( function() {
             var currScrollPos = jQuery("#wire_frame").scrollLeft();
             var boxIndex = Math.floor(currScrollPos/self.boxWidth);
@@ -235,22 +255,54 @@ function events(target,docid,author)
             jQuery("#scroll_pane").width(self.boxWidth*self.pDoc.events.length);
             self.do_scroll_right(self.boxWidth);
         });        
+        /**
+         * Save changed, add new and delete old events on server
+         */
         jQuery("#save_button").click( function() {
+            var url = "http://"+window.location.hostname+"/project/events/";
+            for ( var i=0;i<self.deleted_events.length;i++ )
+            {
+                var event = self.deleted_events[i];
+                var obj = {
+                    _id: event._id
+                };
+                var res = self.post_obj(url,'delete',obj);
+                if ( !res )
+                    console.log("failed to delete "+event._id);
+            }
+            self.deleted_events = undefined;
+            for ( var i=0;i<self.pDoc.events.length;i++ )
+            {
+                var event = self.pDoc.events[i];
+                if ( event.status == 'added' )
+                {
+                    var obj = {
+                        event: JSON.stringify(event)
+                    }
+                    var res = self.post_obj(url,'add',obj);
+                    if ( !res )
+                        console.log("failed to add event");
+                    else
+                        event.status = 'unchanged';
+                }
+                else if ( event.status == 'changed' )
+                {
+                    var obj = {
+                        event: JSON.stringify(event)
+                    }
+                    var res = self.post_obj(url,'update',obj);
+                    if ( !res )
+                        console.log("failed to update event");
+                    else
+                        event.status = 'unchanged';
+                }
+            }
         });        
         // one of these for each panel
         this.init_editables(jQuery("div.edit-region"));
         this.init_type_selects(jQuery(".type_select"));
         this.init_titles(jQuery(".title_box"));
         this.init_dates();
-/*        // css :hover with these buttons doesn't work correctly
-        jQuery(".event-button").hover( 
-            function(e) {
-                jQuery(e.target).css('background-color','lightgrey');
-            }, 
-            function(e) {
-              jQuery(e.target).css('background-color','transparent');
-            } 
-        );*/
         // finally, set the width of the scroll pane
         jQuery("#scroll_pane").width(this.boxWidth*this.pDoc.events.length);
     };
