@@ -76,6 +76,30 @@ function events(target,docid,author)
         }
         jQuery("#wire_frame").scrollLeft(afterAmt);
     };
+    this.init_editables = function( objs ) {
+        objs.click( function(e) {
+            if ( jQuery("#tinyeditor").length>0 )
+                self.restore_div();
+            var editables = jQuery("div.edit-region");
+            var length = editables.length;
+            var index = editables.index( e.target );
+            if ( index != undefined )
+                self.install_editor("div.edit-region:eq("+index+")");
+        });
+        console.log(objs.html());
+    };
+    this.init_type_selects = function(objs) {
+        objs.change( function() {
+            if ( jQuery("#tinyeditor").length>0 )
+                self.restore_div();
+        });
+    };
+    this.init_titles = function( objs ) {
+        objs.click( function() {
+            if ( jQuery("#tinyeditor").length>0 )
+                self.restore_div();
+        });
+    };
     /**
      * Copy the generated html into the document and set everything up
      * @param the html to append to the target
@@ -108,6 +132,12 @@ function events(target,docid,author)
             // update scroll pane width
             jQuery("#scroll_pane").width(self.boxWidth*self.pDoc.events.length);
             self.do_scroll_right(self.boxWidth);
+            //install event handlers
+            var newIndex = boxIndex+1;
+            self.init_titles(jQuery("input.title_box:eq("+newIndex+")"));
+            self.init_type_selects(jQuery("select.type_select:eq("+newIndex+")"));
+            self.init_editables(jQuery("div.edit-region:eq("+(newIndex*2)+")"));
+            self.init_editables(jQuery("div.edit-region:eq("+(newIndex*2+1)+")"));
         });        
         jQuery("#delete_button").click( function() {
             var currScrollPos = jQuery("#wire_frame").scrollLeft();
@@ -129,23 +159,9 @@ function events(target,docid,author)
         jQuery("#save_button").click( function() {
         });        
         // one of these for each panel
-        jQuery("div.edit-region").click( function(e) {
-            if ( jQuery("#tinyeditor").length>0 )
-                self.restore_div();
-            var editables = jQuery("div.edit-region");
-            var length = editables.length;
-            var index = editables.index( e.target );
-            if ( index != undefined )
-                self.install_editor("div.edit-region:eq("+index+")");
-        });
-        jQuery(".type_select").change( function() {
-            if ( jQuery("#tinyeditor").length>0 )
-                self.restore_div();
-        });
-        jQuery(".title_box").click( function() {
-            if ( jQuery("#tinyeditor").length>0 )
-                self.restore_div();
-        });
+        this.init_editables(jQuery("div.edit-region"));
+        this.init_type_selects(jQuery(".type_select"));
+        this.init_titles(jQuery(".title_box"));
         // css :hover with these buttons doesn't work correctly
         jQuery(".event-button").hover( 
             function(e) {
