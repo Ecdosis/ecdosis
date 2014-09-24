@@ -24,6 +24,57 @@ function events(target,docid,author)
     this.event_types = ['biography','composition','letter'];
     var self = this;
     /**
+     * Create a blank event (based on the previous one)
+     * @param prev the previous event in the pDoc.events array
+     * @return an new event object (array)
+     */
+    this.create_event = function(prev) {
+        var event = new Array();
+        event.description = "";
+        event.references = "";
+        event.title = "";
+        event._id = undefined;
+        event.date = new Array();
+        event.date.month = prev.date.month;
+        event.date.day = prev.date.day;
+        event.date.year = prev.date.year;
+        event.date.qualifier = prev.date.qualifier;
+        event.type= prev.type;
+        return event;
+    };
+    /**
+     * Execute a scroll right - we need this in 2 places
+     * @param amount the number of pixels to scroll
+     */
+    this.do_scroll_right = function(amount) {
+        if ( jQuery("#tinyeditor").length>0 )
+            self.restore_div();
+        var origAmt = jQuery("#wire_frame").scrollLeft();
+        var afterAmt = origAmt+amount;
+        if ( afterAmt < 0 )
+            afterAmt = 0;
+        else
+        {
+            var new_index = Math.floor((afterAmt+self.boxWidth-1)/self.boxWidth);
+            afterAmt = new_index*self.boxWidth;
+        }
+        jQuery("#wire_frame").scrollLeft(afterAmt);
+    };
+    this.do_scroll_left = function( amount ) {
+        if ( jQuery("#tinyeditor").length>0 )
+            self.restore_div();
+        var origAmt = jQuery("#wire_frame").scrollLeft();
+        var afterAmt = origAmt-amount;
+        if ( afterAmt < 0 )
+            afterAmt = 0;
+        else
+        {
+            var new_index = Math.floor((afterAmt+self.boxWidth-1)/self.boxWidth);
+            afterAmt = new_index*self.boxWidth;
+        }
+        jQuery("#wire_frame").scrollLeft(afterAmt);
+    };
+    /**
      * Copy the generated html into the document and set everything up
      * @param the html to append to the target
      */
@@ -33,31 +84,33 @@ function events(target,docid,author)
         tgt.append(html);
         // now the page is built we can set up the event-handlers
         jQuery("#goleft").click( function() {
-            if ( jQuery("#tinyeditor").length>0 )
-                self.restore_div();
-            var origAmt = jQuery("#wire_frame").scrollLeft();
-            var afterAmt = origAmt-self.boxWidth;
-            if ( afterAmt < 0 )
-                afterAmt = 0;
-            else
-                afterAmt = ((afterAmt+self.boxWidth-1)/self.boxWidth)*self.boxWidth;
-            jQuery("#wire_frame").scrollLeft(afterAmt-origAmt);
+            self.do_scroll_left(self.boxWidth);
         });
         jQuery("#goright").click( function() {
-            if ( jQuery("#tinyeditor").length>0 )
-                self.restore_div();
-            var origAmt = jQuery("#wire_frame").scrollLeft();
-            var afterAmt = origAmt+self.boxWidth;
-            if ( afterAmt < 0 )
-                afterAmt = 0;
-            else
-                afterAmt = ((afterAmt+self.boxWidth-1)/self.boxWidth)*self.boxWidth;
-            jQuery("#wire_frame").scrollLeft(afterAmt-origAmt);
+            self.do_scroll_right(self.boxWidth);
         });
         jQuery("#search_box").click( function() {
             if ( jQuery("#tinyeditor").length>0 )
                 self.restore_div();
         });
+        // toolbar buttons
+        jQuery("#add_button").click( function() {
+            var currScrollPos = jQuery("#wire_frame").scrollLeft();
+            var boxIndex = currScrollPos/self.boxWidth;
+            var event = self.pDoc.events[boxIndex];
+            var new_event = self.create_event(event);
+            self.pDoc.events.splice(boxIndex+1,0,new_event);
+            var box = jQuery(".box:eq("+boxIndex+")");
+            var html = self.create_box(new_event,'added');
+            box.after(html);
+            // update scroll pane width
+            jQuery("#scroll_pane").width(self.boxWidth*self.pDoc.events.length);
+            self.do_scroll_right(self.boxWidth);
+        });        
+        jQuery("#delete_button").click( function() {
+        });        
+        jQuery("#save_button").click( function() {
+        });        
         // one of these for each panel
         jQuery("div.edit-region").click( function(e) {
             if ( jQuery("#tinyeditor").length>0 )
@@ -76,6 +129,15 @@ function events(target,docid,author)
             if ( jQuery("#tinyeditor").length>0 )
                 self.restore_div();
         });
+        // css :hover with these buttons doesn't work correctly
+        jQuery(".event-button").hover( 
+            function(e) {
+                jQuery(e.target).css('background-color','lightgrey');
+            }, 
+            function(e) {
+              jQuery(e.target).css('background-color','transparent');
+            } 
+        );
         // finally, set the width of the scroll pane
         jQuery("#scroll_pane").width(this.boxWidth*this.pDoc.events.length);
     };
@@ -181,7 +243,7 @@ function events(target,docid,author)
                 html += this.make_dropdown(this.month_days,value.day.toString());
                 html += this.make_dropdown(this.month_names,(value.month>=0)?this.month_names[value.month+1]:'');
                 html += this.make_text(value.year.toString(),'year');
-                html += '</td><td>'+this.make_dropdown(this.event_types,value.type,"type_select");
+                html += '</td><td>'+this.make_dropdown(this.event_types,classname,"type_select");
                 html += '</td></tr>';
                 break;
             case 'textarea':
@@ -195,12 +257,33 @@ function events(target,docid,author)
      */
     this.make_toolbar = function() {
         var  html = '<div id="event_toolbar">';
-        html += '<div title="'+self.add_event+'" class="event-button"><i class="fa fa-plus-square fa-lg"></i></div>';
-        html += '<div title="'+self.delete_event+'" class="event-button"><i class="fa fa-minus-square fa-lg"></i></div>';
-        html += '<div title="'+self.save+'" class="event-button"><i class="fa fa-save fa-lg"></i></div>';
+        html += '<div id="left-toolbar-group">';
+        html += '<div title="'+self.add_event+'" id="add_button" class="event-button"><i class="fa fa-plus-square fa-lg"></i></div>';
+        html += '<div title="'+self.delete_event+'" id="delete_button" class="event-button"><i class="fa fa-minus-square fa-lg"></i></div>';
+        html += '<div title="'+self.save+'" id="save_button" class="event-button"><i class="fa fa-save fa-lg"></i></div>';
+        html += '<input class="filler" type="text"></input>';
+        html += '</div><div id="right-toolbar-group">';
         html += '<input id="search_box" type="text">';
-        html += '<div title="'+self.search+'" class="event-button"><i class="fa fa-search fa-lg"></i></div>';
-        html += '</div>\n';
+        html += '<div title="'+self.search+'" id="search-button" class="event-button"><i class="fa fa-search fa-lg"></i></div>';
+        html += '</div></div>\n';
+        return html;
+    };
+    /**
+     * Create a box to contain an event
+     * @param event the event from the event array downloaded
+     * @param status its initial status (usually 'unchanged')
+     */
+    this.create_box = function( event, status ) {
+        var html = '<div class="box">';
+        html += '<table>';
+        html += self.compose_row('text',event.title,'title_box'); 
+        html += self.compose_row('date',event.date,event.type);
+        html += self.compose_row('textarea',event.description);
+        html += self.compose_row('textarea',event.references);
+        html += '<input type="hidden" class="_id" value="'+event._id+'"></input>';
+        html += '<input type="hidden" class="status" value="'+status+'"></input>';
+        html += '</table>';
+        html += '</div>';
         return html;
     };
     /* Download all the events in compact form for this project */
@@ -218,16 +301,7 @@ function events(target,docid,author)
             html += '<div id="scroll_pane">\n';
             for ( var i=0;i<events.length;i++ )
             {
-                html += '<div class="box">';
-                html += '<table>';
-                html += self.compose_row('text',events[i].title,'title_box'); 
-                html += self.compose_row('date',events[i].date);
-                html += self.compose_row('textarea',events[i].description);
-                html += self.compose_row('textarea',events[i].references);
-                html += '<input type="hidden" class="_id" value="'+events[i]._id+'"></input>';
-                html += '<input type="hidden" class="status" value="unchanged"></input>';
-                html += '</table>';
-                html += '</div>';
+                html += self.create_box(events[i],'unchanged');
             }
             html += '</div>';
             html += '</div>';
