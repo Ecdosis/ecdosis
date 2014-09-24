@@ -62,6 +62,10 @@ function events(target,docid,author)
         }
         jQuery("#wire_frame").scrollLeft(afterAmt);
     };
+    /**
+     * Execute a scroll left - put here to match do_scroll_right
+     * @param amount the number of pixels to scroll
+     */
     this.do_scroll_left = function( amount ) {
         if ( jQuery("#tinyeditor").length>0 )
             self.restore_div();
@@ -76,6 +80,11 @@ function events(target,docid,author)
         }
         jQuery("#wire_frame").scrollLeft(afterAmt);
     };
+    /**
+     * Editables are the two editable divs. They need handlers to update the
+     * status in the corresponding pDoc.events array and to activate.
+     * @param objs a list of editable divs to activate
+     */
     this.init_editables = function( objs ) {
         objs.click( function(e) {
             if ( jQuery("#tinyeditor").length>0 )
@@ -86,20 +95,114 @@ function events(target,docid,author)
             if ( index != undefined )
                 self.install_editor("div.edit-region:eq("+index+")");
         });
-        console.log(objs.html());
+        objs.change( function(e) {
+            var editables = jQuery("div.edit-region");
+            var index = editables.index(e.target)/2;
+            if ( self.pDoc.events[index].status != 'added' )
+                self.pDoc.events[index].status = 'changed';
+        });
     };
+    /**
+     * Set handlers for the event type select dropdown
+     * @param objs a list of event typ selector jQuery objects
+     */
     this.init_type_selects = function(objs) {
-        objs.change( function() {
+        objs.click( function() {
             if ( jQuery("#tinyeditor").length>0 )
                 self.restore_div();
         });
+        objs.change( function(e) {
+            var types = jQuery("select.type_select");
+            var index = types.index(e.target);
+            if ( self.pDoc.events[index].status != 'added' )
+                self.pDoc.events[index].status = 'changed';
+        });
     };
+    /**
+     * Set handlers for the title text input fields
+     * @param objs a list of jQuery objects
+     */
     this.init_titles = function( objs ) {
         objs.click( function() {
             if ( jQuery("#tinyeditor").length>0 )
                 self.restore_div();
         });
+        objs.change( function(e) {
+            var titles = jQuery("input.title_box");
+            var index = titles.index(e.target);
+            if ( self.pDoc.events[index].status != 'added' )
+                self.pDoc.events[index].status = 'changed';
+        });
     };
+    /**
+     * Set handlers for all the date fields
+     * @param index the current box index to select (optional)
+     */
+    this.init_dates = function( index ) {
+        // there are four controls for dates!
+        var days,months,years,qualifiers;
+        if ( index != undefined )
+        {
+            qualifiers = jQuery("select.qualifier:eq("+index+")");
+            days = jQuery("select.date_day:eq("+index+")");
+            months = jQuery("select.date_month:eq("+index+")");
+            years = jQuery("input.year:eq("+index+")");
+        }
+        else
+        {
+            qualifiers = jQuery("select.qualifier");
+            days = jQuery("select.date_day");
+            months = jQuery("select.date_month");
+            years = jQuery("input.year");
+        }
+        if ( qualifiers == undefined )
+        {
+            console.log("qualifiers is undefined. index="+index);
+            return;
+        }
+        if ( days == undefined )
+        {
+            console.log("days is undefined. index="+index);
+            return;
+        }
+        if ( months == undefined )
+        {
+            console.log("months is undefined. index="+index);
+            return;
+        }
+        if ( years == undefined )
+        {
+            console.log("years is undefined. index="+index);
+            return;
+        }
+        // every time someone change a date field we must mark the 
+        // pDoc.events entry as 'changed', unless it was 'added', 
+        // to distinguish newly added from 'changed' entries
+        qualifiers.change( function(e) {
+            var all = jQuery("select.qualifier");
+            var index = all.index(e.target);
+            if ( self.pDoc.events[index].status != 'added' )
+               self.pDoc.events[index].status = "changed";
+        });
+        days.change( function(e) {
+            var all = jQuery("select.date_day");
+            var index = all.index(e.target);
+            if ( self.pDoc.events[index].status != 'added' )
+               self.pDoc.events[index].status = "changed";
+        });
+        months.change( function(e) {
+            var all = jQuery("select.date_month");
+            var index = all.index(e.target);
+            if ( self.pDoc.events[index].status != 'added' )
+               self.pDoc.events[index].status = "changed";
+        });
+        years.change( function(e) {
+            var all = jQuery("input.year");
+            var index = all.index(e.target);
+            if ( self.pDoc.events[index].status != 'added' )
+               self.pDoc.events[index].status = "changed";
+        });
+    }; 
     /**
      * Copy the generated html into the document and set everything up
      * @param the html to append to the target
@@ -138,6 +241,7 @@ function events(target,docid,author)
             self.init_type_selects(jQuery("select.type_select:eq("+newIndex+")"));
             self.init_editables(jQuery("div.edit-region:eq("+(newIndex*2)+")"));
             self.init_editables(jQuery("div.edit-region:eq("+(newIndex*2+1)+")"));
+            self.init_dates(newIndex);
         });        
         jQuery("#delete_button").click( function() {
             var currScrollPos = jQuery("#wire_frame").scrollLeft();
@@ -162,6 +266,7 @@ function events(target,docid,author)
         this.init_editables(jQuery("div.edit-region"));
         this.init_type_selects(jQuery(".type_select"));
         this.init_titles(jQuery(".title_box"));
+        this.init_dates();
         // css :hover with these buttons doesn't work correctly
         jQuery(".event-button").hover( 
             function(e) {
@@ -272,9 +377,9 @@ function events(target,docid,author)
                 html += 'type="text" value="'+value+'"></input></td></tr>';
                 break;
             case 'date':
-                html += '<tr><td>'+this.make_dropdown(this.qualifiers,(value.qualifier=='none')?'':value.qualifier);
-                html += this.make_dropdown(this.month_days,value.day.toString());
-                html += this.make_dropdown(this.month_names,(value.month>=0)?this.month_names[value.month+1]:'');
+                html += '<tr><td>'+this.make_dropdown(this.qualifiers,(value.qualifier=='none')?'':value.qualifier,'qualifier');
+                html += this.make_dropdown(this.month_days,value.day.toString(),'date_day');
+                html += this.make_dropdown(this.month_names,(value.month>=0)?this.month_names[value.month+1]:'','date_month');
                 html += this.make_text(value.year.toString(),'year');
                 html += '</td><td>'+this.make_dropdown(this.event_types,classname,"type_select");
                 html += '</td></tr>';
