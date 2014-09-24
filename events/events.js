@@ -9,6 +9,7 @@ function events(target,docid,author)
     this.target = target;
     this.selector = undefined;
     this.pDoc = undefined;
+    this.deleted_events = undefined;
     this.author = author;
     this.save="save";
     this.delete_event="delete event";
@@ -40,6 +41,7 @@ function events(target,docid,author)
         event.date.year = prev.date.year;
         event.date.qualifier = prev.date.qualifier;
         event.type= prev.type;
+        event.status = 'added';
         return event;
     };
     /**
@@ -96,7 +98,7 @@ function events(target,docid,author)
         // toolbar buttons
         jQuery("#add_button").click( function() {
             var currScrollPos = jQuery("#wire_frame").scrollLeft();
-            var boxIndex = currScrollPos/self.boxWidth;
+            var boxIndex = Math.floor(currScrollPos/self.boxWidth);
             var event = self.pDoc.events[boxIndex];
             var new_event = self.create_event(event);
             self.pDoc.events.splice(boxIndex+1,0,new_event);
@@ -108,6 +110,21 @@ function events(target,docid,author)
             self.do_scroll_right(self.boxWidth);
         });        
         jQuery("#delete_button").click( function() {
+            var currScrollPos = jQuery("#wire_frame").scrollLeft();
+            var boxIndex = Math.floor(currScrollPos/self.boxWidth);
+            var event = self.pDoc.events[boxIndex];
+            var deleted_items = self.pDoc.events.splice(boxIndex,1);
+            if ( event.status != 'added' && deleted_items.length>0 )
+            {
+                if ( self.deleted_events == undefined )
+                    self.deleted_events = deleted_items; 
+                else
+                    self.deleted_events.push(deleted_items[0]);
+            }
+            jQuery(".box:eq("+boxIndex+")").remove();
+            // update scroll pane width
+            jQuery("#scroll_pane").width(self.boxWidth*self.pDoc.events.length);
+            self.do_scroll_right(self.boxWidth);
         });        
         jQuery("#save_button").click( function() {
         });        
@@ -271,17 +288,14 @@ function events(target,docid,author)
     /**
      * Create a box to contain an event
      * @param event the event from the event array downloaded
-     * @param status its initial status (usually 'unchanged')
      */
-    this.create_box = function( event, status ) {
+    this.create_box = function( event ) {
         var html = '<div class="box">';
         html += '<table>';
         html += self.compose_row('text',event.title,'title_box'); 
         html += self.compose_row('date',event.date,event.type);
         html += self.compose_row('textarea',event.description);
         html += self.compose_row('textarea',event.references);
-        html += '<input type="hidden" class="_id" value="'+event._id+'"></input>';
-        html += '<input type="hidden" class="status" value="'+status+'"></input>';
         html += '</table>';
         html += '</div>';
         return html;
@@ -301,7 +315,8 @@ function events(target,docid,author)
             html += '<div id="scroll_pane">\n';
             for ( var i=0;i<events.length;i++ )
             {
-                html += self.create_box(events[i],'unchanged');
+                events[i].status = 'unchanged';
+                html += self.create_box(events[i]);
             }
             html += '</div>';
             html += '</div>';
