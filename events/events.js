@@ -242,7 +242,7 @@ function events(target,docid,author)
         this.init_type_selects(jQuery(".type_select"));
         this.init_titles(jQuery(".title_box"));
         this.init_dates();
-        // css :hover with these buttons doesn't work correctly
+/*        // css :hover with these buttons doesn't work correctly
         jQuery(".event-button").hover( 
             function(e) {
                 jQuery(e.target).css('background-color','lightgrey');
@@ -250,7 +250,7 @@ function events(target,docid,author)
             function(e) {
               jQuery(e.target).css('background-color','transparent');
             } 
-        );
+        );*/
         // finally, set the width of the scroll pane
         jQuery("#scroll_pane").width(this.boxWidth*this.pDoc.events.length);
     };
