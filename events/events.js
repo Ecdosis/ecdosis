@@ -34,7 +34,6 @@ function events(target,docid,author)
         event.description = "";
         event.references = "";
         event.title = "";
-        event._id = undefined;
         event.date = new Array();
         event.date.month = prev.date.month;
         event.date.day = prev.date.day;
@@ -155,52 +154,28 @@ function events(target,docid,author)
             months = jQuery("select.date_month");
             years = jQuery("input.year");
         }
-        if ( qualifiers == undefined )
-        {
-            console.log("qualifiers is undefined. index="+index);
-            return;
-        }
-        if ( days == undefined )
-        {
-            console.log("days is undefined. index="+index);
-            return;
-        }
-        if ( months == undefined )
-        {
-            console.log("months is undefined. index="+index);
-            return;
-        }
-        if ( years == undefined )
-        {
-            console.log("years is undefined. index="+index);
-            return;
-        }
         // every time someone change a date field we must mark the 
         // pDoc.events entry as 'changed', unless it was 'added', 
         // to distinguish newly added from 'changed' entries
         qualifiers.change( function(e) {
             var all = jQuery("select.qualifier");
             var index = all.index(e.target);
-            if ( self.pDoc.events[index].status != 'added' )
-               self.pDoc.events[index].status = "changed";
+            self.pDoc.events[index].status = "changed";
         });
         days.change( function(e) {
             var all = jQuery("select.date_day");
             var index = all.index(e.target);
-            if ( self.pDoc.events[index].status != 'added' )
-               self.pDoc.events[index].status = "changed";
+            self.pDoc.events[index].status = "changed";
         });
         months.change( function(e) {
             var all = jQuery("select.date_month");
             var index = all.index(e.target);
-            if ( self.pDoc.events[index].status != 'added' )
-               self.pDoc.events[index].status = "changed";
+            self.pDoc.events[index].status = "changed";
         });
         years.change( function(e) {
             var all = jQuery("input.year");
             var index = all.index(e.target);
-            if ( self.pDoc.events[index].status != 'added' )
-               self.pDoc.events[index].status = "changed";
+            self.pDoc.events[index].status = "changed";
         });
     }; 
     /**
@@ -248,7 +223,7 @@ function events(target,docid,author)
             var boxIndex = Math.floor(currScrollPos/self.boxWidth);
             var event = self.pDoc.events[boxIndex];
             var deleted_items = self.pDoc.events.splice(boxIndex,1);
-            if ( event.status != 'added' && deleted_items.length>0 )
+            if ( event._id != undefined && deleted_items.length>0 )
             {
                 if ( self.deleted_events == undefined )
                     self.deleted_events = deleted_items; 
