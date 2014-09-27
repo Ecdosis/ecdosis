@@ -9,6 +9,7 @@ function events(target,docid,author)
     this.target = target;
     this.selector = undefined;
     this.pDoc = undefined;
+    this.docid = docid;
     this.deleted_events = undefined;
     this.author = author;
     this.save="save";
@@ -42,6 +43,7 @@ function events(target,docid,author)
                 year: prev.date.year
             },
             type: prev.type,
+            docid: self.docid,
             status: "added"
         };
         return event;
@@ -258,7 +260,7 @@ function events(target,docid,author)
         if ( box != undefined )
         {
             var title = box.find("input.title_box");
-            var qualifier = box.find("select.qualier");
+            var qualifier = box.find("select.qualifier");
             var day = box.find("select.date_day");
             var month = box.find("select.date_month");
             var year = box.find("input.year");
@@ -268,10 +270,12 @@ function events(target,docid,author)
                 self.restore_div();                
             event.title = title.val();
             event.type = type.val();
-            var date = (qualifier.val()!=undefined)?qualifier.val()+" ":"";
-            date += (day.val()!=undefined)?day.val():"";
-            date += (month.val()!=undefined)?"-"+month.val():"";
-            date += (date.length>0)?"-"+year.val():year.val();
+            var date = (qualifier.val()!="")?qualifier.val()+" ":"";
+            date += day.val();
+            date += (day.val().length>0)?"-":"";
+            date += month.val();
+            date += (month.val().length>0)?"-":"";
+            date += year.val();
             event.date = date;
             var editables = box.find("div.edit-region");
             if ( editables.length==2 )
