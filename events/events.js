@@ -18,6 +18,9 @@ function events(target,docid,author)
     this.search="search";
     this.boxWidth=604;
     this.invalid_date_msg = "Please correct this date before saving";
+    this.empty_description = "Enter event description";
+    this.empty_references = "Enter references";
+    this.empty_title = "Enter event title";
     this.month_days = ['','1','2','3','4','5','6','7','8','9','10','11','12',
         '13','14','15','16','17','18','19','20','21','22','23','24','25','26','27','28',
         '29','30','31'];
@@ -33,9 +36,9 @@ function events(target,docid,author)
      */
     this.create_event = function(prev) {
         var event = {
-            description: "",
-            references: "",
-            title: "",
+            description: self.empty_description,
+            references: self.empty_references,
+            title: self.empty_title,
             date: {
                 qualifier: prev.date.qualifier,
                 month: prev.date.month,
@@ -280,8 +283,14 @@ function events(target,docid,author)
             var editables = box.find("div.edit-region");
             if ( editables.length==2 )
             {
-                event.description = editables[0].innerHTML;
-                event.references = editables[1].innerHTML;
+                var description = editables[0].innerHTML;
+                var references = editables[1].innerHTML;
+                if ( description==self.empty_description )
+                    description = "";
+                if ( references==self.empty_references )
+                    references = "";
+                event.description = description;
+                event.references = references;
             }
         }
         return this.verify_date(index);
@@ -419,8 +428,11 @@ function events(target,docid,author)
     this.install_editor = function( selector ) {
         this.selector = selector;
         var target = jQuery(selector);
+        var content = target.html();
+        if ( content == self.empty_description||content==self.empty_references )
+            content = "";
         target.replaceWith(function(){
-            return '<textarea id="tinyeditor">'+target.html()+'</textarea>';
+            return '<textarea id="tinyeditor">'+content+'</textarea>';
         });
         var editor = new TINY.editor.edit('editor', {
 	    id: 'tinyeditor',
@@ -450,7 +462,16 @@ function events(target,docid,author)
         var iframe = jQuery("#tinyeditor").next();
         var html = iframe[0].contentDocument.documentElement;
         var content = html.lastChild.innerHTML;
-        jQuery("div.tinyeditor").replaceWith('<div class="edit-region">'+content+'</div>');
+        var class_name = "edit-region";
+        if ( content=='<br>' )
+        {
+            var parent = iframe.closest("tr");
+            if ( parent.next("tr").length!= 0)
+                content = self.empty_description;
+            else
+                content = self.empty_references;
+        }
+        jQuery("div.tinyeditor").replaceWith('<div class="'+class_name+'">'+content+'</div>');
         jQuery(self.selector).click( function(e) {
             if ( jQuery("#tinyeditor").length>0 )
                 self.restore_div();
@@ -518,6 +539,13 @@ function events(target,docid,author)
                 html += '</td></tr>';
                 break;
             case 'textarea':
+                if ( value.length==0 )
+                {
+                    if ( classname=='description' )
+                        value = self.empty_description;
+                    else if ( classname=='references' )
+                        value = self.empty_references;
+                }
                 html += '<tr><td colspan="2"><div class="edit-region">'+value+'</div></td></tr>';
                 break;
         }
@@ -548,8 +576,8 @@ function events(target,docid,author)
         html += '<table>';
         html += self.compose_row('text',event.title,'title_box'); 
         html += self.compose_row('date',event.date,event.type);
-        html += self.compose_row('textarea',event.description);
-        html += self.compose_row('textarea',event.references);
+        html += self.compose_row('textarea',event.description,'description');
+        html += self.compose_row('textarea',event.references,'references');
         html += '</table>';
         html += '</div>';
         return html;
