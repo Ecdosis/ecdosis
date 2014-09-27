@@ -5,7 +5,7 @@ function events_all()
     $html ='<script type="text/javascript" src="'.$mod_path
           .'/events.js?target=content&'
           .'docid='.$_GET['docid']
-          .'&author='.$_GET['author'].'"></script>';
+          .'&author='.$_GET['author'].'&modpath='.$mod_path.'"></script>';
     error_log($html);
     return $html;
 }
@@ -52,7 +52,7 @@ function events_block_view($delta = '') {
       $mod_path = drupal_get_path('module', 'events');
       $block['content'] = '<script type="text/javascript" src="'.$mod_path
           .'/events.js?target=content&'
-          .$_GET["docid"].'&author='.$_GET['author'].'"></script>';
+          .$_GET["docid"].'&author='.$_GET['author'].'&modpath='.$mod_path.'"></script>';
       error_log($block['content']);
       return $block;
   }

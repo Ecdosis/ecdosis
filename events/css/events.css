@@ -8,9 +8,9 @@
 div.box {width:604px;display:inline-block}
 div.box input[type="text"] {width:300px}
 .textarea-prompt {vertical-align:top;padding-top:7px}
-div.edit-region, div.edit-region-ghost { border: 1px solid lightgrey;border-radius:3px;-moz-border-radius:3px;-webkit-border-radius:3px;
+div.edit-region { overflow-y; auto; border: 1px solid lightgrey;border-radius:3px;-moz-border-radius:3px;-webkit-border-radius:3px;
     background-color:white;height:4em;padding: 3px 5px 3px 5px }
-div.edit-region-ghost {color:lightgrey}
+span.placeholder {color:#959595}
 input.year { width: 50px !important }
 div.event-button { display:inline; border: 1px solid grey;padding: 5px 5px 5px 5px;border-radius:3px;margin-right:10px;}
 div.event-button:hover {background-color: lightgrey }

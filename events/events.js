@@ -1,34 +1,66 @@
 /**
+ * Search expressions store the location of a point from which to search.
+ * or at which a search matches
+ * @param field the field from which to search
+ * @param index the panel or box index
+ * @param pos the position within the string
+ * @param length the length of the match (0 if not matched) 
+ */
+function SearchExpr( field, index, pos, length )
+{
+    this.field = field;
+    this.index = index;
+    this.pos = pos;
+    this.length = length;
+}
+/**
  * Object to represent events in a project
  * @param target the id of the element to add ourselves to as a child
  * @param docid the docid of the project e.g. italian/deroberto
  * @param author the name of the author
+ * @param modpath the path from web-root to the events.js file
  */
-function events(target,docid,author)
+function events(target,docid,author,modpath)
 {
     this.target = target;
+    this.modpath = modpath;
     this.selector = undefined;
     this.pDoc = undefined;
     this.docid = docid;
     this.deleted_events = undefined;
+    this.search_expr = undefined;
     this.author = author;
-    this.save="save";
-    this.delete_event="delete event";
-    this.add_event="add event";
-    this.search="search";
     this.boxWidth=604;
-    this.invalid_date_msg = "Please correct this date before saving";
-    this.empty_description = "Enter event description";
-    this.empty_references = "Enter references";
-    this.empty_title = "Enter event title";
+    this.languages = {italiano:'it',italian:'it',espagñol:'es',spanish:'es',english:'en'};
+
     this.month_days = ['','1','2','3','4','5','6','7','8','9','10','11','12',
         '13','14','15','16','17','18','19','20','21','22','23','24','25','26','27','28',
         '29','30','31'];
-    this.month_names = ['','Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep',
-        'Oct','Nov','Dec'];
-    this.qualifiers = ['','early','late','by','perhaps','circa'];
-    this.event_types = ['biography','composition','letter'];
     var self = this;
+    /**
+     * Extract the docid's language key to an ISO 2-letter key
+     * @return a two-letter code for supported languages or 'en' as default
+     */
+    this.language = function() {
+        var parts = self.docid.split("/");
+        if ( parts.length>0&&self.languages[parts[0]]!=undefined )
+            return self.languages[parts[0]];
+        else
+            return 'en';
+    };
+    /* define all language-related strings for later */
+    var script_name = window.location.pathname;
+    var lastIndex = script_name.lastIndexOf("/");
+    if ( lastIndex !=-1 )
+       script_name = script_name.substr(0,lastIndex);
+    script_name += '/'+this.modpath+'/js/strings.'+this.language(docid)+'.js';
+    jQuery.getScript(script_name)
+    .done(function( script, textStatus ) {
+        self.strs = load_strings();
+    })
+    .fail(function( jqxhr, settings, exception ) {
+        console.log("Failed to load language strings. status=",jqxhr.status );
+    });
     /**
      * Create a blank event (based on the previous one)
      * @param prev the previous event in the pDoc.events array
@@ -36,9 +68,9 @@ function events(target,docid,author)
      */
     this.create_event = function(prev) {
         var event = {
-            description: self.empty_description,
-            references: self.empty_references,
-            title: self.empty_title,
+            description: self.strs.empty_description,
+            references: self.strs.empty_references,
+            title: "",
             date: {
                 qualifier: prev.date.qualifier,
                 month: prev.date.month,
@@ -132,15 +164,10 @@ function events(target,docid,author)
      * @param objs a list of jQuery objects
      */
     this.init_titles = function( objs ) {
+        objs.attr("placeholder",self.strs.empty_title);
         objs.click( function() {
             if ( jQuery("#tinyeditor").length>0 )
                 self.restore_div();
-            if ( jQuery(this).val()==self.empty_title )
-                jQuery(this).val("");
-        });
-        objs.blur( function(e) {
-            if ( jQuery(e.target).val()=="" )
-                jQuery(e.target).val(self.empty_title);
         });
         objs.change( function(e) {
             var titles = jQuery("input.title_box");
@@ -239,6 +266,14 @@ function events(target,docid,author)
         });
     }; 
     /**
+     * Add a simple click-handler to the search box
+     */
+    this.init_search_box = function() {
+        jQuery("#search_box").click( function(e) {
+            self.search_expr = undefined;
+        });
+    };
+    /**
      * Post a changed event to the server
      * @param url the url to post to
      * @param service type of change: append this to the url
@@ -246,7 +281,7 @@ function events(target,docid,author)
      * @return true if it succeeded
      */
     this.post_obj = function( url, service, obj ) {
-        console.log("posting to"+url+service+JSON.stringify(obj));
+        //console.log("posting to"+url+service+JSON.stringify(obj));
         var jqxhr = jQuery.ajax(url+service,{
             type:"POST",
             data: obj,
@@ -291,15 +326,21 @@ function events(target,docid,author)
             {
                 var description = editables[0].innerHTML;
                 var references = editables[1].innerHTML;
-                if ( description==self.empty_description )
+                if ( description==self.strs.empty_description )
                     description = "";
-                if ( references==self.empty_references )
+                if ( references==self.strs.empty_references )
                     references = "";
                 event.description = description;
                 event.references = references;
             }
         }
         return this.verify_date(index);
+    };
+    /**
+     * Use Javascript search to find text in titles, descriptions, references
+     */ 
+    this.search_from = function( expr ) {
+        return undefined;
     };
     /**
      * Copy the generated html into the document and set everything up
@@ -413,12 +454,26 @@ function events(target,docid,author)
                     {
                         var amount = i*self.boxWidth;
                         jQuery("#wire_frame").scrollLeft(amount);
-                        alert(self.invalid_date_msg);
+                        alert(self.strs.invalid_date_msg);
                         break;
                     }
                 }
             }
         });        
+        /**
+         * Search in pDoc, scroll to that panel, hightlight hit
+         */
+        jQuery("#search_button").click( function() {        
+            if ( jQuery("#search_box").val().length>0 )
+            {
+               if ( self.search_expr == undefined )
+                   self.search_expr = new SearchExpr('title',0,0,0);
+               var res = self.search_from(self.search_expr);
+               if ( res != undefined )
+                   self.search_expr = res;
+            }            
+        });
+        this.init_search_box();
         // one of these for each panel
         this.init_editables(jQuery("div.edit-region"));
         this.init_type_selects(jQuery(".type_select"));
@@ -435,7 +490,7 @@ function events(target,docid,author)
         this.selector = selector;
         var target = jQuery(selector);
         var content = target.html();
-        if ( content == self.empty_description||content==self.empty_references )
+        if ( content == self.strs.empty_description||content==self.strs.empty_references )
             content = "";
         target.replaceWith(function(){
             return '<textarea id="tinyeditor">'+content+'</textarea>';
@@ -473,9 +528,9 @@ function events(target,docid,author)
         {
             var parent = iframe.closest("tr");
             if ( parent.next("tr").length!= 0)
-                content = self.empty_description;
+                content = self.strs.empty_description;
             else
-                content = self.empty_references;
+                content = self.strs.empty_references;
         }
         jQuery("div.tinyeditor").replaceWith('<div class="'+class_name+'">'+content+'</div>');
         jQuery(self.selector).click( function(e) {
@@ -537,20 +592,20 @@ function events(target,docid,author)
                 html += 'type="text" value="'+value+'"></input></td></tr>';
                 break;
             case 'date':
-                html += '<tr><td>'+this.make_dropdown(this.qualifiers,(value.qualifier=='none')?'':value.qualifier,'qualifier');
+                html += '<tr><td>'+this.make_dropdown(this.strs.qualifiers,(value.qualifier=='none')?'':value.qualifier,'qualifier');
                 html += this.make_dropdown(this.month_days,value.day.toString(),'date_day');
-                html += this.make_dropdown(this.month_names,(value.month>=0)?this.month_names[value.month+1]:'','date_month');
+                html += this.make_dropdown(this.strs.month_names,(value.month>=0)?this.strs.month_names[value.month+1]:'','date_month');
                 html += this.make_text(value.year.toString(),'year');
-                html += '</td><td>'+this.make_dropdown(this.event_types,classname,"type_select");
+                html += '</td><td>'+this.make_dropdown(this.strs.event_types,classname,"type_select");
                 html += '</td></tr>';
                 break;
             case 'textarea':
                 if ( value.length==0 )
                 {
                     if ( classname=='description' )
-                        value = self.empty_description;
+                        value = self.strs.empty_description;
                     else if ( classname=='references' )
-                        value = self.empty_references;
+                        value = self.strs.empty_references;
                 }
                 html += '<tr><td colspan="2"><div class="edit-region">'+value+'</div></td></tr>';
                 break;
@@ -563,13 +618,13 @@ function events(target,docid,author)
     this.make_toolbar = function() {
         var  html = '<div id="event_toolbar">';
         html += '<div id="left-toolbar-group">';
-        html += '<div title="'+self.add_event+'" id="add_button" class="event-button"><i class="fa fa-plus-square fa-lg"></i></div>';
-        html += '<div title="'+self.delete_event+'" id="delete_button" class="event-button"><i class="fa fa-minus-square fa-lg"></i></div>';
-        html += '<div title="'+self.save+'" id="save_button" class="event-button"><i class="fa fa-save fa-lg"></i></div>';
+        html += '<div title="'+self.strs.add_event+'" id="add_button" class="event-button"><i class="fa fa-plus-square fa-lg"></i></div>';
+        html += '<div title="'+self.strs.delete_event+'" id="delete_button" class="event-button"><i class="fa fa-minus-square fa-lg"></i></div>';
+        html += '<div title="'+self.strs.save+'" id="save_button" class="event-button"><i class="fa fa-save fa-lg"></i></div>';
         html += '<input class="filler" type="text"></input>';
         html += '</div><div id="right-toolbar-group">';
         html += '<input id="search_box" type="text">';
-        html += '<div title="'+self.search+'" id="search-button" class="event-button"><i class="fa fa-search fa-lg"></i></div>';
+        html += '<div title="'+self.strs.search+'" id="search-button" class="event-button"><i class="fa fa-search fa-lg"></i></div>';
         html += '</div></div>\n';
         return html;
     };
@@ -651,6 +706,6 @@ function getArgs( scrName )
 jQuery(document).ready( 
     function(){
         var params = getArgs('events.js');
-        var editor = events(params['target'],params['docid'],params['author']);
+        var editor = events(params['target'],params['docid'],params['author'],params['modpath']);
     }
 ); 
