@@ -16,6 +16,7 @@ function events(target,docid,author)
     this.add_event="add event";
     this.search="search";
     this.boxWidth=604;
+    this.invalid_date_msg = "Please correct this date before saving";
     this.month_days = ['','1','2','3','4','5','6','7','8','9','10','11','12',
         '13','14','15','16','17','18','19','20','21','22','23','24','25','26','27','28',
         '29','30','31'];
@@ -138,6 +139,51 @@ function events(target,docid,author)
         });
     };
     /**
+     * Indicate displeasure by flashing an element
+     * @param elem the element wrongly used
+     */
+    this.flash = function( elem ) {
+        elem.fadeOut(100).fadeIn(100).fadeOut(100).fadeIn(100);
+    };
+    /**
+     * Check that the current date is valid
+     * @param index the box index
+     * @return true if it is OK else false
+     */
+    this.verify_date = function(index) {
+        var qualifier = jQuery("select.qualifier:eq("+index+")");
+        var day = qualifier.next("select.date_day");
+        var month = day.next("select.date_month");
+        var year = month.next("input.year");
+        if ( qualifier.val() != "" )
+        {
+            if (day.val()!="")
+            {
+                self.flash(qualifier);
+                return false;
+            }
+        }
+        if ( day.val()=="" )
+        {
+            if ( qualifier.val()=="" )
+            {
+                self.flash(day);
+                return false;
+            }
+        }
+        if ( month.val()=="" )
+        {
+            if ( day.val()!=""||qualifier.val()=="" )
+            {
+                self.flash(month);
+                return false;
+            }
+        }
+        if ( year.val()=="" )
+            return false;
+        return true;
+    };
+    /**
      * Set handlers for all the date fields
      * @param index the current box index to select (optional)
      */
@@ -159,8 +205,7 @@ function events(target,docid,author)
             years = jQuery("input.year");
         }
         // every time someone change a date field we must mark the 
-        // pDoc.events entry as 'changed', unless it was 'added', 
-        // to distinguish newly added from 'changed' entries
+        // pDoc.events entry as 'changed'.
         qualifiers.change( function(e) {
             var all = jQuery("select.qualifier");
             var index = all.index(e.target);
@@ -235,6 +280,7 @@ function events(target,docid,author)
                 event.references = editables[1].innerHTML;
             }
         }
+        return this.verify_date(index);
     };
     /**
      * Copy the generated html into the document and set everything up
@@ -328,20 +374,29 @@ function events(target,docid,author)
                     var oldStatus = event.status;
                     if ( event.status == 'changed' )
                         service = 'update';
-                    self.update_event(event,i);
-                    delete event.status;
-                    var jsonStr = JSON.stringify(event);
-                    var obj = {
-                         event: jsonStr
-                    };
-                    var res = self.post_obj(url,service,obj);
-                    if ( !res )
+                    if ( self.update_event(event,i) )
                     {
-                        console.log("failed to add or update event");
-                        event.status = oldStatus;
+                        delete event.status;
+                        var jsonStr = JSON.stringify(event);
+                        var obj = {
+                             event: jsonStr
+                        };
+                        var res = self.post_obj(url,service,obj);
+                        if ( !res )
+                        {
+                            console.log("failed to add or update event");
+                            event.status = oldStatus;
+                        }
+                        else
+                            event.status = 'unchanged';
                     }
                     else
-                        event.status = 'unchanged';
+                    {
+                        var amount = i*self.boxWidth;
+                        jQuery("#wire_frame").scrollLeft(amount);
+                        alert(self.invalid_date_msg);
+                        break;
+                    }
                 }
             }
         });        
