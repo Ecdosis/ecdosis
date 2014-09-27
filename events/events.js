@@ -27,7 +27,7 @@ function events(target,docid,author)
     /**
      * Create a blank event (based on the previous one)
      * @param prev the previous event in the pDoc.events array
-     * @return an new event object (array)
+     * @return a new event object (array)
      */
     this.create_event = function(prev) {
         var event = {
@@ -87,6 +87,7 @@ function events(target,docid,author)
      * @param objs a list of editable divs to activate
      */
     this.init_editables = function( objs ) {
+        // if the user clicks on it, turn it into an editor
         objs.click( function(e) {
             if ( jQuery("#tinyeditor").length>0 )
                 self.restore_div();
@@ -96,6 +97,7 @@ function events(target,docid,author)
             if ( index != undefined )
                 self.install_editor("div.edit-region:eq("+index+")");
         });
+        // if the value changes, update pDoc
         objs.change( function(e) {
             var editables = jQuery("div.edit-region");
             var index = editables.index(e.target)/2;
@@ -105,7 +107,7 @@ function events(target,docid,author)
     };
     /**
      * Set handlers for the event type select dropdown
-     * @param objs a list of event typ selector jQuery objects
+     * @param objs a list of event type selector jQuery objects
      */
     this.init_type_selects = function(objs) {
         objs.click( function() {
@@ -180,13 +182,20 @@ function events(target,docid,author)
             self.pDoc.events[index].status = "changed";
         });
     }; 
+    /**
+     * Post a changed event to the server
+     * @param url the url to post to
+     * @param service type of change: append this to the url
+     * @param obj an ordinary object with name value pairs to upload
+     * @return true if it succeeded
+     */
     this.post_obj = function( url, service, obj ) {
         console.log("posting to"+url+service+JSON.stringify(obj));
         var jqxhr = jQuery.ajax(url+service,{
             type:"POST",
             data: obj,
             success: function(data, textStatus, jqXHR) {
-                console.log("success!");
+              //  console.log("success!");
             },
             error:function(jqXHR, textStatus, errorThrown){
                 console.log("failed status="+jqXHR.status+" errorThrown="+errorThrown);
@@ -195,7 +204,7 @@ function events(target,docid,author)
         return jqxhr.status<400;
     };
     /**
-     * Read the new eventdata fromt he specified box
+     * Read the new event data from the specified box
      * @param event the event object to update
      * @param index the index of the box to read from
      */
@@ -229,7 +238,7 @@ function events(target,docid,author)
     };
     /**
      * Copy the generated html into the document and set everything up
-     * @param the html to append to the target
+     * @param html the html to append to the target
      */
     this.setHtml = function( html )
     {
@@ -272,7 +281,7 @@ function events(target,docid,author)
         });        
         /**
          * Delete an event in the GUI. If added recently just remove it, else 
-         * move it to the delted_events array for later confirmation on server. 
+         * move it to the deleted_events array for later confirmation on server. 
          * It won't be deleted until the user clicks "save".  
          */
         jQuery("#delete_button").click( function() {
