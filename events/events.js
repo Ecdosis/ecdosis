@@ -30,17 +30,19 @@ function events(target,docid,author)
      * @return an new event object (array)
      */
     this.create_event = function(prev) {
-        var event = new Array();
-        event.description = "";
-        event.references = "";
-        event.title = "";
-        event.date = new Array();
-        event.date.month = prev.date.month;
-        event.date.day = prev.date.day;
-        event.date.year = prev.date.year;
-        event.date.qualifier = prev.date.qualifier;
-        event.type= prev.type;
-        event.status = 'added';
+        var event = {
+            description: "",
+            references: "",
+            title: "",
+            date: {
+                qualifier: prev.date.qualifier,
+                month: prev.date.month,
+                day: prev.date.day,
+                year: prev.date.year
+            },
+            type: prev.type,
+            status: "added"
+        };
         return event;
     };
     /**
@@ -179,16 +181,51 @@ function events(target,docid,author)
         });
     }; 
     this.post_obj = function( url, service, obj ) {
-        var success = true;
-        jQuery.ajax( url,
-        {
-            type: "POST",
+        console.log("posting to"+url+service+JSON.stringify(obj));
+        var jqxhr = jQuery.ajax(url+service,{
+            type:"POST",
             data: obj,
-            error: function(jqXHR, textStatus, errorThrown ) {
-                success = false;
+            success: function(data, textStatus, jqXHR) {
+                console.log("success!");
+            },
+            error:function(jqXHR, textStatus, errorThrown){
+                console.log("failed status="+jqXHR.status+" errorThrown="+errorThrown);
             }
         });
-        return success;
+        return jqxhr.status<400;
+    };
+    /**
+     * Read the new eventdata fromt he specified box
+     * @param event the event object to update
+     * @param index the index of the box to read from
+     */
+    this.update_event = function( event, index ) {
+        var box = jQuery("div.box:eq("+index+")");
+        if ( box != undefined )
+        {
+            var title = box.find("input.title_box");
+            var qualifier = box.find("select.qualier");
+            var day = box.find("select.date_day");
+            var month = box.find("select.date_month");
+            var year = box.find("input.year");
+            var type = box.find("select.type_select");
+            var editor = box.find("div.tinyeditor");
+            if ( editor.length==1 )
+                self.restore_div();                
+            event.title = title.val();
+            event.type = type.val();
+            var date = (qualifier.val()!=undefined)?qualifier.val()+" ":"";
+            date += (day.val()!=undefined)?day.val():"";
+            date += (month.val()!=undefined)?"-"+month.val():"";
+            date += (date.length>0)?"-"+year.val():year.val();
+            event.date = date;
+            var editables = box.find("div.edit-region");
+            if ( editables.length==2 )
+            {
+                event.description = editables[0].innerHTML;
+                event.references = editables[1].innerHTML;
+            }
+        }
     };
     /**
      * Copy the generated html into the document and set everything up
@@ -225,7 +262,7 @@ function events(target,docid,author)
             // update scroll pane width
             jQuery("#scroll_pane").width(self.boxWidth*self.pDoc.events.length);
             self.do_scroll_right(self.boxWidth);
-            //install event handlers
+            // install event handlers
             var newIndex = boxIndex+1;
             self.init_titles(jQuery("input.title_box:eq("+newIndex+")"));
             self.init_type_selects(jQuery("select.type_select:eq("+newIndex+")"));
@@ -234,7 +271,7 @@ function events(target,docid,author)
             self.init_dates(newIndex);
         });        
         /**
-         * Delete an event in teh GUI. If added recently just remove it, else 
+         * Delete an event in the GUI. If added recently just remove it, else 
          * move it to the delted_events array for later confirmation on server. 
          * It won't be deleted until the user clicks "save".  
          */
@@ -259,40 +296,41 @@ function events(target,docid,author)
          * Save changed, add new and delete old events on server
          */
         jQuery("#save_button").click( function() {
-            var url = "http://"+window.location.hostname+"/project/events/";
-            for ( var i=0;i<self.deleted_events.length;i++ )
+            var url = window.location.protocol+"//"+window.location.host+"/project/events/";
+            if ( self.deleted_events != undefined )
             {
-                var event = self.deleted_events[i];
-                var obj = {
-                    _id: event._id
-                };
-                var res = self.post_obj(url,'delete',obj);
-                if ( !res )
-                    console.log("failed to delete "+event._id);
+                for ( var i=0;i<self.deleted_events.length;i++ )
+                {
+                    var event = self.deleted_events[i];
+                    var obj = {
+                        _id: event._id
+                    };
+                    var res = self.post_obj(url,'delete',obj);
+                    if ( !res )
+                        console.log("failed to delete "+event._id);
+                }
+                self.deleted_events = undefined;
             }
-            self.deleted_events = undefined;
             for ( var i=0;i<self.pDoc.events.length;i++ )
             {
                 var event = self.pDoc.events[i];
-                if ( event.status == 'added' )
-                {
+                if ( event.status != 'unchanged' ) {
+                    var service = "add";
+                    var oldStatus = event.status;
+                    if ( event.status == 'changed' )
+                        service = 'update';
+                    self.update_event(event,i);
+                    delete event.status;
+                    var jsonStr = JSON.stringify(event);
                     var obj = {
-                        event: JSON.stringify(event)
-                    }
-                    var res = self.post_obj(url,'add',obj);
+                         event: jsonStr
+                    };
+                    var res = self.post_obj(url,service,obj);
                     if ( !res )
-                        console.log("failed to add event");
-                    else
-                        event.status = 'unchanged';
-                }
-                else if ( event.status == 'changed' )
-                {
-                    var obj = {
-                        event: JSON.stringify(event)
+                    {
+                        console.log("failed to add or update event");
+                        event.status = oldStatus;
                     }
-                    var res = self.post_obj(url,'update',obj);
-                    if ( !res )
-                        console.log("failed to update event");
                     else
                         event.status = 'unchanged';
                 }
