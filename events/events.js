@@ -135,6 +135,12 @@ function events(target,docid,author)
         objs.click( function() {
             if ( jQuery("#tinyeditor").length>0 )
                 self.restore_div();
+            if ( jQuery(this).val()==self.empty_title )
+                jQuery(this).val("");
+        });
+        objs.blur( function(e) {
+            if ( jQuery(e.target).val()=="" )
+                jQuery(e.target).val(self.empty_title);
         });
         objs.change( function(e) {
             var titles = jQuery("input.title_box");
