@@ -505,7 +505,7 @@ function events(target,docid,author,modpath)
                     if ( res != -1 )
                     {
                         expr.pos = res;
-                        expr.length = path.length;
+                        expr.length = pat.length;
                         break;
                     }
                     else

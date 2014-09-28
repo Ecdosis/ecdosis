@@ -14,7 +14,7 @@ span.placeholder {color:#959595}
 input.year { width: 50px !important }
 div.event-button { display:inline; border: 1px solid grey;padding: 5px 5px 5px 5px;border-radius:3px;margin-right:10px;}
 div.event-button:hover {background-color: lightgrey }
-#search-button { margin-right: 0px }
+#search_button { margin-right: 0px }
 div.event-button :hover { cursor:pointer }
 input.filler {visibility:hidden;width:1px}
 #search_box {margin-right:10px;display:inline}
