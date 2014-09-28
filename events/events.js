@@ -12,6 +12,53 @@ function SearchExpr( field, index, pos, length )
     this.index = index;
     this.pos = pos;
     this.length = length;
+    var obj = this;
+    /**
+     * Advance to the end of the current match
+     * @param event the current event
+     * @return undefined if it failed else the original object
+     */
+    this.advance = function( event,next ) {
+        if ( this.field=='title' )
+        {
+            if ( this.pos+this.length>= event.title.length )
+            {
+                this.field = 'description';
+                this.pos = 0;
+            }
+            else
+                this.pos += this.length;
+            this.length = 0;
+        }
+        else if ( this.field == 'description' )
+        {
+            if ( this.pos+this.length>= event.description.length )
+            {
+                this.field = 'references';
+                this.pos = 0;
+            }
+            else
+                this.pos += this.length;
+            this.length = 0;
+        }
+        else if ( this.field == 'references' )
+        {
+            if ( this.pos+this.length >= event.references.length )
+            {
+                if ( next == undefined )
+                    return undefined;
+                else
+                {
+                    this.field = 'title';
+                    this.pos = 0;
+                }
+            }
+            else
+                this.pos += this.length;
+            this.length = 0;
+        }
+        return this;
+    };
 }
 /**
  * Object to represent events in a project
@@ -57,6 +104,7 @@ function events(target,docid,author,modpath)
     jQuery.getScript(script_name)
     .done(function( script, textStatus ) {
         self.strs = load_strings();
+    console.log("loaded "+script_name+" successfully");
     })
     .fail(function( jqxhr, settings, exception ) {
         console.log("Failed to load language strings. status=",jqxhr.status );
@@ -337,10 +385,181 @@ function events(target,docid,author,modpath)
         return this.verify_date(index);
     };
     /**
+     * Compute the table from the pattern for kmp search
+     * @param pat the pattern
+     * @return an array of positions
+     */
+    this.makeKMPTable = function(pat) {
+        var results = [];
+        var pos = 2;
+        var cnd = 0;
+        results[0] = -1;
+        results[1] = 0;
+        while (pos < pat.length) 
+        {
+            if (pat[pos - 1] == pat[cnd]) 
+            {
+                cnd++;
+                results[pos] = cnd;
+                pos++;
+            }
+            else if (cnd > 0) 
+                cnd = results[cnd];
+            else 
+            {
+                results[pos] = 0;
+                pos++;
+            }
+        }
+        return results;
+    };
+    /**
+     * Increment our position in the string skipping over tags
+     * @param str the string to search
+     * @param m the starting index
+     * @param inc the amount to increment it
+     */
+    this.inc_m = function(str,m,inc) {
+        var count = 0;
+        var state = (str[m]=='<')?1:0;
+        var i = (state==0)?m:m+1;
+        while ( count < inc || state==1 )
+        {
+            switch ( state )
+            {
+                case 0:
+                    if ( str[count+i]=='<' )
+                    {
+                        i++;
+                        state = 1;
+                    }
+                    else
+                        count++;
+                    break;
+                case 1:
+                    if ( str[count+i]=='>' )
+                    {
+                        i++;
+                        state = 0;
+                    }
+                    else
+                        i++;
+                    break;
+            }
+        }
+        return i+count;
+    };
+    /**
+     * Search a HTML string using kmp algorithm
+     * @param str the string to search in
+     * @param path the pattern to search for
+     * @return the index of the match-start or -1
+     */
+    this.html_search = function(str,pat) {
+        str = str.split('');
+        pat = pat.split('');
+        var index = -1;
+        var m = 0;
+        var i = 0;
+        var T = this.makeKMPTable(pat);
+        m = this.inc_m(str,m,0);
+        while (m + i < str.length) 
+        {
+            if (pat[i] == str[m + i]) 
+            {
+                if (i == pat.length-1) 
+                    return m;
+                i++;
+            } 
+            else 
+            {
+                m = this.inc_m(str,m,i-T[i]);
+                if (T[i] > -1)
+                    i = T[i];
+                else 
+                    i = 0;
+            }
+        }
+        return index;
+    };
+    /**
      * Use Javascript search to find text in titles, descriptions, references
+     * @param expr the search position
+     * @param pat the pattern to search for
+     * @return a search expression or undefined if not found
      */ 
-    this.search_from = function( expr ) {
-        return undefined;
+    this.search_from = function( expr, pat ) {
+        var lim = self.pDoc.events.length;
+        var event = self.pDoc.events[expr.index];
+        var next = (lim==1)?undefined:self.pDoc.events[(expr.index+1)%self.pDoc.events.length];
+        expr = expr.advance(event,next);            
+        if ( expr != undefined )
+        {
+            var i;
+            for ( i=0;i<lim;i++ )
+            {
+                var res = 0;
+                if ( expr.field=='title' )
+                {
+                    res = event.title.substr(expr.pos).search(pat);
+                    if ( res != -1 )
+                    {
+                        expr.pos = res;
+                        expr.length = path.length;
+                        break;
+                    }
+                    else
+                    {
+                        expr.field = 'description';
+                        expr.pos = 0;
+                    }
+                }
+                if ( expr.field == 'description' )
+                {
+                    res = self.html_search(event.description.substr(expr.pos),pat);
+                    if ( res != -1 )
+                    {
+                        expr.pos = res;
+                        expr.length = pat.length;
+                        break;
+                    }  
+                    else
+                    {
+                        expr.field = 'references';
+                        expr.pos = 0;
+                    }
+                }
+                if ( expr.field == 'references' )
+                {
+                    res = self.html_search(event.references.substr(expr.pos),pat);
+                    if ( res != -1 )
+                    {
+                        expr.pos = res;
+                        expr.length = pat.length;
+                        break;
+                    }
+                    else
+                    {
+                        expr.index = (expr.index+1)%pDoc.events.length;
+                        expr.field = 'title';
+                        expr.pos = 0;
+                    }
+                }
+                event = self.pDoc.events[expr.index];
+            }
+            if ( i==lim )
+                expr = undefined;
+        }
+        return expr;
+    };
+    /**
+     * Scroll to the position of a search hit
+     * @param expr the successful search expression
+    */
+    this.scroll_to_hit = function( expr ) {
+        this.search_expr = expr;
+        var amount = this.boxWidth*expr.index;
+        jQuery("#wire_frame").scrollLeft(amount);
     };
     /**
      * Copy the generated html into the document and set everything up
@@ -461,17 +680,27 @@ function events(target,docid,author,modpath)
             }
         });        
         /**
-         * Search in pDoc, scroll to that panel, hightlight hit
+         * Search in pDoc, scroll to that panel, highlight hit
          */
         jQuery("#search_button").click( function() {        
             if ( jQuery("#search_box").val().length>0 )
             {
                if ( self.search_expr == undefined )
-                   self.search_expr = new SearchExpr('title',0,0,0);
-               var res = self.search_from(self.search_expr);
+               {
+                   var currScrollPos = jQuery("#wire_frame").scrollLeft();
+                   var boxIndex = Math.floor(currScrollPos/self.boxWidth);
+                   self.search_expr = new SearchExpr('title',boxIndex,0,0);
+               }
+               var res = self.search_from(self.search_expr,jQuery("#search_box").val());
                if ( res != undefined )
+               {
                    self.search_expr = res;
-            }            
+                   self.scroll_to_hit(res);
+                   //self.highlight_hit(res);
+               }
+            }
+            else
+                self.flash(jQuery("#search_box"));         
         });
         this.init_search_box();
         // one of these for each panel
@@ -624,7 +853,7 @@ function events(target,docid,author,modpath)
         html += '<input class="filler" type="text"></input>';
         html += '</div><div id="right-toolbar-group">';
         html += '<input id="search_box" type="text">';
-        html += '<div title="'+self.strs.search+'" id="search-button" class="event-button"><i class="fa fa-search fa-lg"></i></div>';
+        html += '<div title="'+self.strs.search+'" id="search_button" class="event-button"><i class="fa fa-search fa-lg"></i></div>';
         html += '</div></div>\n';
         return html;
     };
