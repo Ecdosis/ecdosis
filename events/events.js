@@ -183,13 +183,6 @@ function events(target,docid,author,modpath)
             if ( index != undefined )
                 self.install_editor("div.edit-region:eq("+index+")");
         });
-        // if the value changes, update pDoc
-        objs.change( function(e) {
-            var editables = jQuery("div.edit-region");
-            var index = editables.index(e.target)/2;
-            if ( self.pDoc.events[index].status != 'added' )
-                self.pDoc.events[index].status = 'changed';
-        });
     };
     /**
      * Set handlers for the event type select dropdown
@@ -369,6 +362,7 @@ function events(target,docid,author,modpath)
             date += (month.val().length>0)?"-":"";
             date += year.val();
             event.date = date;
+            event.status = 'changed';
             var editables = box.find("div.edit-region");
             if ( editables.length==2 )
             {
@@ -630,6 +624,8 @@ function events(target,docid,author,modpath)
          * Save changed, add new and delete old events on server
          */
         jQuery("#save_button").click( function() {
+            if ( jQuery("#tinyeditor").length>0 )
+                self.restore_div();
             var url = window.location.protocol+"//"+window.location.host+"/project/events/";
             if ( self.deleted_events != undefined )
             {
@@ -762,6 +758,8 @@ function events(target,docid,author,modpath)
                 content = self.strs.empty_references;
         }
         jQuery("div.tinyeditor").replaceWith('<div class="'+class_name+'">'+content+'</div>');
+        var index = jQuery("#wire_frame").scrollLeft()/self.boxWidth;
+        self.pDoc.events[index].status = 'changed';
         jQuery(self.selector).click( function(e) {
             if ( jQuery("#tinyeditor").length>0 )
                 self.restore_div();
