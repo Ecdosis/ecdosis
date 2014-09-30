@@ -4,7 +4,7 @@
 #right-sidebar :hover {opacity:0.4;cursor:pointer}
 #left-sidebar :hover {opacity:0.4;cursor:pointer}
 #centre_panel {vertical-align:middle;display:inline-block;width:604px}
-#wire_frame {width:100%;overflow-x:scroll}
+#wire_frame {width:100%;overflow-x:scroll;overflow-y:hidden}
 div.box {width:604px;display:inline-block}
 div.box input[type="text"] {width:300px}
 .textarea-prompt {vertical-align:top;padding-top:7px}

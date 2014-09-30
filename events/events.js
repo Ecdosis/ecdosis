@@ -633,7 +633,7 @@ function events(target,docid,author,modpath)
                 {
                     var event = self.deleted_events[i];
                     var obj = {
-                        _id: event._id
+                        _id: event._id.$oid
                     };
                     var res = self.post_obj(url,'delete',obj);
                     if ( !res )
