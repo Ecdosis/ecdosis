@@ -319,6 +319,8 @@ function events(target,docid,author,modpath)
      * @param url the url to post to
      * @param service type of change: append this to the url
      * @param obj an ordinary object with name value pairs to upload
+     * @param succ success function(data, textStatus, jqXHR)
+     * @param fail function(jqXHR, textStatus, errorThrown)
      */
     this.post_obj = function( url, service, obj, succ, fail ) {
         //console.log("posting to"+url+service+JSON.stringify(obj));
