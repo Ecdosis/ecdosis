@@ -319,21 +319,15 @@ function events(target,docid,author,modpath)
      * @param url the url to post to
      * @param service type of change: append this to the url
      * @param obj an ordinary object with name value pairs to upload
-     * @return true if it succeeded
      */
-    this.post_obj = function( url, service, obj ) {
+    this.post_obj = function( url, service, obj, succ, fail ) {
         //console.log("posting to"+url+service+JSON.stringify(obj));
         var jqxhr = jQuery.ajax(url+service,{
             type:"POST",
             data: obj,
-            success: function(data, textStatus, jqXHR) {
-              //  console.log("success!");
-            },
-            error:function(jqXHR, textStatus, errorThrown){
-                console.log("failed status="+jqXHR.status+" errorThrown="+errorThrown);
-            }
+            success: succ,
+            error: fail
         });
-        return jqxhr.status<400;
     };
     /**
      * Read the new event data from the specified box
@@ -355,14 +349,15 @@ function events(target,docid,author,modpath)
                 self.restore_div();                
             event.title = title.val();
             event.type = type.val();
-            var date = (qualifier.val()!="")?qualifier.val()+" ":"";
-            date += day.val();
-            date += (day.val().length>0)?"-":"";
-            date += month.val();
-            date += (month.val().length>0)?"-":"";
-            date += year.val();
+            var date = {};
+            date.qualifier = qualifier.val();
+            if ( date.qualifier=="" )
+               date.qualifier = "none";
+            date.day = parseInt((day.val()=="")?"-1":day.val());
+            date.month = self.month_to_int(month.val());
+            date.year = parseInt((year.val()=="")?"0":year.val());
             event.date = date;
-            event.status = 'changed';
+            event.status = (event.status=='added')?'added':'changed';
             var editables = box.find("div.edit-region");
             if ( editables.length==2 )
             {
@@ -627,6 +622,7 @@ function events(target,docid,author,modpath)
             if ( jQuery("#tinyeditor").length>0 )
                 self.restore_div();
             var url = window.location.protocol+"//"+window.location.host+"/project/events/";
+            var failed = undefined;
             if ( self.deleted_events != undefined )
             {
                 for ( var i=0;i<self.deleted_events.length;i++ )
@@ -635,11 +631,19 @@ function events(target,docid,author,modpath)
                     var obj = {
                         _id: event._id.$oid
                     };
-                    var res = self.post_obj(url,'delete',obj);
-                    if ( !res )
-                        console.log("failed to delete "+event._id);
+                    var success = function(data, textStatus, jqXHR) {
+                        //console.log(data);
+                        console.log("success! status="+jqXHR.status);
+                    };
+                    var failure = function(jqXHR, textStatus, errorThrown){
+                        if ( failed == undefined )
+                            failed = [];
+                        failed.push(event);
+                        console.log("failed status="+jqXHR.status+" errorThrown="+errorThrown);
+                    }
+                    self.post_obj(url,'delete',obj,success,failure);
                 }
-                self.deleted_events = undefined;
+                self.deleted_events = failed;
             }
             for ( var i=0;i<self.pDoc.events.length;i++ )
             {
@@ -656,14 +660,19 @@ function events(target,docid,author,modpath)
                         var obj = {
                              event: jsonStr
                         };
-                        var res = self.post_obj(url,service,obj);
-                        if ( !res )
-                        {
-                            console.log("failed to add or update event");
-                            event.status = oldStatus;
-                        }
-                        else
+                        var success = function(data, textStatus, jqXHR) {
+                            //console.log(data);
+                            var jDoc = JSON.parse(data); 
+                            var id = {$oid:jDoc._id};
+                            event._id = id;
                             event.status = 'unchanged';
+                            console.log("success! status="+jqXHR.status);
+                        };
+                        var failure = function(jqXHR, textStatus, errorThrown){
+                            event.status = oldStatus;
+                            console.log("failed status="+jqXHR.status+" errorThrown="+errorThrown);
+                        }
+                        self.post_obj(url,service,obj,success,failure);
                     }
                     else
                     {
@@ -759,7 +768,8 @@ function events(target,docid,author,modpath)
         }
         jQuery("div.tinyeditor").replaceWith('<div class="'+class_name+'">'+content+'</div>');
         var index = jQuery("#wire_frame").scrollLeft()/self.boxWidth;
-        self.pDoc.events[index].status = 'changed';
+        if ( self.pDoc.events[index].status != 'added' )
+            self.pDoc.events[index].status = 'changed';
         jQuery(self.selector).click( function(e) {
             if ( jQuery("#tinyeditor").length>0 )
                 self.restore_div();
@@ -801,6 +811,16 @@ function events(target,docid,author,modpath)
     {
         return '<input type="text" class="'+name+'" value="'+text+'"></input>';
     };
+    /**
+     * Based on the localised month-name determine its numeric value
+     * @param name the localised name of the month
+     */
+    this.month_to_int = function( name ) {
+        for (var i=0;i<this.strs.month_names.length;i++ )
+            if ( this.strs.month_names[i]==name )
+                return i;
+       return -1;
+    }
     /**
      * Make a single row in the table containing input elements
      * @param type the type of row content
@@ -873,6 +893,7 @@ function events(target,docid,author,modpath)
     /* Download all the events in compact form for this project */
     jQuery.get( "http://"+window.location.hostname+"/project/events/"+docid, function(data)
     {
+        //console.log(data);
         self.pDoc = JSON.parse(data);
         var html = '<div class="events">';
         html += '<div id="left-sidebar"><i id="goleft" class="fa fa-chevron-left fa-3x"></i></div>';

@@ -1,0 +1,6 @@
+name = MML edit
+description = Edit a minimal markup language document
+core = 7.x
+configure = admin/config/content/mml_edit
+stylesheets[all][] = css/mml.css
+scripts[] = js/mml.js

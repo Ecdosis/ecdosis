@@ -1,0 +1,77 @@
+<?php
+function mml_edit_all()
+{
+    $mod_path = drupal_get_path('module', 'mml_edit');
+    $html ='<script type="text/javascript" src="'.$mod_path
+          .'/mml.js?target=content&'
+          .'docid='.$_GET['docid']
+          .'&modpath='.$mod_path.'"></script>';
+    return $html;
+}
+function mml_edit_menu()
+{
+    $items = array();
+    $items['admin/config/content/mml_edit'] = array(
+        'title'=>'Edit Minimal markup language documents',
+        'description' => 'Edit MML documents',
+        'page callback' => 'drupal_get_form',
+        'page arguments' => array('mml_edit_form'),
+        'access arguments' => array('access administration pages'),
+        'type' => MENU_NORMAL_ITEM
+    );
+    $items['mml_edit'] = array(
+        'title' => 'Edit MML documents',
+        'page callback' => 'mml_edit_all',
+        'access arguments' => array('access content'),
+        'type' => MENU_CALLBACK
+    );
+    return $items;
+}
+function mml_edit_block_info() {
+  $blocks['mml_edit'] = array(
+    'info' => t('MML edit documents'),
+    'cache' => DRUPAL_CACHE_PER_ROLE,
+  );
+  return $blocks;
+}
+function mml_edit_help($path, $arg) {
+    switch ($path)
+    {
+        case "admin/help#mml_edit":
+            return '<p>' .
+                t("Editminimally marked up documents.")
+                . '</p>';
+            break;
+    }
+}
+function mml_edit_block_view($delta = '') {
+  switch ($delta) {
+    case 'mml_edit':
+      $block['subject'] = t('Edit MML documents');
+      $mod_path = drupal_get_path('module', 'mml_edit');
+      $block['content'] = '<script type="text/javascript" src="'.$mod_path
+          .'/ml.js?target=content&'
+          .$_GET["docid"].'&modpath='.$mod_path.'"></script>';
+      error_log($block['content']);
+      return $block;
+  }
+}
+/**
+ * Page callback: MML edit settings
+ * @param form the form object to override
+ * @param form_state the current state of the form (keys->values)
+ * @return an updated form
+ * @see mml_edit_menu()
+ */
+function mml_edit_form($form, &$form_state)
+{
+    $form['mml_edit_docid'] = array(
+        '#type' => 'textfield',
+        '#title' => t('Default docid'),
+        '#default_value' => 'italian/deroberto/ivicere/cap1',
+        '#size' => 128,
+        '#maxlength' => 256,
+        '#required' => TRUE
+    );
+    return $form;
+}
