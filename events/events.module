@@ -1,4 +1,27 @@
 <?php
+function my_add_meta_tag( $name, $value, $tag )
+{
+    $element = array(
+        '#tag' => 'meta',
+        '#attributes' => array(
+            'name'=> $name,
+            'content' => $value
+        )
+    );
+    drupal_add_html_head($element,$tag);
+}
+function events_preprocess_page(&$vars)
+{
+    if ( strpos(request_uri(),"events") )
+    {
+        my_add_meta_tag('description','Events editor','Event editor');
+        drupal_add_js(drupal_get_path('module', 'events').'/events.js','file');
+        drupal_add_js(drupal_get_path('module', 'events').'/js/tiny.editor.js','file');
+        drupal_add_css(drupal_get_path('module','events').'/css/events.css','file');
+        drupal_add_css(drupal_get_path('module','events').'/css/tinyeditor.css','file');
+        drupal_add_css(drupal_get_path('module','events').'/css/font-awesome.min.css','file');
+    }
+}
 function events_all()
 {
     $mod_path = drupal_get_path('module', 'events');

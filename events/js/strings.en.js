@@ -1,6 +1,6 @@
 function load_strings() {
     return {
-        save:'salva',
+        save: 'salva',
         delete_event:'delete event',
         add_event:'add event',
         search:'search',

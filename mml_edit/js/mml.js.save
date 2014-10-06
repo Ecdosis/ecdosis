@@ -17,7 +17,6 @@ function RefLoc( ref, loc) {
  * @param modpath the path to the module from web_root
  */
 function MMLEditor(target, docid,modpath ) {
-    this.target = target;
     /** set to true when source altered, controls updating */
     this.changed = true;
     /** set to false whenever use edits and does not save*/
@@ -1274,19 +1273,17 @@ function MMLEditor(target, docid,modpath ) {
     };
     /** 
      * Get the document's metadata 
-     * @param after what to do when you've got it
      */
-    this.getMetadata = function(after) {
+    this.getMetadata = function() {
         jQuery.get("http://"+window.location.hostname+"/mml/metadata/"+docid, function(data)
         {
-            var md = data;
+            var md = JSON.parse(data);
             // these mostly have no sensible defaults
-            self.author = md.author;
-            self.version1 = md.version1;
-            self.section = md.section;
-            self.title = md.title;
-            self.encoding = (md.encoding==null)?"utf-8":md.encoding;
-            after();
+            this.author = md.author;
+            this.version1 = md.version1;
+            this.section = md.section;
+            this.title = md.title;
+            this.encoding = (md.encoding==null)?"utf-8":md.encoding;
         });
     };
     /**
@@ -1339,7 +1336,7 @@ function MMLEditor(target, docid,modpath ) {
             var sb = "";
             sb += parts[0];
             sb += "/";
-            sb += parts[1];
+            sb + parts[1];
             sb += "/";
             sb += parts[2];
             return sb;
@@ -1350,31 +1347,24 @@ function MMLEditor(target, docid,modpath ) {
     /**
      * Get the dialect for this document
      * @param docid the short docid for the dialect
-     * @param after the function to call on success
      * @return a JSON document
      */
-    this.getDialect = function( docid, after )
+    this.getDialect = function( docid )
     {
-        var url = "http://"+window.location.hostname+"/mml/dialects/"+docid;
-        //console.log(url);
-        jQuery.get(url, function(data) {
-            self.dialect = data;
-            after();
-        })
-        .fail( function() {
-            console.log("failed to load dialect");
+        jQuery.get("http://"+window.location.hostname+"/mml/dialects/"+shortID(), 
+        function(data)
+        {
+            self.dialect = JSON.parse(data);
         });
     }
     /**
      * Get the version list from the server and install it
      */
     this.loadVersions = function() {
-        var url = "http://"+window.location.hostname+"/mml/versions?docid="
-            +self.docid+"&version1="+this.version1;
-        console.log(url);
-        jQuery.get(url, function(data) {
-            console.log(data);
-            var json = data;
+        jQuery.get("http://"+window.location.hostname+"/mml/versions/"+self.docid, 
+        function(data)
+        {
+            var json = JSON.parse(data);
             var list = json.versions;
             var options = '';
             for ( var i=0;i<list.length;i++ )
@@ -1398,9 +1388,9 @@ function MMLEditor(target, docid,modpath ) {
         var wrapper = jQuery('<div id="toolbar-wrapper"></div>');
         var toolbar = jQuery('<div id="toolbar"></div>');
         var dropdown = jQuery('<select class="dropdown" title="'
-            +self.strs.versionMenu+'" id="dropdown"></select>');
+            +self.strs.versionMenu+' id="dropdown"></select>');
         // list the versions of the current docid
-        wrapper.append(dropdown);
+        toolbar.append(dropdown);
         var save = jQuery('<button title="'+self.strs.savedTitle
             +'" class="saved-button" disabled id="save"></button>');
         wrapper.append(save);
@@ -1424,10 +1414,6 @@ function MMLEditor(target, docid,modpath ) {
             }
             jQuery("form").submit();
         });
-        if ( jQuery("#wrapper").is() )
-            toolbar.insertBefore("#wrapper");
-        else
-            jQuery("#"+self.target).append(toolbar);
     }
     /**
      * Extract the docid's language key to an ISO 2-letter key
@@ -1441,10 +1427,9 @@ function MMLEditor(target, docid,modpath ) {
             return 'en';
     };
     /**
-     * Define all language strings for later
-     * @param after the function to call on completion
+     * Defeine all language strings for later
      */
-    this.readLanguageStrings = function(after) {
+    this.readLanguageStrings = function() {
         var script_name = window.location.pathname;
         var lastIndex = script_name.lastIndexOf("/");
         if ( lastIndex !=-1 )
@@ -1454,7 +1439,6 @@ function MMLEditor(target, docid,modpath ) {
         .done(function( script, textStatus ) {
             self.strs = load_strings();
             console.log("loaded "+script_name+" successfully");
-            after();
         })
         .fail(function( jqxhr, settings, exception ) {
             console.log("Failed to load language strings. status=",jqxhr.status );
@@ -1462,24 +1446,21 @@ function MMLEditor(target, docid,modpath ) {
     };
     /**
      * Get the images for this document/version
-     * @param after function to cal on completion
+     * @return an Element (div) containing the content
      */
-    this.getImages = function(after)
+    this.getImages = function()
     {
         jQuery.get("http://"+window.location.hostname+"/mml/images?docid="
             +this.docid+"&version1="+this.version1, function(data) {
-            //console.log(data);
             jQuery("#wrapper").prepend(data);
-            after();
         });
     }
     /**
      * Get the MML text and put it in the middle
-     * @param after execute this after the function succeeds
      */
-    this.getMml = function(after) {
+    this.getMml = function() {
         jQuery.get("http://"+window.location.hostname+"/mml/mml?docid="
-            +this.docid+"&version1="+this.version1, function(data) {
+            +this.docid+"&version1="+version1, function(data) {
             var textarea = jQuery('<textarea id="source"></textarea>');
             textarea.append( data );
             if ( jQuery("#help").is() )
@@ -1488,7 +1469,6 @@ function MMLEditor(target, docid,modpath ) {
                 textarea.insertBefore(jQuery("#target"));
             else
                 jQuery("#wrapper").append(textarea);
-            after();
        });
     };
     /**
@@ -1515,6 +1495,26 @@ function MMLEditor(target, docid,modpath ) {
         form.append(this.hiddenInput("title", this.title) );
         form.append(this.hiddenInput("version1", this.version1) );
         jQuery("#"+this.target).append( form );
+    }
+    /**
+     * Build up the actual page
+     * @param mml the actual mml text
+     */
+    this.composePage = function( mml )
+    {
+        this.setPageEncoding( this.encoding );
+        this.addCss();
+        this.getDialect(this.shortID());
+        var toolbar = this.createToolbar();
+        jQuery("#target").append( toolbar );
+        var wrapper = jQuery('<div id="wrapper"></div>');
+        jQuery("#target").append( wrapper );
+        this.getImages();
+        wrapper.append( '<div id="help"></div>' );
+        this.getMml();
+        wrapper.append('<div id="target"></div>');
+        jQuery('#'+this.target).append( wrapper );
+        writeHiddenTags();
     }
     /**
      * Load callback handlers for updating the display
@@ -1601,30 +1601,6 @@ function MMLEditor(target, docid,modpath ) {
         );
     };
     /**
-     * Build up the actual page
-     * @param after call this if we succeed
-     */
-    this.composePage = function(after)
-    {
-        this.setPageEncoding( this.encoding );
-        this.addCss();
-        this.getDialect(this.shortID(),function() {
-            var toolbar = self.createToolbar();
-            jQuery("#target").append( toolbar );
-            var wrapper = jQuery('<div id="wrapper"></div>');
-            jQuery("#"+self.target).append( wrapper );
-            self.getImages(function() {
-                wrapper.append( '<div id="help"></div>' );
-                self.getMml(function() {
-                    wrapper.append('<div id="target"></div>');
-                    jQuery('#'+self.target).append( wrapper );
-                    self.writeHiddenTags();
-                    after();
-                });
-           });
-       });
-    }
-    /**
      * Post a changed event to the server
      * @param url the url to post to
      * @param service type of change: append this to the url
@@ -1639,19 +1615,18 @@ function MMLEditor(target, docid,modpath ) {
             error: fail
         });
     };
-    // build up the display
-    this.readLanguageStrings(function() {
-        self.getMetadata(function(){
-            self.style = self.styleID();
-            self.composePage(function() {
-                self.loadHandlers();
-                self.loadVersions();
-                self.makeInfo();
-                self.recomputeImageHeights();
-                /* setup window */
-                self.resize();
-            });
-        });
+    this.getMetadata();
+    this.style = this.styleID();
+    // generate help but keep it hidden for now
+    /** download document and build three-panel display */
+    jQuery.get("http://"+window.location.hostname+"/mml/mml?docid="+docid, function(data) {
+        self.readLanguageStrings();
+        self.composePage(data);
+        self.loadHandlers();
+        self.loadVersions();
+        self.makeInfo();
+        self.recomputeImageHeights();
+        self.resize();
     });
 }
 /**
@@ -1695,3 +1670,4 @@ jQuery(document).ready(
         console.log("created editor");
     }
 );
+

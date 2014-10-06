@@ -1,9 +1,28 @@
 <?php
+function add_meta_tag( $name, $value, $tag )
+{
+    $element = array(
+        '#tag' => 'meta',
+        '#attributes' => array(
+            'name'=> $name,
+            'content' => $value
+        )
+    );
+    drupal_add_html_head($element,$tag);
+}
+function mml_edit_preprocess_page(&$vars)
+{
+    if ( strpos(request_uri(),"mml_edit") )
+    {
+        add_meta_tag('description','Minimal markup language editor','MML editor');
+        drupal_add_css(drupal_get_path('module','mml_edit').'/css/mml_edit.css','file');
+    }
+}
 function mml_edit_all()
 {
     $mod_path = drupal_get_path('module', 'mml_edit');
     $html ='<script type="text/javascript" src="'.$mod_path
-          .'/mml.js?target=content&'
+          .'/js/mml.js?target=content&'
           .'docid='.$_GET['docid']
           .'&modpath='.$mod_path.'"></script>';
     return $html;
@@ -50,7 +69,7 @@ function mml_edit_block_view($delta = '') {
       $block['subject'] = t('Edit MML documents');
       $mod_path = drupal_get_path('module', 'mml_edit');
       $block['content'] = '<script type="text/javascript" src="'.$mod_path
-          .'/ml.js?target=content&'
+          .'/js/mml.js?target=content&'
           .$_GET["docid"].'&modpath='.$mod_path.'"></script>';
       error_log($block['content']);
       return $block;

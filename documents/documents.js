@@ -29,10 +29,13 @@ function documents(target,docid,work,author)
         var docs = pDoc.documents;
         if ( docs != undefined )
         {
+            var paths = window.location.pathname.split("/");
+            var path = (paths.length>1)?"/"+paths[1]:"";
             for ( var i=0;i<docs.length;i++ )
             {
                 html += '<li>';
-                html += '<p><a href="http://'+window.location.hostname+'/mml_edit?docid='+docs[i].docid+'">';
+                html += '<p><a href="http://'+window.location.hostname
+                     +path+'/mml_edit?docid='+docs[i].docid+'">';
                 html += '<i ';
                 if ( docs[i].title != undefined )
                     html += 'title="'+docs[i].title+'" ';
