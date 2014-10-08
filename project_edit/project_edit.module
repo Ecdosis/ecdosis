@@ -1,4 +1,11 @@
 <?php
+function project_edit_preprocess_page(&$vars)
+{
+    if ( strpos(request_uri(),"project_edit") )
+    {
+        drupal_add_css(drupal_get_path('module','project_edit').'/project_edit.css','file');
+    }
+}
 function get_editors_list()
 {
     $editors = "";

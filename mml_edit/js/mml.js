@@ -1174,7 +1174,7 @@ function MMLEditor(target, docid,modpath ) {
         var srcObj = jQuery("#source");
         var helpObj = jQuery("#help");
         var tgtObj = jQuery("#target");
-        var topOffset = imgObj.parent().position().top;
+        var topOffset = imgObj.parent().offset().top;
         var wHeight = jQuery(window).height()-topOffset;
         var wWidth = imgObj.parent().outerWidth();
         // compute width
@@ -1197,18 +1197,16 @@ function MMLEditor(target, docid,modpath ) {
             this.infoDisplayed = true;
             jQuery("#source").css("display","none");
             jQuery("#help").css("display","inline-block");
-            jQuery("#info").val("edit");
-            jQuery("#info").attr("title","back to editing");
-            this.toggleInfo();
+            jQuery("#info").attr("title",self.strs.backToEditing);
+            jQuery.html('<i class="fa fa-edit fa-lg"></i>');
         }
         else
         {
             this.infoDisplayed = false;
             jQuery("#help").css("display","none");
             jQuery("#source").css("display","inline-block");
-            jQuery("#info").val("info");
-            jQuery("#info").attr("title","about the markup");
-            this.toggleInfo();
+            jQuery("#info").attr("title",self.strs.aboutTheMarkup);
+            jQuery.html('<i class="fa fa-info-circle fa-lg"></i>');
         }
         this.resize();
     };
@@ -1249,28 +1247,19 @@ function MMLEditor(target, docid,modpath ) {
      * Do whatever is needed to indicate that the document has/has not been saved
      */
     this.toggleSave = function() {
+        var save = jQuery("#save");
         if ( !this.saved  )
         {
-            jQuery("#save").removeAttr("disabled");
-            jQuery("#save").attr("title","save");
-            jQuery("#save").attr("class","save-button");
+            save.removeAttr("disabled");
+            save.attr("title",self.strs.saveTitle);
+            save.html('<i class="fa fa-save fa-lg"></i>');  
         }
         else
         {
-            jQuery("#save").attr("disabled","disabled");
-            jQuery("#save").attr("title","saved");
-            jQuery("#save").attr("class","saved-button");
-            
+            save.attr("disabled","disabled");
+            save.attr("title",self.strs.savedTitle);
+            save.html('<i class="fa fa-check-square-o fa-lg"></i>');  
         }
-    };
-    /**
-     * Do whatever is needed to indicate the information status
-     */
-    this.toggleInfo = function() {
-        if ( !this.infoDisplayed  )
-            jQuery("#info").attr("class","info-button");
-        else
-            jQuery("#info").attr("class","edit-button");
     };
     /** 
      * Get the document's metadata 
@@ -1293,10 +1282,14 @@ function MMLEditor(target, docid,modpath ) {
      * Add the css from the server to this document
      */
     this.addCss = function() {
-        jQuery.get("http://"+window.location.hostname+"/mml/corform/"+docid, function(data)
+        var url = "http://"+window.location.hostname+"/mml/corform/"+this.docid;
+        jQuery.get(url, function(data)
         {
-            jQuery("head").add('<style type="text/css">\n'+data+'\n</style>\n');
-        });
+            //console.log("loaded "+url+" successfully");
+            jQuery("head").append('<style type="text/css">\n'+data+'\n</style>\n');
+        }).fail(function(jqXHR, textStatus, errorThrown) {
+           console.log("failed to load css from "+url+" "+errorThrown);
+       });
     };
     /**
      * Set the encoding from the metadata into the page header
@@ -1358,7 +1351,7 @@ function MMLEditor(target, docid,modpath ) {
         var url = "http://"+window.location.hostname+"/mml/dialects/"+docid;
         //console.log(url);
         jQuery.get(url, function(data) {
-            self.dialect = data;
+            self.dialect = JSON.parse(data);
             after();
         })
         .fail( function() {
@@ -1371,9 +1364,9 @@ function MMLEditor(target, docid,modpath ) {
     this.loadVersions = function() {
         var url = "http://"+window.location.hostname+"/mml/versions?docid="
             +self.docid+"&version1="+this.version1;
-        console.log(url);
+        //console.log(url);
         jQuery.get(url, function(data) {
-            console.log(data);
+            //console.log(data);
             var json = data;
             var list = json.versions;
             var options = '';
@@ -1397,16 +1390,16 @@ function MMLEditor(target, docid,modpath ) {
     {
         var wrapper = jQuery('<div id="toolbar-wrapper"></div>');
         var toolbar = jQuery('<div id="toolbar"></div>');
-        var dropdown = jQuery('<select class="dropdown" title="'
+        var dropdown = jQuery('<select class="versions" title="'
             +self.strs.versionMenu+'" id="dropdown"></select>');
         // list the versions of the current docid
         wrapper.append(dropdown);
-        var save = jQuery('<button title="'+self.strs.savedTitle
-            +'" class="saved-button" disabled id="save"></button>');
+        var save = jQuery('<div title="'+self.strs.savedTitle
+            +'" class="toolbar-button" disabled id="save"><i class="fa fa-check-square-o fa-lg"></div>');
         wrapper.append(save);
-        var info = jQuery('<button title="'
+        var info = jQuery('<div title="'
             +self.strs.aboutTheMarkup
-            +'" class="info-button" id="info"></button>');
+            +'" class="toolbar-button" id="info"><i class="fa fa-info-circle fa-lg"></div>');
         wrapper.append(info);
         toolbar.append( wrapper );
         jQuery("#info").click( function() {
@@ -1453,7 +1446,7 @@ function MMLEditor(target, docid,modpath ) {
         jQuery.getScript(script_name)
         .done(function( script, textStatus ) {
             self.strs = load_strings();
-            console.log("loaded "+script_name+" successfully");
+            //console.log("loaded "+script_name+" successfully");
             after();
         })
         .fail(function( jqxhr, settings, exception ) {
@@ -1690,8 +1683,8 @@ function getArgs( scrName )
 jQuery(document).ready(
     function(){
         var params = getArgs('mml.js');
-        console.log("target="+params['target']+" docid="+params['docid']+" modpath="+params['modpath']);
+        //console.log("target="+params['target']+" docid="+params['docid']+" modpath="+params['modpath']);
         var editor = new MMLEditor(params['target'],params['docid'],params['modpath']);
-        console.log("created editor");
+        //console.log("created editor");
     }
 );
