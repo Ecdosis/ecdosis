@@ -1086,8 +1086,8 @@ function MMLEditor(target, docid,modpath ) {
             {
                 var h = this.dialect.codeblocks[i];
                 var level = i+1;
-                info += "<p>A line starting with "+(level*4)+" spaces will be treated"
-                    "as preformatted and will be indented to tab-stop "+level;
+                info += "<p>A line starting with "+(level*4)+" spaces will be treated "
+                    +"as preformatted and will be indented to tab-stop "+level;
                 if ( h.prop != undefined && h.prop.length>0 )
                      info += ", and will be labelled '"+h.prop+"'.</p>";
                 else
@@ -1198,7 +1198,7 @@ function MMLEditor(target, docid,modpath ) {
             jQuery("#source").css("display","none");
             jQuery("#help").css("display","inline-block");
             jQuery("#info").attr("title",self.strs.backToEditing);
-            jQuery.html('<i class="fa fa-edit fa-lg"></i>');
+            jQuery("#info").html('<i class="fa fa-edit fa-lg"></i>');
         }
         else
         {
@@ -1206,7 +1206,7 @@ function MMLEditor(target, docid,modpath ) {
             jQuery("#help").css("display","none");
             jQuery("#source").css("display","inline-block");
             jQuery("#info").attr("title",self.strs.aboutTheMarkup);
-            jQuery.html('<i class="fa fa-info-circle fa-lg"></i>');
+            jQuery("#info").html('<i class="fa fa-info-circle fa-lg"></i>');
         }
         this.resize();
     };
@@ -1402,6 +1402,10 @@ function MMLEditor(target, docid,modpath ) {
             +'" class="toolbar-button" id="info"><i class="fa fa-info-circle fa-lg"></div>');
         wrapper.append(info);
         toolbar.append( wrapper );
+        if ( jQuery("#wrapper").is() )
+            toolbar.insertBefore("#wrapper");
+        else
+            jQuery("#"+self.target).append(toolbar);
         jQuery("#info").click( function() {
             self.toggleHelp();
         });
@@ -1417,10 +1421,6 @@ function MMLEditor(target, docid,modpath ) {
             }
             jQuery("form").submit();
         });
-        if ( jQuery("#wrapper").is() )
-            toolbar.insertBefore("#wrapper");
-        else
-            jQuery("#"+self.target).append(toolbar);
     }
     /**
      * Extract the docid's language key to an ISO 2-letter key

@@ -2,6 +2,6 @@
 .content {margin-top:0px !important}
 .versions{margin-top:0px }
 div.toolbar-button { display:inline; border: 1px solid grey;padding: 5px 5px 5px 5px;background-color:white;border-radius:3px;margin-right:10px;}
-div.toolbar-button:hover {background-color: lightgrey; cursor:pointer }
+div.toolbar-button:hover {background-color: lightcyan; cursor:pointer }
 #toolbar { padding-top:3px !important; padding-bottom:2px !important}
 #header { padding-top:5px !important;}
