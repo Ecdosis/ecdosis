@@ -25,6 +25,7 @@ function mml_edit_all()
     $html ='<script type="text/javascript" src="'.$mod_path
           .'/js/mml.js?target=content&'
           .'docid='.$_GET['docid']
+          .'&version1='.$_GET['version1']
           .'&modpath='.$mod_path.'"></script>';
     return $html;
 }
@@ -71,7 +72,8 @@ function mml_edit_block_view($delta = '') {
       $mod_path = drupal_get_path('module', 'mml_edit');
       $block['content'] = '<script type="text/javascript" src="'.$mod_path
           .'/js/mml.js?target=content&'
-          .$_GET["docid"].'&modpath='.$mod_path.'"></script>';
+          .$_GET["docid"].'&version1='.$_GET['version1']
+          .'&modpath='.$mod_path.'"></script>';
       error_log($block['content']);
       return $block;
   }

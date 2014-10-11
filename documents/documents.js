@@ -24,7 +24,6 @@ function documents(target,docid,work,author)
     {
         var html = '<h2>'+author+': '+work+'</h2>\n';
         var pDoc = JSON.parse(data);
-        /* {documents:[{docid:"italian/deroberto/ivicere/cap1",title:""I Vicerè",description:"I Vicerè"},...]} */
         html += '<ul class="documents">';
         var docs = pDoc.documents;
         if ( docs != undefined )
@@ -35,13 +34,14 @@ function documents(target,docid,work,author)
             {
                 html += '<li>';
                 html += '<p><a href="http://'+window.location.hostname
-                     +path+'/mml_edit?docid='+docs[i].docid+'">';
+                     +path+'/mml_edit?docid='+docs[i].docid;
+                html += '&version1='+docs[i].version1+'">';
                 html += '<i ';
-                if ( docs[i].title != undefined )
-                    html += 'title="'+docs[i].title+'" ';
+                if ( docs[i].section != undefined )
+                    html += 'title="'+docs[i].section+'" ';
                 html += 'class="fa fa-file-text-o fa-5x"></i>';
                 html += '</a></p>';
-                html += '<p><span class="description">'+docs[i].description+'</span></p>';
+                html += '<p><span class="section">'+docs[i].section+'</span></p>';
                 html += '</li>';
             }
         }

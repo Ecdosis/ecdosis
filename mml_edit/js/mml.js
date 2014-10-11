@@ -14,9 +14,10 @@ function RefLoc( ref, loc) {
  * In the third a HTML preview generated from the editable text.
  * @param target the id of the element to append the editor to
  * @param docid the docid of the document to edit
+ * @param version1 the version to display
  * @param modpath the path to the module from web_root
  */
-function MMLEditor(target, docid,modpath ) {
+function MMLEditor(target, docid, version1, modpath ) {
     this.target = target;
     /** set to true when source altered, controls updating */
     this.changed = true;
@@ -47,7 +48,7 @@ function MMLEditor(target, docid,modpath ) {
     /** the human readable title of the work */
     this.title = undefined;
     /** the first version in the document to display */
-    this.version1 = undefined;
+    this.version1 = version1;
     /** The section name */
     this.section = undefined;
     /** the web-path to the module */
@@ -782,9 +783,12 @@ function MMLEditor(target, docid,modpath ) {
             var base = 0;
             var self = this;
             jQuery(".page").each( function(i) {
-                var pos = jQuery(this).position().top;
+                var pos = jQuery(this).offset().top;
                 if ( base==0 && pos < 0 )
+                {
+                    //console.log("setting base to be "+base);
                     base = Math.abs(pos);
+                }
                 self.html_lines.push(new RefLoc(jQuery(this).text(),pos+base));
                 // inefficient but the only way
                 jQuery(this).css("display","none");
@@ -954,6 +958,7 @@ function MMLEditor(target, docid,modpath ) {
             var img = jQuery(this).children().first();
             var ref = img.attr("data-ref");
             var imgHeight = img.height();
+         //   console.log(imgHeight);
             editor.image_lines.push( new RefLoc(ref,currHt) );    
             currHt += imgHeight;
         });
@@ -980,7 +985,8 @@ function MMLEditor(target, docid,modpath ) {
         else if ( index < lines.length-1)
             pageHeight = (lines[index+1].loc*scale)-pos;
         else
-            pageHeight = elemToScroll.prop("scrollHeight")-(lines[index].loc*scale);
+            pageHeight = elemToScroll.prop("scrollHeight")
+                -(lines[index].loc*scale);
         pos += Math.round(parseFloat(parts[1])*pageHeight);
         // scrolldown one half-pagescp js mml.js
         pos -= Math.round(elemToScroll.height()/2);
@@ -989,9 +995,11 @@ function MMLEditor(target, docid,modpath ) {
             //console.log("pos="+pos);
             pos = 0;
         }
-        if ( elemToScroll[0].scrollTopMax !=undefined && pos > elemToScroll[0].scrollTopMax )
+        if ( elemToScroll[0].scrollTopMax !=undefined 
+            && pos > elemToScroll[0].scrollTopMax )
             pos = elemToScroll[0].scrollTopMax;
-        else if ( pos > elemToScroll[0].scrollHeight-elemToScroll[0].clientHeight )
+        else if ( pos > elemToScroll[0].scrollHeight
+            -elemToScroll[0].clientHeight )
         {
             pos = elemToScroll[0].scrollHeight-elemToScroll[0].clientHeight;
             //console.log(pos);
@@ -1227,8 +1235,9 @@ function MMLEditor(target, docid,modpath ) {
         })(obj));
         var url = window.location.protocol
             +"//"+window.location.host
-            +"/"+window.location.pathname.split("/")[1]
-            +"/html";
+            +"/mml/html";
+        jQuery("#description").val(jQuery("#dropdown option:selected").text());
+        jQuery("#version1").val(jQuery("#dropdown").val());
         jQuery.ajax( url, 
             {
                 type: "POST",
@@ -1238,7 +1247,7 @@ function MMLEditor(target, docid,modpath ) {
                         this.toggleSave();
                     },this),
                 error: function(jqXHR, textStatus, errorThrown ) {
-                    alert("Save failed. Error: "+textStatus+" ("+errorThrown+")");
+                    alert("Save failed. Error: "+textStatus+" ("+errorThrown+")"+url);
                 }
             }
         );
@@ -1271,7 +1280,6 @@ function MMLEditor(target, docid,modpath ) {
             var md = data;
             // these mostly have no sensible defaults
             self.author = md.author;
-            self.version1 = md.version1;
             self.section = md.section;
             self.title = md.title;
             self.encoding = (md.encoding==null)?"utf-8":md.encoding;
@@ -1413,6 +1421,9 @@ function MMLEditor(target, docid,modpath ) {
             self.save();
         });
         jQuery("#dropdown").change( function() {
+            var newVal = jQuery("#dropdown").val();
+            console.log(newVal);
+            jQuery("#version1").val(newVal);
             var parts = jQuery("#dropdown").val().split("&");
             for ( var i=0;i<parts.length;i++ ) {
                 var value = parts[i].split("=");
@@ -1507,6 +1518,7 @@ function MMLEditor(target, docid,modpath ) {
         form.append(this.hiddenInput("author", this.author) );
         form.append(this.hiddenInput("title", this.title) );
         form.append(this.hiddenInput("version1", this.version1) );
+        form.append(this.hiddenInput("description", jQuery("#dropdown").val()) );
         jQuery("#"+this.target).append( form );
     }
     /**
@@ -1641,6 +1653,9 @@ function MMLEditor(target, docid,modpath ) {
                 self.loadVersions();
                 self.makeInfo();
                 self.recomputeImageHeights();
+        for ( var i=0;i<self.text_lines.length;i++ )
+            console.log(self.text_lines[i].ref+","+self.text_lines[i].loc);
+
                 /* setup window */
                 self.resize();
             });
@@ -1684,7 +1699,7 @@ jQuery(document).ready(
     function(){
         var params = getArgs('mml.js');
         //console.log("target="+params['target']+" docid="+params['docid']+" modpath="+params['modpath']);
-        var editor = new MMLEditor(params['target'],params['docid'],params['modpath']);
+        var editor = new MMLEditor(params['target'],params['docid'],params['version1'],params['modpath']);
         //console.log("created editor");
     }
 );
