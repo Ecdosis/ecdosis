@@ -1228,6 +1228,8 @@ function MMLEditor(target, docid, version1, modpath ) {
             dialect: jsonStr,
             html: html, 
         };
+        jQuery("#description").val(jQuery("#dropdown option:selected").text());
+        jQuery("#version1").val(jQuery("#dropdown").val());
         jQuery("form").children().each( (function(obj) {
             return function() {
                 obj[this.name] = jQuery(this).val();
@@ -1236,8 +1238,6 @@ function MMLEditor(target, docid, version1, modpath ) {
         var url = window.location.protocol
             +"//"+window.location.host
             +"/mml/html";
-        jQuery("#description").val(jQuery("#dropdown option:selected").text());
-        jQuery("#version1").val(jQuery("#dropdown").val());
         jQuery.ajax( url, 
             {
                 type: "POST",
