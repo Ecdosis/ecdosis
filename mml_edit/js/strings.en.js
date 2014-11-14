@@ -4,7 +4,8 @@ function load_strings() {
         saveTitle: 'save',
         aboutTheMarkup: 'about the markup',
         backToEditing: 'back to editing',
-        versionMenu: 'versions'
+        versionMenu: 'versions',
+        comment: 'annotate'
     };
 }
 

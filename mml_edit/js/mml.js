@@ -1409,6 +1409,10 @@ function MMLEditor(target, docid, version1, modpath ) {
             +self.strs.aboutTheMarkup
             +'" class="toolbar-button" id="info"><i class="fa fa-info-circle fa-lg"></div>');
         wrapper.append(info);
+        var comment = jQuery('<div title="'
+            +self.strs.comment
+            +'" class="toolbar-button disabled" id="comment"><i class="fa fa-comment fa-lg"></div>');
+        wrapper.append(comment);
         toolbar.append( wrapper );
         if ( jQuery("#wrapper").is() )
             toolbar.insertBefore("#wrapper");
@@ -1422,7 +1426,7 @@ function MMLEditor(target, docid, version1, modpath ) {
         });
         jQuery("#dropdown").change( function() {
             var newVal = jQuery("#dropdown").val();
-            console.log(newVal);
+            jQuery("#description").val(jQuery("#dropdown option:selected").text());
             jQuery("#version1").val(newVal);
             var parts = jQuery("#dropdown").val().split("&");
             for ( var i=0;i<parts.length;i++ ) {
@@ -1511,16 +1515,35 @@ function MMLEditor(target, docid, version1, modpath ) {
         var form = jQuery('<form style="display:none" action="'
             +window.location.href+'"></form>');
         form.append(this.hiddenInput("docid",docid));
-        form.append(this.hiddenInput("encoding","UTF-8"));
-        form.append(this.hiddenInput("style", this.baseID()) ); 
-        form.append(this.hiddenInput("format", "MVD/TEXT") );
-        form.append(this.hiddenInput("section", this.section) );
-        form.append(this.hiddenInput("author", this.author) );
-        form.append(this.hiddenInput("title", this.title) );
         form.append(this.hiddenInput("version1", this.version1) );
-        form.append(this.hiddenInput("description", jQuery("#dropdown").val()) );
+        form.append(this.hiddenInput("description", jQuery("#dropdown option:selected").text()) );
         jQuery("#"+this.target).append( form );
     }
+    /**
+     * Get the absolute text offset of the given range in the text
+     * @param node the node where the selection point resides
+     * @param pos the position within the node's text
+     * @param top the id of the top parent beyond which not to go
+     * @return the total length from the document start to the range
+     */ 
+    this.getOffset = function( node, pos, top ) {
+        var total = pos;
+        while ( node != null )
+        {
+            while ( node.previousSibling != null )
+            {
+                node = node.previousSibling;                               
+                if ( node.nodeType==3 )
+                    total += node.length;
+                else if ( node.nodeType==1 )
+                    total += node.textContent.length;
+            }
+            node = node.parentNode;
+            if ( node.nodeType==1 && node.getAttribute("id")==top )
+                break;
+        }
+        return total;
+    };
     /**
      * Load callback handlers for updating the display
      */
@@ -1604,6 +1627,15 @@ function MMLEditor(target, docid, version1, modpath ) {
                 self.resize();
             })(this)
         );
+        // enable/disable annotation button when text is selected
+        jQuery("#target").mouseup( function() {
+            var sel = window.getSelection();
+            var range = sel.getRangeAt(0);
+            var startOffset = self.getOffset(range.startContainer,range.startOffset,"target");
+            var endOffset = self.getOffset(range.endContainer,range.endOffset,"target");
+            if ( endOffset > startOffset )
+               alert(startOffset+","+endOffset);
+        });
     };
     /**
      * Build up the actual page
@@ -1653,9 +1685,6 @@ function MMLEditor(target, docid, version1, modpath ) {
                 self.loadVersions();
                 self.makeInfo();
                 self.recomputeImageHeights();
-        for ( var i=0;i<self.text_lines.length;i++ )
-            console.log(self.text_lines[i].ref+","+self.text_lines[i].loc);
-
                 /* setup window */
                 self.resize();
             });

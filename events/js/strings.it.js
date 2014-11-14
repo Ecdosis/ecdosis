@@ -1,16 +1,16 @@
 function load_strings() {
     return {
         save:'salva',
-        delete_event:'delete event',
-        add_event:'add event',
-        search:'search',
-        invalid_date_msg: 'Please correct this date before saving',
-        empty_description: '<span class="placeholder">Enter event description</span>',
-        empty_references: '<span class="placeholder">Enter references</span>',
-        empty_title: 'Enter event title',
+        delete_event:'cancella evento',
+        add_event:'aggiungi evento',
+        search:'cerca',
+        invalid_date_msg: 'Perfavore correggare la data prima di salvare',
+        empty_description: '<span class="placeholder">Inserisci descrizione</span>',
+        empty_references: '<span class="placeholder">Inserisci referenze</span>',
+        empty_title: 'Inserisci il titolo dell\'evento',
         month_names: ['','Gen','Feb','Mar','Apr','Mag','Giu','Lug','Ago','Set',
             'Ott','Nov','Dic'],
-        qualifiers: ['','early','late','by','perhaps','circa'],
-        event_types: ['biography','composition','letter']
+        qualifiers: ['','inizio','fine','da','forse','circa'],
+        event_types: ['biografia','composizione','lettera']
     };
 }

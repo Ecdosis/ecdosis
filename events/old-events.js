@@ -19,7 +19,7 @@ function SearchExpr( field, index, pos, length )
      * @return undefined if it failed else the original object
      */
     this.advance = function( event,next ) {
-        if ( this.field==='title' )
+        if ( this.field=='title' )
         {
             if ( this.pos+this.length>= event.title.length )
             {
@@ -77,9 +77,6 @@ function events(target,docid,author,modpath)
     this.deleted_events = undefined;
     this.search_expr = undefined;
     this.author = author;
-    // event index
-    this.index = 0;
-    // width of event editing box
     this.boxWidth=604;
     this.languages = {italiano:'it',italian:'it',espagñol:'es',spanish:'es',english:'en'};
 
@@ -107,7 +104,7 @@ function events(target,docid,author,modpath)
     jQuery.getScript(script_name)
     .done(function( script, textStatus ) {
         self.strs = load_strings();
-    //console.log("loaded "+script_name+" successfully");
+    console.log("loaded "+script_name+" successfully");
     })
     .fail(function( jqxhr, settings, exception ) {
         console.log("Failed to load language strings. status=",jqxhr.status );
@@ -135,79 +132,40 @@ function events(target,docid,author,modpath)
         return event;
     };
     /**
-     * Set the values of the event
-     * @param event the event to set
+     * Execute a scroll right - we need this in 2 places
+     * @param amount the number of pixels to scroll
      */
-    this.set_event = function( event ) {
-        jQuery("#title").val(event.title); 
-        var qualifier = event.date.qualifier;
-        if ( qualifier == "" )
-            qualifier = "none";
-        jQuery("#qualifier").val(qualifier);
-        jQuery("#day").val(event.date.day);
-        jQuery("#month").val(event.date.month);
-        jQuery("#year").val(event.date.year);
-        jQuery("#type").val(event.type);
-        jQuery("#description").html(event.description);
-        jQuery("#references").html(event.references);
-    };
-    /**
-     * Save the current event as a preliminary to moving off it
-     * @return true if it was OK
-     */
-    this.save_event = function() {
-        var event = this.pDoc.events[this.index];
-        event.title = jQuery("#title").val(); 
-        event.date.qualifier = jQuery("#qualifier").val();
-        event.date.day = jQuery("#day").val();
-        event.date.month = jQuery("#month").val();
-        event.date.year = jQuery("#year").val();
-        event.type = jQuery("#type").val();
-        event.description = jQuery("#description").html();
-        event.references = jQuery("#references").html();
-        return this.verify_date();
-    };
-    /**
-     * Update the slider positions and max to coicide with pDoc.events 
-     */
-     this.update_slider = function() {
-         var slider = jQuery("#slider");
-         slider.slider("option","max",this.pDoc.events.length-1);
-         slider.slider("option","value",this.index);
-     };
-    /**
-     * Move the current event rightwards
-     * @param amount the number of events to move by
-     */
-    this.move_right = function(amount) {
-        if ( jQuery("div.tinyeditor").length>0 )
+    this.do_scroll_right = function(amount) {
+        if ( jQuery("#tinyeditor").length>0 )
             self.restore_div();
-        if ( this.save_event() )
+        var origAmt = jQuery("#wire_frame").scrollLeft();
+        var afterAmt = origAmt+amount;
+        if ( afterAmt < 0 )
+            afterAmt = 0;
+        else
         {
-            // select the event to fill
-            this.index += amount;
-            if ( this.index >= this.pDoc.events.length )
-                this.index = this.pDoc.events.length-1;
-            var event = this.pDoc.events[this.index];
-            this.set_event(event);
+            var new_index = Math.floor((afterAmt+self.boxWidth-1)/self.boxWidth);
+            afterAmt = new_index*self.boxWidth;
         }
+        jQuery("#wire_frame").scrollLeft(afterAmt);
     };
     /**
-     * Move the current event left
-     * @param amount the number of events to move left
+     * Execute a scroll left - put here to match do_scroll_right
+     * @param amount the number of pixels to scroll
      */
-    this.move_left = function( amount ) {
-        if ( jQuery("div.tinyeditor").length>0 )
+    this.do_scroll_left = function( amount ) {
+        if ( jQuery("#tinyeditor").length>0 )
             self.restore_div();
-        if ( this.save_event() )
+        var origAmt = jQuery("#wire_frame").scrollLeft();
+        var afterAmt = origAmt-amount;
+        if ( afterAmt < 0 )
+            afterAmt = 0;
+        else
         {
-            // select the event to fill
-            this.index -= amount;
-            if ( this.index < 0 )
-                this.index = 0;
-            var event = this.pDoc.events[this.index];
-            this.set_event(event);
+            var new_index = Math.floor((afterAmt+self.boxWidth-1)/self.boxWidth);
+            afterAmt = new_index*self.boxWidth;
         }
+        jQuery("#wire_frame").scrollLeft(afterAmt);
     };
     /**
      * Editables are the two editable divs. They need handlers to update the
@@ -217,39 +175,46 @@ function events(target,docid,author,modpath)
     this.init_editables = function( objs ) {
         // if the user clicks on it, turn it into an editor
         objs.click( function(e) {
-            if ( jQuery("div.tinyeditor").length>0 )
+            if ( jQuery("#tinyeditor").length>0 )
                 self.restore_div();
+            var editables = jQuery("div.edit-region");
+            var length = editables.length;
+            var index = editables.index( e.target );
             if ( index != undefined )
-                self.install_editor(jQuery(e.target));
+                self.install_editor("div.edit-region:eq("+index+")");
         });
     };
     /**
      * Set handlers for the event type select dropdown
-     * @param obj the jQuery event_type object
+     * @param objs a list of event type selector jQuery objects
      */
-    this.init_type_select = function(obj) {
-        obj.click( function() {
-            if ( jQuery("div.tinyeditor").length>0 )
+    this.init_type_selects = function(objs) {
+        objs.click( function() {
+            if ( jQuery("#tinyeditor").length>0 )
                 self.restore_div();
         });
-        obj.change( function(e) {
-            if ( self.pDoc.events[self.index].status != 'added' )
-                self.pDoc.events[self.index].status = 'changed';
+        objs.change( function(e) {
+            var types = jQuery("select.type_select");
+            var index = types.index(e.target);
+            if ( self.pDoc.events[index].status != 'added' )
+                self.pDoc.events[index].status = 'changed';
         });
     };
     /**
      * Set handlers for the title text input fields
-     * @param obj the title jQuery object
+     * @param objs a list of jQuery objects
      */
-    this.init_title = function( obj ) {
-        obj.attr("placeholder",self.strs.empty_title);
-        obj.click( function() {
+    this.init_titles = function( objs ) {
+        objs.attr("placeholder",self.strs.empty_title);
+        objs.click( function() {
             if ( jQuery("#tinyeditor").length>0 )
                 self.restore_div();
         });
-        obj.change( function(e) {
-            if ( self.pDoc.events[self.index].status != 'added' )
-                self.pDoc.events[self.index].status = 'changed';
+        objs.change( function(e) {
+            var titles = jQuery("input.title_box");
+            var index = titles.index(e.target);
+            if ( self.pDoc.events[index].status != 'added' )
+                self.pDoc.events[index].status = 'changed';
         });
     };
     /**
@@ -260,83 +225,89 @@ function events(target,docid,author,modpath)
         elem.fadeOut(100).fadeIn(100).fadeOut(100).fadeIn(100);
     };
     /**
-     * Check if the value of an input is empty or null
-     * @param input the jQuery input control
-     * @return true if it is empty or null
-     */
-     this.isEmpty = function(input) {
-         var val = input.val();
-         return val===null||val==="";
-     };
-    /**
      * Check that the current date is valid
+     * @param index the box index
      * @return true if it is OK else false
      */
-    this.verify_date = function() {
-        var qualifier = jQuery("#qualifier");
-        var day = jQuery("#day");
-        var month = jQuery("#month");
-        var year = jQuery("#year");
-        if ( !this.isEmpty(qualifier) )
+    this.verify_date = function(index) {
+        var qualifier = jQuery("select.qualifier:eq("+index+")");
+        var day = qualifier.next("select.date_day");
+        var month = day.next("select.date_month");
+        var year = month.next("input.year");
+        if ( qualifier.val() != "" )
         {
-            if ( !this.isEmpty(day) )
+            if (day.val()!="")
             {
                 self.flash(qualifier);
-                alert("day and qualifier can't both be set");
                 return false;
             }
         }
-        if ( this.isEmpty(day) )
+        if ( day.val()=="" )
         {
-            if ( this.isEmpty(qualifier) )
+            if ( qualifier.val()=="" )
             {
                 self.flash(day);
-                alert("day and qualifier cannot both be empty");
                 return false;
             }
         }
-        if ( this.isEmpty(month) )
+        if ( month.val()=="" )
         {
-            if ( !this.isEmpty(day)||this.isEmpty(qualifier) )
+            if ( day.val()!=""||qualifier.val()=="" )
             {
-                alert("month cannot be empty if day is set or qualifier is empty");
                 self.flash(month);
                 return false;
             }
         }
-        if ( this.isEmpty(year) )
-        {
-            alert("year cannot be empty");
+        if ( year.val()=="" )
             return false;
-        }
         return true;
     };
     /**
      * Set handlers for all the date fields
+     * @param index the current box index to select (optional)
      */
-    this.init_date = function() {
+    this.init_dates = function( index ) {
         // there are four controls for dates!
-        var qualifier = jQuery("#qualifier");
-        var day = jQuery("#day");
-        var month = jQuery("#month");
-        var year = jQuery("#year");
-        // every time someone changes a date field we must mark the 
+        var days,months,years,qualifiers;
+        if ( index != undefined )
+        {
+            qualifiers = jQuery("select.qualifier:eq("+index+")");
+            days = jQuery("select.date_day:eq("+index+")");
+            months = jQuery("select.date_month:eq("+index+")");
+            years = jQuery("input.year:eq("+index+")");
+        }
+        else
+        {
+            qualifiers = jQuery("select.qualifier");
+            days = jQuery("select.date_day");
+            months = jQuery("select.date_month");
+            years = jQuery("input.year");
+        }
+        // every time someone change a date field we must mark the 
         // pDoc.events entry as 'changed'.
-        qualifier.change( function(e) {
-            self.pDoc.events[self.index].status = "changed";
+        qualifiers.change( function(e) {
+            var all = jQuery("select.qualifier");
+            var index = all.index(e.target);
+            self.pDoc.events[index].status = "changed";
         });
-        day.change( function(e) {
-            self.pDoc.events[self.index].status = "changed";
+        days.change( function(e) {
+            var all = jQuery("select.date_day");
+            var index = all.index(e.target);
+            self.pDoc.events[index].status = "changed";
         });
-        month.change( function(e) {
-            self.pDoc.events[self.index].status = "changed";
+        months.change( function(e) {
+            var all = jQuery("select.date_month");
+            var index = all.index(e.target);
+            self.pDoc.events[index].status = "changed";
         });
-        year.change( function(e) {
-            self.pDoc.events[self.index].status = "changed";
+        years.change( function(e) {
+            var all = jQuery("input.year");
+            var index = all.index(e.target);
+            self.pDoc.events[index].status = "changed";
         });
     }; 
     /**
-     * Add a simple click-handler for the search box
+     * Add a simple click-handler to the search box
      */
     this.init_search_box = function() {
         jQuery("#search_box").click( function(e) {
@@ -361,44 +332,48 @@ function events(target,docid,author,modpath)
         });
     };
     /**
-     * Read the new event data from the GUI
+     * Read the new event data from the specified box
      * @param event the event object to update
-     * @return true if the update succeeded
+     * @param index the index of the box to read from
      */
-    this.update_event = function( event ) {
-        var title = jQuery("#title");
-        var qualifier = jQuery("#qualifier");
-        var day = jQuery("#day");
-        var month = jQuery("#month");
-        var year = jQuery("#year");
-        var type = jQuery("#type");
-        var editor = jQuery("div.tinyeditor");
-        if ( editor.length==1 )
-            self.restore_div();                
-        event.title = title.val();
-        event.type = type.val();
-        var date = {};
-        date.qualifier = qualifier.val();
-        if ( date.qualifier=="" )
-           date.qualifier = "none";
-        date.day = parseInt((day.val()=="")?"-1":day.val());
-        date.month = self.month_to_int(month.val());
-        date.year = parseInt((year.val()=="")?"0":year.val());
-        event.date = date;
-        event.status = (event.status=='added')?'added':'changed';
-        var editables = jQuery("div.edit-region");
-        if ( editables.length==2 )
+    this.update_event = function( event, index ) {
+        var box = jQuery("div.box:eq("+index+")");
+        if ( box != undefined )
         {
-            var description = editables[0].innerHTML;
-            var references = editables[1].innerHTML;
-            if ( description==self.strs.empty_description )
-                description = "";
-            if ( references==self.strs.empty_references )
-                references = "";
-            event.description = description;
-            event.references = references;
+            var title = box.find("input.title_box");
+            var qualifier = box.find("select.qualifier");
+            var day = box.find("select.date_day");
+            var month = box.find("select.date_month");
+            var year = box.find("input.year");
+            var type = box.find("select.type_select");
+            var editor = box.find("div.tinyeditor");
+            if ( editor.length==1 )
+                self.restore_div();                
+            event.title = title.val();
+            event.type = type.val();
+            var date = {};
+            date.qualifier = qualifier.val();
+            if ( date.qualifier=="" )
+               date.qualifier = "none";
+            date.day = parseInt((day.val()=="")?"-1":day.val());
+            date.month = self.month_to_int(month.val());
+            date.year = parseInt((year.val()=="")?"0":year.val());
+            event.date = date;
+            event.status = (event.status=='added')?'added':'changed';
+            var editables = box.find("div.edit-region");
+            if ( editables.length==2 )
+            {
+                var description = editables[0].innerHTML;
+                var references = editables[1].innerHTML;
+                if ( description==self.strs.empty_description )
+                    description = "";
+                if ( references==self.strs.empty_references )
+                    references = "";
+                event.description = description;
+                event.references = references;
+            }
         }
-        return this.verify_date();
+        return this.verify_date(index);
     };
     /**
      * Compute the table from the pattern for kmp search
@@ -574,12 +549,8 @@ function events(target,docid,author,modpath)
     */
     this.scroll_to_hit = function( expr ) {
         this.search_expr = expr;
-        var amount = expr.index-this.index;
-        if ( amount >0 )
-            this.move_right(amount);
-        else
-            this.move_left(-amount);
-        this.update_slider();
+        var amount = this.boxWidth*expr.index;
+        jQuery("#wire_frame").scrollLeft(amount);
     };
     /**
      * Copy the generated html into the document and set everything up
@@ -591,12 +562,10 @@ function events(target,docid,author,modpath)
         tgt.append(html);
         // now the page is built we can set up the event-handlers
         jQuery("#goleft").click( function() {
-            self.move_left(1);
-            self.update_slider();
+            self.do_scroll_left(self.boxWidth);
         });
         jQuery("#goright").click( function() {
-            self.move_right(1);
-            self.update_slider();
+            self.do_scroll_right(self.boxWidth);
         });
         jQuery("#search_box").click( function() {
             if ( jQuery("#tinyeditor").length>0 )
@@ -607,11 +576,24 @@ function events(target,docid,author,modpath)
          * Add a new empty event in the GUI. Don't save it yet.
          */
         jQuery("#add_button").click( function() {
-            var event = self.pDoc.events[this.index];
+            var currScrollPos = jQuery("#wire_frame").scrollLeft();
+            var boxIndex = Math.floor(currScrollPos/self.boxWidth);
+            var event = self.pDoc.events[boxIndex];
             var new_event = self.create_event(event);
-            self.pDoc.events.splice(this.index+1,0,new_event);
-            this.move_right(1);
-            this.update_slider();
+            self.pDoc.events.splice(boxIndex+1,0,new_event);
+            var box = jQuery(".box:eq("+boxIndex+")");
+            var html = self.create_box(new_event,'added');
+            box.after(html);
+            // update scroll pane width
+            jQuery("#scroll_pane").width(self.boxWidth*self.pDoc.events.length);
+            self.do_scroll_right(self.boxWidth);
+            // install event handlers
+            var newIndex = boxIndex+1;
+            self.init_titles(jQuery("input.title_box:eq("+newIndex+")"));
+            self.init_type_selects(jQuery("select.type_select:eq("+newIndex+")"));
+            self.init_editables(jQuery("div.edit-region:eq("+(newIndex*2)+")"));
+            self.init_editables(jQuery("div.edit-region:eq("+(newIndex*2+1)+")"));
+            self.init_dates(newIndex);
         });        
         /**
          * Delete an event in the GUI. If added recently just remove it, else 
@@ -619,8 +601,10 @@ function events(target,docid,author,modpath)
          * It won't be deleted until the user clicks "save".  
          */
         jQuery("#delete_button").click( function() {
-            var event = self.pDoc.events[this.index];
-            var deleted_items = self.pDoc.events.splice(this.index,1);
+            var currScrollPos = jQuery("#wire_frame").scrollLeft();
+            var boxIndex = Math.floor(currScrollPos/self.boxWidth);
+            var event = self.pDoc.events[boxIndex];
+            var deleted_items = self.pDoc.events.splice(boxIndex,1);
             if ( event._id != undefined && deleted_items.length>0 )
             {
                 if ( self.deleted_events == undefined )
@@ -628,10 +612,10 @@ function events(target,docid,author,modpath)
                 else
                     self.deleted_events.push(deleted_items[0]);
             }
-            if ( this.index > this.pDoc.events.length-1 )
-                this.index = 0;
-            this.set_event(this.pDoc.events[this.index]);
-            this.update_slider();
+            jQuery(".box:eq("+boxIndex+")").remove();
+            // update scroll pane width
+            jQuery("#scroll_pane").width(self.boxWidth*self.pDoc.events.length);
+            self.do_scroll_right(self.boxWidth);
         });        
         /**
          * Save changed, add new and delete old events on server
@@ -663,32 +647,42 @@ function events(target,docid,author,modpath)
                 }
                 self.deleted_events = failed;
             }
-            var event = self.pDoc.events[this.index];
-            if ( event.status != 'unchanged' ) {
-                var service = "add";
-                var oldStatus = event.status;
-                if ( event.status == 'changed' )
-                    service = 'update';
-                if ( self.update_event(event) )
-                {
-                    delete event.status;
-                    var jsonStr = JSON.stringify(event);
-                    var obj = {
-                         event: jsonStr
-                    };
-                    var success = function(data, textStatus, jqXHR) {
-                        //console.log(data);
-                        var jDoc = JSON.parse(data); 
-                        var id = {$oid:jDoc._id};
-                        event._id = id;
-                        event.status = 'unchanged';
-                        console.log("success! status="+jqXHR.status);
-                    };
-                    var failure = function(jqXHR, textStatus, errorThrown){
-                        event.status = oldStatus;
-                        console.log("failed status="+jqXHR.status+" errorThrown="+errorThrown);
-                    };
-                    self.post_obj(url,service,obj,success,failure);
+            for ( var i=0;i<self.pDoc.events.length;i++ )
+            {
+                var event = self.pDoc.events[i];
+                if ( event.status != 'unchanged' ) {
+                    var service = "add";
+                    var oldStatus = event.status;
+                    if ( event.status == 'changed' )
+                        service = 'update';
+                    if ( self.update_event(event,i) )
+                    {
+                        delete event.status;
+                        var jsonStr = JSON.stringify(event);
+                        var obj = {
+                             event: jsonStr
+                        };
+                        var success = function(data, textStatus, jqXHR) {
+                            //console.log(data);
+                            var jDoc = JSON.parse(data); 
+                            var id = {$oid:jDoc._id};
+                            event._id = id;
+                            event.status = 'unchanged';
+                            console.log("success! status="+jqXHR.status);
+                        };
+                        var failure = function(jqXHR, textStatus, errorThrown){
+                            event.status = oldStatus;
+                            console.log("failed status="+jqXHR.status+" errorThrown="+errorThrown);
+                        }
+                        self.post_obj(url,service,obj,success,failure);
+                    }
+                    else
+                    {
+                        var amount = i*self.boxWidth;
+                        jQuery("#wire_frame").scrollLeft(amount);
+                        alert(self.strs.invalid_date_msg);
+                        break;
+                    }
                 }
             }
         });        
@@ -700,7 +694,9 @@ function events(target,docid,author,modpath)
             {
                if ( self.search_expr == undefined )
                {
-                   self.search_expr = new SearchExpr('title',this.index,0,0);
+                   var currScrollPos = jQuery("#wire_frame").scrollLeft();
+                   var boxIndex = Math.floor(currScrollPos/self.boxWidth);
+                   self.search_expr = new SearchExpr('title',boxIndex,0,0);
                }
                var res = self.search_from(self.search_expr,jQuery("#search_box").val());
                if ( res != undefined )
@@ -716,15 +712,19 @@ function events(target,docid,author,modpath)
         this.init_search_box();
         // one of these for each panel
         this.init_editables(jQuery("div.edit-region"));
-        this.init_type_select(jQuery("#type"));
-        this.init_title(jQuery("#title"));
-        this.init_date();
+        this.init_type_selects(jQuery(".type_select"));
+        this.init_titles(jQuery(".title_box"));
+        this.init_dates();
+        // finally, set the width of the scroll pane
+        jQuery("#scroll_pane").width(this.boxWidth*this.pDoc.events.length);
     };
     /**
      * The user clicked on an editable div
-     * @param the jQuery target for later restoration
+     * @param selector the jquery selector for the div - save for later restoration
      */
-    this.install_editor = function( target ) {
+    this.install_editor = function( selector ) {
+        this.selector = selector;
+        var target = jQuery(selector);
         var content = target.html();
         if ( content == self.strs.empty_description||content==self.strs.empty_references )
             content = "";
@@ -769,8 +769,9 @@ function events(target,docid,author,modpath)
                 content = self.strs.empty_references;
         }
         jQuery("div.tinyeditor").replaceWith('<div class="'+class_name+'">'+content+'</div>');
-        if ( self.pDoc.events[this.index].status != 'added' )
-            self.pDoc.events[this.index].status = 'changed';
+        var index = jQuery("#wire_frame").scrollLeft()/self.boxWidth;
+        if ( self.pDoc.events[index].status != 'added' )
+            self.pDoc.events[index].status = 'changed';
         jQuery(self.selector).click( function(e) {
             if ( jQuery("#tinyeditor").length>0 )
                 self.restore_div();
@@ -785,13 +786,13 @@ function events(target,docid,author,modpath)
      * Make a dropdown (select) menu
      * @param items the array of items
      * @param value the item value to select
-     * @param sel_id an id for the select element (optional)
+     * @param sl_class a class name for the select element (optional)
      */
-    this.make_dropdown = function( items, value, sel_id )
+    this.make_dropdown = function( items, value, sel_class )
     {
         var html = '<select';
-        if ( sel_id != undefined )
-            html += ' id="'+sel_id+'"';
+        if ( sel_class != undefined )
+            html += ' class="'+sel_class+'"';
         html += '>';
         for ( var i=0;i<items.length;i++ )
         {
@@ -806,11 +807,11 @@ function events(target,docid,author,modpath)
     /**
      * Make a text-input box
      * @param text the initial text for it
-     * @param name the id for the box
+     * @param name the class-name for the box
      */
     this.make_text = function( text, name )
     {
-        return '<input type="text" id="'+name+'" value="'+text+'"></input>';
+        return '<input type="text" class="'+name+'" value="'+text+'"></input>';
     };
     /**
      * Based on the localised month-name determine its numeric value
@@ -826,36 +827,36 @@ function events(target,docid,author,modpath)
      * Make a single row in the table containing input elements
      * @param type the type of row content
      * @param value different types of value for the input elements
-     * @param id for text input rows
+     * @param classname (optional) class name for text input rows
      */
-    this.compose_row = function( type, value, id )
+    this.compose_row = function( type, value, classname )
     {
         var html = "";
         switch ( type )
         {
             case 'text':
                 html = '<tr><td colspan="2"><input ';
-                if ( id != undefined )
-                    html += 'id="'+id+'" ';
+                if ( classname != undefined )
+                    html += 'class="'+classname+'" ';
                 html += 'type="text" value="'+value+'"></input></td></tr>';
                 break;
             case 'date':
                 html += '<tr><td>'+this.make_dropdown(this.strs.qualifiers,(value.qualifier=='none')?'':value.qualifier,'qualifier');
-                html += this.make_dropdown(this.month_days,value.day.toString(),'day');
-                html += this.make_dropdown(this.strs.month_names,(value.month>=0)?this.strs.month_names[value.month+1]:'','month');
+                html += this.make_dropdown(this.month_days,value.day.toString(),'date_day');
+                html += this.make_dropdown(this.strs.month_names,(value.month>=0)?this.strs.month_names[value.month+1]:'','date_month');
                 html += this.make_text(value.year.toString(),'year');
-                html += '</td><td>'+this.make_dropdown(this.strs.event_types,id,"type");
+                html += '</td><td>'+this.make_dropdown(this.strs.event_types,classname,"type_select");
                 html += '</td></tr>';
                 break;
             case 'textarea':
                 if ( value.length==0 )
                 {
-                    if ( id=='description' )
+                    if ( classname=='description' )
                         value = self.strs.empty_description;
-                    else if ( id=='references' )
+                    else if ( classname=='references' )
                         value = self.strs.empty_references;
                 }
-                html += '<tr><td colspan="2"><div id="'+id+'" class="edit-region">'+value+'</div></td></tr>';
+                html += '<tr><td colspan="2"><div class="edit-region">'+value+'</div></td></tr>';
                 break;
         }
         return html;
@@ -883,30 +884,13 @@ function events(target,docid,author,modpath)
     this.create_box = function( event ) {
         var html = '<div class="box">';
         html += '<table>';
-        html += self.compose_row('text',event.title,'title'); 
+        html += self.compose_row('text',event.title,'title_box'); 
         html += self.compose_row('date',event.date,event.type);
         html += self.compose_row('textarea',event.description,'description');
         html += self.compose_row('textarea',event.references,'references');
-        html += '</table>\n';
-        html += '<div id="slider"></div>';
+        html += '</table>';
         html += '</div>';
         return html;
-    };
-    /**
-     * Install and configure the slider control
-     */
-    this.install_slider = function() {
-        jQuery("#slider").slider({min:0});
-        jQuery("#slider").slider("option","max",self.pDoc.events.length-1);
-        jQuery("#slider").slider("option","step",1);
-        jQuery("#slider").on("slidechange",function(event,ui) {
-            var value = jQuery("#slider").slider("value");
-            var amount = value-self.index;
-            if ( amount > 0 )
-                self.move_right(amount);
-            else if ( amount < 0 )
-                self.move_left(-amount);
-        });
     };
     /* Download all the events in compact form for this project */
     jQuery.get( "http://"+window.location.hostname+"/project/events/"+docid, function(data)
@@ -920,17 +904,20 @@ function events(target,docid,author,modpath)
         {
             html += '<div id="centre_panel">\n';
             html += self.make_toolbar();
+            html += '<div id="wire_frame">';
+            html += '<div id="scroll_pane">\n';
             for ( var i=0;i<events.length;i++ )
             {
                 events[i].status = 'unchanged';
+                html += self.create_box(events[i]);
             }
-            html += self.create_box(events[0]);
+            html += '</div>';
+            html += '</div>';
             html += '</div>';
         }
         html += '<div id="right-sidebar"><i id="goright" class="fa fa-chevron-right fa-3x"></i></div>';
         html += "</div>";
         self.setHtml(html);
-        self.install_slider();
     });
 }
 /**
@@ -966,8 +953,9 @@ function getArgs( scrName )
     return params;
 }
 /* main entry point - gets executed when the page is loaded */
-jQuery(function(){
-    // DOM Ready - do your stuff 
-    var params = getArgs('events.js');
-    var editor = new events(params['target'],params['docid'],params['author'],params['modpath']);
-}); 
+jQuery(document).ready( 
+    function(){
+        var params = getArgs('events.js');
+        var editor = events(params['target'],params['docid'],params['author'],params['modpath']);
+    }
+); 
