@@ -145,9 +145,9 @@ function events(target,docid,author,modpath)
             qualifier = "none";
         jQuery("#qualifier").val(qualifier);
         jQuery("#day").val(event.date.day);
-        jQuery("#month").val(event.date.month);
+        jQuery("#month").val(self.strs.month_names[event.date.month]);
         jQuery("#year").val(event.date.year);
-        jQuery("#type").val(event.type);
+        jQuery("#type").val(self.strs.event_types[event.type]);
         jQuery("#description").html(event.description);
         jQuery("#references").html(event.references);
     };
@@ -160,9 +160,9 @@ function events(target,docid,author,modpath)
         event.title = jQuery("#title").val(); 
         event.date.qualifier = jQuery("#qualifier").val();
         event.date.day = jQuery("#day").val();
-        event.date.month = jQuery("#month").val();
+        event.date.month = this.month_to_int(jQuery("#month").val());
         event.date.year = jQuery("#year").val();
-        event.type = jQuery("#type").val();
+        event.type = jQuery("#type")[0].selectedIndex;
         event.description = jQuery("#description").html();
         event.references = jQuery("#references").html();
         return this.verify_date();
@@ -282,7 +282,7 @@ function events(target,docid,author,modpath)
             if ( !this.isEmpty(day) )
             {
                 self.flash(qualifier);
-                alert("day and qualifier can't both be set");
+                alert(self.strs.day_and_qualifier_set);
                 return false;
             }
         }
@@ -291,7 +291,7 @@ function events(target,docid,author,modpath)
             if ( this.isEmpty(qualifier) )
             {
                 self.flash(day);
-                alert("day and qualifier cannot both be empty");
+                alert(self.strs.day_and_qualifier_empty);
                 return false;
             }
         }
@@ -299,14 +299,14 @@ function events(target,docid,author,modpath)
         {
             if ( !this.isEmpty(day)||this.isEmpty(qualifier) )
             {
-                alert("month cannot be empty if day is set or qualifier is empty");
+                alert(self.strs.month_empty);
                 self.flash(month);
                 return false;
             }
         }
         if ( this.isEmpty(year) )
         {
-            alert("year cannot be empty");
+            alert(self.strs.year_empty);
             return false;
         }
         return true;
@@ -376,7 +376,7 @@ function events(target,docid,author,modpath)
         if ( editor.length==1 )
             self.restore_div();                
         event.title = title.val();
-        event.type = type.val();
+        event.type = type[0].selectedIndex;
         var date = {};
         date.qualifier = qualifier.val();
         if ( date.qualifier=="" )
@@ -820,7 +820,7 @@ function events(target,docid,author,modpath)
         for (var i=0;i<this.strs.month_names.length;i++ )
             if ( this.strs.month_names[i]==name )
                 return i;
-       return -1;
+       return 0;
     }
     /**
      * Make a single row in the table containing input elements
@@ -844,7 +844,7 @@ function events(target,docid,author,modpath)
                 html += this.make_dropdown(this.month_days,value.day.toString(),'day');
                 html += this.make_dropdown(this.strs.month_names,(value.month>=0)?this.strs.month_names[value.month+1]:'','month');
                 html += this.make_text(value.year.toString(),'year');
-                html += '</td><td>'+this.make_dropdown(this.strs.event_types,id,"type");
+                html += '</td><td>'+this.make_dropdown(this.strs.event_types,this.strs.event_types[id],"type");
                 html += '</td></tr>';
                 break;
             case 'textarea':
