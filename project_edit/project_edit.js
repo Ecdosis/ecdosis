@@ -8,14 +8,52 @@
 function project_edit(target,docid,users,docs)
 {
     this.target = target;
+    var self = this;
+    this.removeParam = function( jObj, key ) {
+        var res = "";
+        var parts = jObj.split("&");
+        for ( var i=0;i<parts.length;i++ )
+        {
+            var halves = parts[i].split("=");
+            if ( halves.length == 2 )
+            {
+                if ( halves[0]!=key )
+                {
+                    if ( res.length > 0 )
+                        res += "&";
+                    res += halves[0]+"="+halves[1];
+                }
+            }
+        }
+        return res;
+    };
     this.setHtml = function( html )
     {
         var tgt = jQuery("#"+this.target);
         tgt.append(html);
+        // set up submission via ajax 
+        jQuery("#form1").submit(function(event) {
+            var icon_file = jQuery("input[name='icon_file']").val();
+            if ( icon_file==undefined||icon_file.length==0 ) {
+                var url = jQuery("#form1").attr("action"); 
+                console.log("new source="+jQuery("#source").val());
+                var jObj = jQuery("#form1").serialize();
+                jObj = self.removeParam(jObj,"source");
+                jQuery.ajax({
+                    type: "POST",
+                    url: url,
+                    data: jObj,
+                    success: function(data)
+                    {
+                        console.log("saved project");
+                    }
+                });
+                event.preventDefault();
+            }
+        });
         jQuery("#save_button").click( function() {
             jQuery("#form1").submit();
         });
-        var self = this;
         /** 
          * Shorten a standard docid to language/author
          * @param docid a full docid
@@ -50,7 +88,14 @@ function project_edit(target,docid,users,docs)
             window.location.href = jQuery("#site_url").val();
         });
         jQuery("#delete_button").click( function() {
-            alert("unimplemented");
+            var url = 'http://'+window.location.host+'/project/'+docid;
+            jQuery.ajax({
+                url: url,
+                type: 'DELETE',
+                success: function(result) {
+                    console.log("deleted project "+docid);
+                }
+            });
         });
     };
     this.user_select = function(owner,users)
@@ -80,11 +125,10 @@ function project_edit(target,docid,users,docs)
         html += '</select>';
        return html;
     };
-    var self = this;
     jQuery.get( "http://"+window.location.hostname+"/project/"+docid, function(data) 
     {    
         var html = "";
-        var pDoc = JSON.parse(data);
+        var pDoc = data;
         /* "docid" : "italian/deroberto/ivicere", "url" : "http://ecdosis.net/deroberto" }*/
         html += '<div class="project_edit">';
         html += '<form id="form1" action="'+'http://'+window.location.hostname+'/project/"';
@@ -117,6 +161,7 @@ function project_edit(target,docid,users,docs)
         html += '<tr><td><input id="delete_button" type="button" value="delete"></input></td><td><input id="save_button" type="button" value="save"></input></td></tr>';
         html += '</table>\n';
         html += '<input type="hidden" name="docid" id="docid" value="'+pDoc.docid+'"></input>';
+        html += '<input name="source" type="hidden" value="'+window.location.href+'"></input>';
         html += '</form>';
         html += '</div>';
         self.setHtml(html);

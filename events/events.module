@@ -20,7 +20,6 @@ function events_preprocess_page(&$vars)
         drupal_add_css(drupal_get_path('module','events').'/css/events.css','file');
         drupal_add_css(drupal_get_path('module','events').'/css/tinyeditor.css','file');
         drupal_add_css(drupal_get_path('module','events').'/css/jquery-ui.css','file');
-        drupal_add_css(drupal_get_path('module','events').'/css/font-awesome.min.css','file');
     }
 }
 function events_all()

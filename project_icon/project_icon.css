@@ -1,3 +1,10 @@
-.project { width: 150px }
-.project img {width: 100%}
+.new-project { width: 150px;display:inline-block;margin-right:10px }
+.new-project a img {width: 100%}
+.project { width: 150px;display:inline-block;margin-right:10px }
+.project a img {width: 100%}
+.new-project p {text-align:center}
 .project p {text-align:center}
+#block-project-icon-project-icon > * { vertical-align:top; }
+div.event-button { display:inline; border: 1px solid grey;padding: 5px 5px 5px 5px;border-radius:3px;margin-right:10px;}
+div.event-button:hover {background-color: lightgrey; cursor:pointer }
+
