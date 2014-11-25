@@ -9,6 +9,7 @@ function project_edit(target,docid,users,docs)
 {
     this.target = target;
     var self = this;
+    this.languages = ["italian","english","german"];
     this.removeParam = function( jObj, key ) {
         var res = "";
         var parts = jObj.split("&");
@@ -27,6 +28,32 @@ function project_edit(target,docid,users,docs)
         }
         return res;
     };
+    this.langSelect = function() {
+        var html = '<select id="language">';
+        for ( var i=0;i<this.languages.length;i++ )
+        {
+            html += '<option>';
+            html += this.languages[i];
+            html += '</option>';
+        }
+        html += '</select>';
+        return html;
+    };
+    this.authorBox = function() {
+        var html = "";
+        html += '<input type="text" id="author" placeholder="author">';
+        html += '</input>';
+        return html;
+    };
+    this.workBox = function() {
+        var html = "";
+        html += '<input type="text" id="work" placeholder="work">'
+        html += '</input>';
+        return html;
+    };
+    this.stripSpaces = function(str) {
+        return str.replace(/\s/g, '');
+    };
     this.setHtml = function( html )
     {
         var tgt = jQuery("#"+this.target);
@@ -35,8 +62,26 @@ function project_edit(target,docid,users,docs)
         jQuery("#form1").submit(function(event) {
             var icon_file = jQuery("input[name='icon_file']").val();
             if ( icon_file==undefined||icon_file.length==0 ) {
-                var url = jQuery("#form1").attr("action"); 
-                console.log("new source="+jQuery("#source").val());
+                var url = jQuery("#form1").attr("action");
+                if ( docid=='english/anonymous' )
+                {
+                    var l = jQuery("#language").val();
+                    var a = self.stripSpaces(jQuery("#author").val());
+                    var w = self.stripSpaces(jQuery("#work").val());
+                    if ( a==undefined||a.length==0 )
+                    {
+                        alert("Author cannot be empty");
+                        return false;
+                    }
+                    if ( w==undefined||w.length==0 )
+                    {
+                        alert("Work cannot be empty");
+                        return false;
+                    }
+                    var did = l+"/"+a+"/"+w;
+                    console.log("docid="+did);
+                    jQuery("#docid").val(did);
+                } 
                 var jObj = jQuery("#form1").serialize();
                 jObj = self.removeParam(jObj,"source");
                 jQuery.ajax({
@@ -141,9 +186,18 @@ function project_edit(target,docid,users,docs)
         var work = (pDoc.work!=undefined)?pDoc.work:docid_parts[2];
         self.work = work;
         self.author= author;
-        html += '<tr><td>';
-        html += '<img class="project" src="'+pDoc.icon+'"></td><td><input type="file" name="icon_file"></input>';
-        html += '</td></tr>';
+        var rowspan = "";
+        if ( docid=='english/anonymous' )
+            rowspan = ' rowspan="4"';
+        html += '<tr><td'+rowspan+'>';
+        html += '<img class="project" src="'+pDoc.icon+'"></td>';
+        html += '<td><input type="file" name="icon_file"></input></td></tr>';
+        if ( docid=='english/anonymous' )
+        {
+            html += '<tr><td>'+self.langSelect()+'</td></tr>';
+            html += '<tr><td>'+self.authorBox()+'</td></tr>';
+            html += '<tr><td>'+self.workBox()+'</td></tr>';
+        }
         html += '<tr><td>Description:</td><td><input name="description" type="text" id="description" value="'+pDoc.description+'"></input></td></tr>';
         html += '<tr><td>Documents:</td><td>';
         if ( pDoc.works != undefined )
