@@ -10,6 +10,22 @@ function project_edit(target,docid,users,docs)
     this.target = target;
     var self = this;
     this.languages = ["italian","english","german"];
+    this.replaceParam = function( jObj, key, value ) {
+        var res = "";
+        var parts = jObj.split("&");
+        for ( var i=0;i<parts.length;i++ )
+        {
+            var halves = parts[i].split("=");
+            if ( halves.length == 2 )
+            {
+                if ( res.length > 0 )
+                    res += "&";
+                res += halves[0]+"=";
+                res += (halves[0]==key)?value:halves[1];
+            }
+        }
+        return res;
+    };
     this.removeParam = function( jObj, key ) {
         var res = "";
         var parts = jObj.split("&");
@@ -41,18 +57,39 @@ function project_edit(target,docid,users,docs)
     };
     this.authorBox = function() {
         var html = "";
-        html += '<input type="text" id="author" placeholder="author">';
+        html += '<input type="text" id="author" placeholder="author (short)">';
         html += '</input>';
         return html;
     };
     this.workBox = function() {
         var html = "";
-        html += '<input type="text" id="work" placeholder="work">'
+        html += '<input type="text" id="work" placeholder="work (short)">'
         html += '</input>';
         return html;
     };
     this.stripSpaces = function(str) {
+        str = str.toLowerCase();
         return str.replace(/\s/g, '');
+    };
+    /**
+     * Get the URL one level up to execute a redirect there
+     * @return the ful url of the parent directory
+     */
+    this.getParentUrl = function() {
+        var referer = window.location.href;
+        var qPos = referer.indexOf("?");
+        if ( qPos != -1 )
+            referer = referer.substring( 0, qPos );
+        var slashPos = referer.lastIndexOf("/");
+        if ( slashPos != -1 )
+            referer = referer.substring(0,slashPos);
+        return referer;
+    };
+    this.pointToDocId = function(did) {
+        return window.location.protocol
+        +"//"+window.location.host
+        +window.location.pathname
+        +"?docid="+did;
     };
     this.setHtml = function( html )
     {
@@ -60,30 +97,33 @@ function project_edit(target,docid,users,docs)
         tgt.append(html);
         // set up submission via ajax 
         jQuery("#form1").submit(function(event) {
+            var jObj = jQuery("#form1").serialize();
+            if ( docid=='english/anonymous' )
+            {
+                var l = jQuery("#language").val();
+                var a = self.stripSpaces(jQuery("#author").val());
+                var w = self.stripSpaces(jQuery("#work").val());
+                if ( a==undefined||a.length==0 )
+                {
+                    alert("Author cannot be empty");
+                    return false;
+                }
+                if ( w==undefined||w.length==0 )
+                {
+                    alert("Work cannot be empty");
+                    return false;
+                }
+                var did = l+"/"+a+"/"+w;
+                console.log("docid="+did);
+                jQuery("#docid").val(did);
+                jObj = self.replaceParam(jObj,"source",self.pointToDocId(did));
+                jQuery("#source").val(self.pointToDocId(did));
+            } 
             var icon_file = jQuery("input[name='icon_file']").val();
             if ( icon_file==undefined||icon_file.length==0 ) {
-                var url = jQuery("#form1").attr("action");
-                if ( docid=='english/anonymous' )
-                {
-                    var l = jQuery("#language").val();
-                    var a = self.stripSpaces(jQuery("#author").val());
-                    var w = self.stripSpaces(jQuery("#work").val());
-                    if ( a==undefined||a.length==0 )
-                    {
-                        alert("Author cannot be empty");
-                        return false;
-                    }
-                    if ( w==undefined||w.length==0 )
-                    {
-                        alert("Work cannot be empty");
-                        return false;
-                    }
-                    var did = l+"/"+a+"/"+w;
-                    console.log("docid="+did);
-                    jQuery("#docid").val(did);
-                } 
-                var jObj = jQuery("#form1").serialize();
+                jObj = self.replaceParam(jObj,"docid",jQuery("#docid").val());
                 jObj = self.removeParam(jObj,"source");
+                var url = jQuery("#form1").attr("action");
                 jQuery.ajax({
                     type: "POST",
                     url: url,
@@ -139,6 +179,8 @@ function project_edit(target,docid,users,docs)
                 type: 'DELETE',
                 success: function(result) {
                     console.log("deleted project "+docid);
+                    var referer = self.getParentUrl();
+                    window.location.replace(referer);
                 }
             });
         });
@@ -198,7 +240,17 @@ function project_edit(target,docid,users,docs)
             html += '<tr><td>'+self.authorBox()+'</td></tr>';
             html += '<tr><td>'+self.workBox()+'</td></tr>';
         }
-        html += '<tr><td>Description:</td><td><input name="description" type="text" id="description" value="'+pDoc.description+'"></input></td></tr>';
+        var aValue = (pDoc.author!=undefined)?'value="'+pDoc.author+'"'
+            :'placeholder="enter full author name"';
+        var wValue = (pDoc.work!=undefined)?'value="'+pDoc.work+'"'
+            :'placeholder="enter work or project name"';
+        var dValue = (pDoc.description!=undefined)?'value="'+pDoc.description+'"'
+            :'placeholder="enter project description"';
+        var sValue = (pDoc.site_url!=undefined)?'value="'+pDoc.site_url+'"'
+            :'placeholder="enter project website"';
+        html += '<tr><td>Author:</td><td><input name="author" type="text" id="author" '+aValue+'></input></td></tr>';
+        html += '<tr><td>Project or Work:</td><td><input name="work" type="text" id="work" '+wValue+'></input></td></tr>';
+        html += '<tr><td>Description:</td><td><input name="description" type="text" id="description" '+dValue+'></input></td></tr>';
         html += '<tr><td>Documents:</td><td>';
         if ( pDoc.works != undefined )
             html += pDoc.works+' documents ';
@@ -207,7 +259,7 @@ function project_edit(target,docid,users,docs)
         if ( pDoc.events != undefined )
             html += pDoc.events+' events ';
         html += '<input type="button" id="editevents" value="edit..."></input></td></tr>';
-        html += '<tr><td>Site URL:</td><td><input name="site_url" type="text" id="site_url" value="'+pDoc.url+'"></input>'
+        html += '<tr><td>Site URL:</td><td><input name="site_url" type="text" id="site_url" '+sValue+'></input>'
             +'<input type="button" id="gotosite" value="Go to"></input></td></tr>';
         html += '<tr><td>Owner:</td>';
         html += '<td>'+self.user_select(pDoc.owner,users);
@@ -215,7 +267,7 @@ function project_edit(target,docid,users,docs)
         html += '<tr><td><input id="delete_button" type="button" value="delete"></input></td><td><input id="save_button" type="button" value="save"></input></td></tr>';
         html += '</table>\n';
         html += '<input type="hidden" name="docid" id="docid" value="'+pDoc.docid+'"></input>';
-        html += '<input name="source" type="hidden" value="'+window.location.href+'"></input>';
+        html += '<input id="source" name="source" type="hidden" value="'+window.location.href+'"></input>';
         html += '</form>';
         html += '</div>';
         self.setHtml(html);

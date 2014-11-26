@@ -82,7 +82,6 @@ function events(target,docid,author,modpath)
     // width of event editing box
     this.boxWidth=604;
     this.languages = {italiano:'it',italian:'it',espagñol:'es',spanish:'es',english:'en'};
-
     this.month_days = ['','1','2','3','4','5','6','7','8','9','10','11','12',
         '13','14','15','16','17','18','19','20','21','22','23','24','25','26','27','28',
         '29','30','31'];
@@ -115,7 +114,7 @@ function events(target,docid,author,modpath)
     /**
      * Create a blank event (based on the previous one)
      * @param prev the previous event in the pDoc.events array
-     * @return a new event object (array)
+     * @return a new event object 
      */
     this.create_event = function(prev) {
         var event = {
@@ -135,6 +134,28 @@ function events(target,docid,author,modpath)
         return event;
     };
     /**
+     * Create an empty event with default values for everything
+     * @return a new event object        
+     */
+    this.create_empty_event = function() {
+        var event = {
+            description: self.strs.empty_description,
+            references: self.strs.empty_references,
+            title: "",
+            date: {
+                qualifier: "",
+                month: 0,
+                day: 1,
+                year: 1900
+            },
+            type: "biography",
+            docid: self.docid,
+            status: "unchanged"
+        };
+        return event;
+    };
+
+    /**
      * Set the values of the event
      * @param event the event to set
      */
@@ -145,7 +166,7 @@ function events(target,docid,author,modpath)
             qualifier = "none";
         jQuery("#qualifier").val(qualifier);
         jQuery("#day").val(event.date.day);
-        jQuery("#month").val(self.strs.month_names[event.date.month]);
+        jQuery("#month").val(self.strs.month_names[event.date.month+1]);
         jQuery("#year").val(event.date.year);
         jQuery("#type").val(self.strs.event_types[event.type]);
         jQuery("#description").html(event.description);
@@ -219,7 +240,7 @@ function events(target,docid,author,modpath)
         objs.click( function(e) {
             if ( jQuery("div.tinyeditor").length>0 )
                 self.restore_div();
-            if ( index != undefined )
+            if ( self.index != undefined )
                 self.install_editor(jQuery(e.target));
         });
     };
@@ -379,7 +400,7 @@ function events(target,docid,author,modpath)
         event.type = type[0].selectedIndex;
         var date = {};
         date.qualifier = qualifier.val();
-        if ( date.qualifier=="" )
+        if ( date.qualifier==""||date.qualifier==null )
            date.qualifier = "none";
         date.day = parseInt((day.val()=="")?"-1":day.val());
         date.month = self.month_to_int(month.val());
@@ -607,11 +628,11 @@ function events(target,docid,author,modpath)
          * Add a new empty event in the GUI. Don't save it yet.
          */
         jQuery("#add_button").click( function() {
-            var event = self.pDoc.events[this.index];
+            var event = self.pDoc.events[self.index];
             var new_event = self.create_event(event);
-            self.pDoc.events.splice(this.index+1,0,new_event);
-            this.move_right(1);
-            this.update_slider();
+            self.pDoc.events.splice(self.index+1,0,new_event);
+            self.move_right(1);
+            self.update_slider();
         });        
         /**
          * Delete an event in the GUI. If added recently just remove it, else 
@@ -619,8 +640,8 @@ function events(target,docid,author,modpath)
          * It won't be deleted until the user clicks "save".  
          */
         jQuery("#delete_button").click( function() {
-            var event = self.pDoc.events[this.index];
-            var deleted_items = self.pDoc.events.splice(this.index,1);
+            var event = self.pDoc.events[self.index];
+            var deleted_items = self.pDoc.events.splice(self.index,1);
             if ( event._id != undefined && deleted_items.length>0 )
             {
                 if ( self.deleted_events == undefined )
@@ -628,10 +649,12 @@ function events(target,docid,author,modpath)
                 else
                     self.deleted_events.push(deleted_items[0]);
             }
-            if ( this.index > this.pDoc.events.length-1 )
-                this.index = 0;
-            this.set_event(this.pDoc.events[this.index]);
-            this.update_slider();
+            if ( self.index > self.pDoc.events.length-1 )
+                self.index = 0;
+            if ( self.pDoc.events.length==0 )
+                self.pDoc.events.push(self.create_empty_event());
+            self.set_event(self.pDoc.events[self.index]);
+            self.update_slider();
         });        
         /**
          * Save changed, add new and delete old events on server
@@ -663,7 +686,7 @@ function events(target,docid,author,modpath)
                 }
                 self.deleted_events = failed;
             }
-            var event = self.pDoc.events[this.index];
+            var event = self.pDoc.events[self.index];
             if ( event.status != 'unchanged' ) {
                 var service = "add";
                 var oldStatus = event.status;
@@ -677,10 +700,6 @@ function events(target,docid,author,modpath)
                          event: jsonStr
                     };
                     var success = function(data, textStatus, jqXHR) {
-                        //console.log(data);
-                        var jDoc = JSON.parse(data); 
-                        var id = {$oid:jDoc._id};
-                        event._id = id;
                         event.status = 'unchanged';
                         console.log("success! status="+jqXHR.status);
                     };
@@ -819,7 +838,7 @@ function events(target,docid,author,modpath)
     this.month_to_int = function( name ) {
         for (var i=0;i<this.strs.month_names.length;i++ )
             if ( this.strs.month_names[i]==name )
-                return i;
+                return i-1;
        return 0;
     }
     /**
@@ -912,7 +931,7 @@ function events(target,docid,author,modpath)
     jQuery.get( "http://"+window.location.hostname+"/project/events/"+docid, function(data)
     {
         //console.log(data);
-        self.pDoc = JSON.parse(data);
+        self.pDoc = data;//JSON.parse(data);
         var html = '<div class="events">';
         html += '<div id="left-sidebar"><i id="goleft" class="fa fa-chevron-left fa-3x"></i></div>';
         var events = self.pDoc.events;
@@ -924,6 +943,8 @@ function events(target,docid,author,modpath)
             {
                 events[i].status = 'unchanged';
             }
+            if ( events.length==0 )
+                events.push(self.create_empty_event());
             html += self.create_box(events[0]);
             html += '</div>';
         }

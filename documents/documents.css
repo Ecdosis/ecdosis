@@ -2,3 +2,6 @@ ul.documents {list-style-type:none}
 .documents li {display:inline-block;padding-right:10px}
 span.section {text-align:center}
 li p {text-align: center; padding:0; margin:0}
+li.add-button { display:inline; border: 1px solid grey;padding: 5px 5px 5px 5px;border-radius:3px;margin-right:10px;}
+li.add-button:hover {background-color: lightgrey; cursor:pointer }
+

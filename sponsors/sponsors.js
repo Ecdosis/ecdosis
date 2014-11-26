@@ -13,7 +13,7 @@ function sponsors(target)
     jQuery.get( "http://"+window.location.hostname+"/project/sponsors", function(data) 
     {    
         var html = "";
-        var items = JSON.parse(data);
+        var items = data;
         for ( var i=0;i<items.length;i++ )
             html += '<p><a href="'+items[i].url+'">'
             +'<img src="http://'+window.location.hostname+items[i].image

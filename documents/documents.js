@@ -45,6 +45,9 @@ function documents(target,docid,work,author)
                 html += '</li>';
             }
         }
+        html += '<li title="new document" '
+            +'id="new_button" class="add-button"><i '
+            +'class="fa fa-plus-square fa-lg"></i></li>';
         html += '</ul>';
         self.setHtml(html);
     });
