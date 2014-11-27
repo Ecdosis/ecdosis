@@ -700,6 +700,8 @@ function events(target,docid,author,modpath)
                          event: jsonStr
                     };
                     var success = function(data, textStatus, jqXHR) {
+                        if ( data.docid != undefined )
+                            event.docid = data.docid;
                         event.status = 'unchanged';
                         console.log("success! status="+jqXHR.status);
                     };
@@ -779,15 +781,19 @@ function events(target,docid,author,modpath)
         var html = iframe[0].contentDocument.documentElement;
         var content = html.lastChild.innerHTML;
         var class_name = "edit-region";
+        var parent = iframe.closest("tr");
         if ( content=='<br>' )
         {
-            var parent = iframe.closest("tr");
             if ( parent.next("tr").length!= 0)
                 content = self.strs.empty_description;
             else
                 content = self.strs.empty_references;
         }
-        jQuery("div.tinyeditor").replaceWith('<div class="'+class_name+'">'+content+'</div>');
+        var id = 'id="description"';
+        if ( parent.next("tr").length== 0)
+            id = 'id="references"';
+        jQuery("div.tinyeditor").replaceWith('<div '+id+' class="'
+            +class_name+'">'+content+'</div>');
         if ( self.pDoc.events[this.index].status != 'added' )
             self.pDoc.events[this.index].status = 'changed';
         jQuery(self.selector).click( function(e) {
