@@ -577,7 +577,7 @@ function events(target,docid,author,modpath)
                     }
                     else
                     {
-                        expr.index = (expr.index+1)%pDoc.events.length;
+                        expr.index = (expr.index+1)%self.pDoc.events.length;
                         expr.field = 'title';
                         expr.pos = 0;
                     }
@@ -721,7 +721,7 @@ function events(target,docid,author,modpath)
             {
                if ( self.search_expr == undefined )
                {
-                   self.search_expr = new SearchExpr('title',this.index,0,0);
+                   self.search_expr = new SearchExpr('title',self.index,0,0);
                }
                var res = self.search_from(self.search_expr,jQuery("#search_box").val());
                if ( res != undefined )
