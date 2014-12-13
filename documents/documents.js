@@ -10,6 +10,7 @@ function documents(target,docid,work,author)
     this.target = target;
     this.author = author;
     this.work = work;
+    this.num_untitleds = 1;
     /**
      * Copy the generated html into the document
      * @param the html to append to the target
@@ -23,7 +24,7 @@ function documents(target,docid,work,author)
     jQuery.get( "http://"+window.location.hostname+"/project/documents/"+docid, function(data)
     {
         var html = '<h2>'+author+': '+work+'</h2>\n';
-        var pDoc = JSON.parse(data);
+        var pDoc = data;
         html += '<ul class="documents">';
         var docs = pDoc.documents;
         if ( docs != undefined )
@@ -50,6 +51,19 @@ function documents(target,docid,work,author)
             +'class="fa fa-plus-square fa-lg"></i></li>';
         html += '</ul>';
         self.setHtml(html);
+        jQuery("#new_button").click( function(event) {
+            var html = '<li>';
+                html += '<p><a href="http://'+window.location.hostname
+                     +path+'/mml_edit?docid='+docid+"/untitled"+self.num_untitleds;
+                self.num_untitleds++;
+                html += '&version1=/base/A">';
+                html += '<i ';
+                html += 'title="untitled" ';
+                html += 'class="fa fa-file-text-o fa-5x"></i>';
+                html += '</a></p>';
+            html += '</li>';
+            jQuery(this).before(html);
+        });
     });
 }
 /**

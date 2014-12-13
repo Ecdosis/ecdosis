@@ -1,0 +1,27 @@
+div.upload
+{
+    display: inline-block;
+    vertical-align: top;
+}
+div.fields
+{
+    display: inline-block
+}
+div.wrapper
+{
+    margin-left: auto;
+    margin-right: auto;
+}
+table.fields
+{
+    height: 180px;
+}
+input.invisible 
+{ 
+    display: none 
+} 
+div.log 
+{ 
+    background-color: white; 
+    border: 1px solid #EEE; padding: 5px
+}

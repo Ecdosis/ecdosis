@@ -1,0 +1,5 @@
+name = Uploader
+description = Upload the parts of a MVD document
+core = 7.x
+configure = admin/config/content/uploader
+stylesheets[all][] = uploader.css

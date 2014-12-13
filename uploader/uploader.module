@@ -1,0 +1,93 @@
+<?php
+function add_meta_tag( $name, $value, $tag )
+{
+    $element = array(
+        '#tag' => 'meta',
+        '#attributes' => array(
+            'name'=> $name,
+            'content' => $value
+        )
+    );
+    drupal_add_html_head($element,$tag);
+}
+function is_editor()
+{
+    $res = false;
+    global $user;
+    if ( $user )
+    {
+        foreach ( $user->roles as $role )
+        {
+            if ( $role == 'editor' )
+            {
+                $res = true;
+                break;
+            }
+        }
+    }
+    return $res;
+}
+function uploader_preprocess_page(&$vars)
+{
+    if ( strpos(request_uri(),"uploader") )
+    {
+        add_meta_tag('description','Upload MVDs','MVD Upload');
+        drupal_add_css(drupal_get_path('module','uploader').'/uploader.css','file');
+    }
+}
+function uploader_all()
+{
+    $demo = is_editor()?'true':'false';
+    $mod_path = drupal_get_path('module', 'uploader');
+    $html ='<script type="text/javascript" src="'.$mod_path
+          .'/js/uploader.js?target=content&'
+          .'demo='.$demo.'"></script>';
+    return $html;
+}
+function uploader_menu()
+{
+    $items = array();
+    $items['admin/config/content/uploader'] = array(
+        'title'=>'Upload MVD documents',
+        'description' => 'Upload MVD documents',
+        'page callback' => 'drupal_get_form',
+        'page arguments' => array('uploader_form'),
+        'access arguments' => array('access administration pages'),
+        'type' => MENU_NORMAL_ITEM
+    );
+    $items['uploader'] = array(
+        'title' => 'Upload MVD documents',
+        'page callback' => 'uploader_all',
+        'access arguments' => array('access content'),
+        'type' => MENU_CALLBACK
+    );
+    return $items;
+}
+function uploader_block_info() {
+  $blocks['uploader'] = array(
+    'info' => t('Upload MVD documents'),
+    'cache' => DRUPAL_CACHE_PER_ROLE,
+  );
+  return $blocks;
+}
+function uploader_help($path, $arg) {
+    switch ($path)
+    {
+        case "admin/help#uploader":
+            return '<p>' .
+                t("Upload MVD documents.")
+                . '</p>';
+            break;
+    }
+}
+function uploader_block_view($delta = '') {
+  switch ($delta) {
+    case 'uploader':
+      $block['subject'] = t('Upload MVD documents');
+      $mod_path = drupal_get_path('module', 'uploader');
+      $block['content'] ='<script type="text/javascript" src="'.$mod_path
+          .'/js/uploader.js?target=content&'
+          .'demo='.$demo.'"></script>';
+      return $block;
+  }
+}
