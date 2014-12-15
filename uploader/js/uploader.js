@@ -5,290 +5,285 @@
  * @param id the id of the select
  */
 function nested_select( docids, name, id ) {
-	this.html = '<select id="'+id+'" name="'+name+'">';
-    this.load( docids );
-    this.html += '</select>';
     this.load = function( docids ) {
         var top = new Array();
-		for ( var i=0;i<docids.length;i++ )
-		{
-		    var parts = docids[i].split("/");
+        for ( var i=0;i<docids.length;i++ )
+        {
+            var parts = docids[i].split("/");
             this.place_key(top,parts);
-		}
+        }
         // so now top is a nested hash of options
-        this.build_options( top );
+        this.html += this.build_options( top );
     };
-	/**
-	 * Place a key in a nested array recursively
-	 * @param array an array of keys, perhaps empty
-	 * @param parts an array of parts, perhaps empty
-	 */
-	this.place_key = function(array,parts) {
-		if ( parts.length > 0 )
-		{
-		    if ( array[parts[0]] == undefined )
-		    {
-		        array[parts[0]] = new Array();
-		        this.place_key(array[parts[0]],parts.slice(1));
-		    }
-		}
-	};
-	/**
-	 * Build the actual select element
-	 * @param array the top-level associative array
-	 */
-	this.build_options = function(array) {
-		for ( var key in array )
-		{
-		    if ( array[key].length == 0 )
-		        this.html += '<option value="'+key+'">'+key+'</option>';
-		    else
-		        this.html += '<optgroup label="'+key+'">'
-		            +this.build_options(array[key])+'</optgroup>';
-		}
-	};
+    /**
+     * Place a key in a nested array recursively
+     * @param array an array of keys, perhaps empty
+     * @param parts an array of parts, perhaps empty
+     */
+    this.place_key = function(array,parts) {
+        if ( parts.length > 0 )
+        {
+            if ( array[parts[0]] == undefined )
+            {
+                array[parts[0]] = new Array();
+                this.place_key(array[parts[0]],parts.slice(1));
+            }
+        }
+    };
+    /**
+     * Build the actual select element
+     * @param array the top-level associative array
+     */
+    this.build_options = function(array) {
+        var html = "";
+        for ( var key in array )
+        {
+            var count = 0;
+            for ( var i in array[key] )
+                count++;
+            if ( count == 0 )
+                html += '<option value="'+key+'">'+key+'</option>';
+            else
+                html += '<optgroup label="'+key+'">'
+                    +this.build_options(array[key])+'</optgroup>';
+        }
+        return html;
+    };
+    this.html = '<select id="'+id+'" name="'+name+'">';
+    this.load( docids );
+    this.html += '</select>';
 }
 /**
  * Create an upload dialog
  * @param target the id of the target element on the page
  * @param demo if "true" don't let the user upload
+ * @param language 2-letter ISO code e.g. en or it
+ * @param mod_path the path to the module
  */
-function uploader( target, demo ) {
-     var self = this;
-    /**
-     * Get the language components of a docid
-     * @param docid a path starting without a "/"
-     * @return the first component of the path
-     */
-    this.language = function(docid) {
-        var parts = docid.split("/");
-        if ( parts.length > 0 )
-            return parts[0];
-        else
-            return docid;
-    };
+function uploader( target, demo, language, mod_path ) {
+    var self = this;
     /**
      * Check that the form is complete and ready for upload
      * @return true if it is OK else false
      */
-	this.check_form = function() {
-		var language = jQuery("#LANGUAGE");
-		var author = jQuery("#AUTHOR");
-		var work = jQuery("#WORK");
-		var section = jQuery("#SECTION");
-		var subsection = jQuery("#SUBSECTION");
-		if ( this.check_files()&&this.fverify(language)
+    this.check_form = function() {
+        var language = jQuery("#LANGUAGE");
+        var author = jQuery("#AUTHOR");
+        var work = jQuery("#WORK");
+        var section = jQuery("#SECTION");
+        var subsection = jQuery("#SUBSECTION");
+        if ( this.check_files()&&this.fverify(language)
             &&this.fverify(author)&&this.fverify(work) )
-		{
-		    var docid = language.val()+"/"+author.val()+"/"+work.val();
-		    if ( section.val().length > 0 )
-		    {
-		        docid += "/"+section.val();
-		        if ( subsection.value.val()>0 )
-		            docid += "/"+subsection.val();
-		    }
-		    var hidden = jQuery("#docid");
-		    hidden.val(docid);
-		    var demo = jQuery("#demo");
-		    if ( demo != undefined )
-		    {
-		        var password = prompt("Password","");
-		        demo.val(password);
-		    }
-		    return true;
-		}
-		else
-		    return false;
-	};
+        {
+            var docid = language.val()+"/"+author.val()+"/"+work.val();
+            if ( section.val().length > 0 )
+            {
+                docid += "/"+section.val();
+                if ( subsection.value.val()>0 )
+                    docid += "/"+subsection.val();
+            }
+            var hidden = jQuery("#docid");
+            hidden.val(docid);
+            var demo = jQuery("#demo");
+            if ( demo != undefined )
+            {
+                var password = prompt("Password","");
+                demo.val(password);
+            }
+            return true;
+        }
+        else
+            return false;
+    };
     /**
      * Check that there is at least one file for upload
      * @return true if it is OK else false and alert the user
      */
     this.check_files = function() {
-		var repo = jQuery("#repository");
-		var child = repo.children().first();
-		var numChildren = 0;
-		while ( child != null )
-		{
-		    if ( child.nodeName=="INPUT" )
-		        numChildren++;
-		    child = child.nextSibling;
-		}
-		if ( numChildren == 0 )
-		{
-		    alert( "specify at least one file for upload" );
-		    return false;
-		}
-		else
-		    return true;
-	};
+        var repo = jQuery("#repository");
+        var child = repo.children().first();
+        var numChildren = 0;
+        while ( child != null )
+        {
+            if ( child.nodeName=="INPUT" )
+                numChildren++;
+            child = child.nextSibling;
+        }
+        if ( numChildren == 0 )
+        {
+            alert( "specify at least one file for upload" );
+            return false;
+        }
+        else
+            return true;
+    };
     /**
      * Verify athat the field is not empty or just spaces
      * @param item the jQuery object representing a form field
      */
-	function fverify( item ) { 
-		var name = "";
-		if ( item !=null )
-		{
-		    name = item.attr("id");
-		    if ( item.val() != undefined && item.val().length>0 )
-		    {
-		        var copy = item.val();
-		        copy.replace(/\s+/g,"");
-		        if ( copy.length>0 )
-		            return true;
-		    }
-		}
-		else
-		    name = "required fields";
-		alert(name+" may not be empty");
-		return false;
-	};
+    function fverify( item ) { 
+        var name = "";
+        if ( item !=null )
+        {
+            name = item.attr("id");
+            if ( item.val() != undefined && item.val().length>0 )
+            {
+                var copy = item.val();
+                copy.replace(/\s+/g,"");
+                if ( copy.length>0 )
+                    return true;
+            }
+        }
+        else
+            name = "required fields";
+        alert(name+" may not be empty");
+        return false;
+    };
     /**
      * Remove a file from the list
      * @param value the file name to remove
      */
-	this.remove = function( value ) {
-		var repo = jQuery("#repository");
-		var child = repo.children().first();
-		while ( child != undefined )
-		{
-		    if ( child[0].nodeName=="INPUT"&& child.val()==value )
-		    {
-		        child.remove();
-		        break;
-		    }
-		    child = child.next();
-		}
-		var table = jQuery("#listing");
-		child = table.children().first();
-		var finished = false;
-		while ( child != undefined && !finished )
-		{
-		    if ( child[0].nodeName=="TR" )
-		    {
-		        var gchild = child.children().first();
-		        while ( gchild != null )
-		        {
-		            if ( gchild[0].nodeName=="TD" )
-		            {
-		                var ggchild = gchild.children().first();
-		                if ( ggchild!=undefined&&ggchild[0].nodeName=="SPAN" )
-		                { 
-		                    if ( ggchild.text()!=undefined
-								&&ggchild.text()==value )
-		                    {
-		                        finished = true;
-		                        child.remove();
-		                        break;
-		                    }
-		                }
-		            }
-		            gchild = gchild.next();
-		        }
-		    }
-		    child = child.next();
-		}
-	};
+    this.remove = function( value ) {
+        var repo = jQuery("#repository");
+        var child = repo.children().first();
+        while ( child != undefined )
+        {
+            if ( child[0].nodeName=="INPUT"&& child.val()==value )
+            {
+                child.remove();
+                break;
+            }
+            child = child.next();
+        }
+        var table = jQuery("#listing");
+        child = table.children().first();
+        var finished = false;
+        while ( child != undefined && !finished )
+        {
+            if ( child[0].nodeName=="TR" )
+            {
+                var gchild = child.children().first();
+                while ( gchild != null )
+                {
+                    if ( gchild[0].nodeName=="TD" )
+                    {
+                        var ggchild = gchild.children().first();
+                        if ( ggchild!=undefined&&ggchild[0].nodeName=="SPAN" )
+                        { 
+                            if ( ggchild.text()!=undefined
+                                &&ggchild.text()==value )
+                            {
+                                finished = true;
+                                child.remove();
+                                break;
+                            }
+                        }
+                    }
+                    gchild = gchild.next();
+                }
+            }
+            child = child.next();
+        }
+    };
     /**
      * Find out if a file has already been specified
      * @param path the path to the file
      * @param listing the list of table rows
      */
-	this.alreadySelected = function( path, listing ) {
-		var row = listing.children().first();
-		while ( row != undefined )
-		{
+    this.alreadySelected = function( path, listing ) {
+        var row = listing.children().first();
+        while ( row != undefined )
+        {
             var firstChild = row.children().first();
-		    if ( firstChild !=undefined && firstChild.text()==path )
-		        return true;
-		    row = row.next();
-		}
-		return false;
-	};
+            if ( firstChild !=undefined && firstChild.text()==path )
+                return true;
+            row = row.next();
+        }
+        return false;
+    };
     /**
      * Clear a file input field by replacing it with an empty one
      * @param input1 the old jQuery input field object
      */
-	this.clearFileInput = function( input1 ) {
-		var parent = input1.parent();
+    this.clearFileInput = function( input1 ) {
+        var parent = input1.parent();
         input1.remove();
         parent.add('<input id="input1"></input>');
         var input2 = jQuery("#input1");
         input2.attr("type","file");
         input2.attr("name","uploadedfile[]");
         input2.attr("class","invisible");
-		input2.change( this.doaddfile );
-	};
+        input2.change( this.doaddfile );
+    };
     /**
      * Add a file to the upload set
      */
-	this.do_add_file = function() {
-		var input1 = jQuery("#input1");
-		var repo = jQuery("#repository");
-		var listing = jQuery("#listing");
-		if ( !this.alreadySelected(input1.val(),listing) )
-		{
-		    clearFileInput( input1 );
-		    repo.add( input1 );
-		    // now create the row in the listing table
-		    var html = '<tr><td><span>';
-			html += input1.val();
+    this.do_add_file = function() {
+        var input1 = jQuery("#input1");
+        var repo = jQuery("#repository");
+        var listing = jQuery("#listing");
+        if ( !this.alreadySelected(input1.val(),listing) )
+        {
+            clearFileInput( input1 );
+            repo.add( input1 );
+            // now create the row in the listing table
+            var html = '<tr><td><span>';
+            html += input1.val();
             html += '</span></td><td><input type="button" class="remove" value="remove"';
-		    var value = input1.val().replace(/\\/g,"\\\\");
-		    html += ' data-file="'+value+'"></input>';
-			if ( listing.children().length == 0 )
-		        listing.add( html );
-		    else 
-		        listing.children().first().before( html );
-		}
-		else
-		{
-		    this.clearFileInput( input1 );
-		    alert("You have already chosen that file!");
-		}
-	};
-	/**
-	 * Not sure what this does yet
-	 */
-	this.update_group = function() {
-		var corform = jQuery("#CORFORM");
-		var groupSpan = jQuery("#GROUP");
-		if ( groupSpan != undefined )
-		{
-		    var path = corform[0].options[corform[0].selectedIndex].value;
-		    var parts = path.split("/");
-		    var group = "";
-		    for ( var i=0;i<parts.length-1;i++ )
-		    {
-		        if ( group.length > 0 )
-		            group += "-";
-		        group += parts[i];
-		    }
-		    if ( group.length > 0 )
-		        group += ": ";
-		    groupSpan.text(group);
-		}
-	};
-	/**
+            var value = input1.val().replace(/\\/g,"\\\\");
+            html += ' data-file="'+value+'"></input>';
+            if ( listing.children().length == 0 )
+                listing.add( html );
+            else 
+                listing.children().first().before( html );
+        }
+        else
+        {
+            this.clearFileInput( input1 );
+            alert("You have already chosen that file!");
+        }
+    };
+    /**
+     * Not sure what this does yet
+     */
+    this.update_group = function() {
+        var corform = jQuery("#CORFORM");
+        var groupSpan = jQuery("#GROUP");
+        if ( groupSpan != undefined )
+        {
+            var path = corform[0].options[corform[0].selectedIndex].value;
+            var parts = path.split("/");
+            var group = "";
+            for ( var i=0;i<parts.length-1;i++ )
+            {
+                if ( group.length > 0 )
+                    group += "-";
+                group += parts[i];
+            }
+            if ( group.length > 0 )
+                group += ": ";
+            groupSpan.text(group);
+        }
+    };
+    /**
      * Actually create the form from its HTML
      * @param html the generated html of the form
      */
-	this.set_html = function( html ) {
-        var tgt = jQuery("#"+this.target);
+    this.set_html = function( html ) {
+        var tgt = jQuery("#"+target);
         tgt.children().remove();
         var form = tgt.append(html);
-		jQuery(".remove").click( function(event) {
+        jQuery(".remove").click( function(event) {
             var file = jQuery(event.target).attr("data-file");
-			self.remove( file );
+            self.remove( file );
         });
-		jQuery("#input1").change( this.do_add_file );
+        jQuery("#input1").change( this.do_add_file );
     };
     /**
      * Make the hidden demo tag to stop uploading
      */
     this.make_demo_tag = function() {
-		var demo = '<input';
+        var demo = '<input';
         demo += ' type="hidden"';
         demo += ' name="demo"';
         demo += ' id="demo"';
@@ -302,7 +297,7 @@ function uploader( target, demo ) {
         var docid = '<input';
         docid += ' type="hidden"';
         docid += ' name="docid"';
-        docid += ' id="docid";
+        docid += ' id="docid"';
         docid += '></input>\n';
         return docid;
     };
@@ -310,7 +305,7 @@ function uploader( target, demo ) {
      * Make the header before all the input fields
      */
     this.make_header = function() {
-		var div = '<div class="header">\n';
+        var div = '<div class="header">\n';
         div += '<h3>'+self.strs.header+'</h3>';
         div += '<p>'+self.strs.subtitle+'</p>';
         div += '</div>';
@@ -319,7 +314,7 @@ function uploader( target, demo ) {
     /**
      * Make the right-hand side of the form
      */
-	this.make_upload_box = function()
+    this.make_upload_box = function()
     {
         var upload = '<div class="upload"><div>';
         upload += this.strs.upload_prompt+': ';
@@ -345,48 +340,54 @@ function uploader( target, demo ) {
      * @return a select dropdown (possibly empty if it failed)
      */
     this.make_corform_dropdown = function() {
-    	var html = "";
-        jQuery.get( "http://"+window.location.hostname
-		      +"/collection?collection=corform", function(data) 
-		{    
-		    var items = data.items;
-		    if ( items != undefined && items.length > 0 )
-	        {
-	            var sel = new nested_select( data, "style", "style" );
-	            this.html += sel.html;
-	        }
-		})
-		.fail(function() {
+        var html = '<select name="STYLE" id="STYLE"></select>';
+        var url = "http://"+window.location.hostname
+             +"/calliope/collection?collection=corform";
+        jQuery.get( url, function(data) 
+        {    
+            var items = data.items;
+            console.log("loaded corform lists");
+            if ( items != undefined && items.length > 0 )
+            {
+                var sel = new nested_select( items, "STYLE", "STYLE" );
+                jQuery(sel.html).replaceAll("#STYLE");
+            }
+        })
+        .fail(function() {
+            console.log("failed to load corform lists");
             alert(self.strs.corform_error);
         });
-		return html;
+        return html;
     };
     /**
      * Make a dropdown list of available aspell dictionaries
      * @return a html select element as a string
      */
     this.make_dictionary_dropdown = function() {
-		jQuery.get( "http://"+window.location.hostname
-		      +"/json/dicts", function(data) 
-		{   
+        var html = '<select name="dict" id="dict"></select>';
+        var url = "http://"+window.location.hostname
+              +"/calliope/json/dicts";
+        jQuery.get( url, function(data) 
+        {   
+            console.log("loaded dictionary lists");
             var dicts = data.dicts;
             if ( dicts != undefined )
             {
                 var list = new Array();
-            	for ( var i=0;i<dicts.length;i++ )
-		        {
-		            var path = dicts[i].language+"/"+dicts[i].code;
-                    list.push( path );
-	            }
-	            var sel = new nested_select( list, "dict", "dict" );
-	            return sel.html;
-			}
-		})
-		.fail(function() {
+                for ( var i=0;i<dicts.length;i++ )
+                {
+                    list.push( dicts[i].code );
+                }
+                var sel = new nested_select( list, "dict", "dict" );
+                jQuery(sel.html).replaceAll("#dict");
+            }
+        })
+        .fail(function() {
+            console.log("failed to load dictionary lists");
             alert(self.strs.dicts_error);
         });
         // default to empty list
-        return '<select name="dict" id="dict"></select>';
+        return html;
     };
     /**
      * Make all the input fields and the filter dropdown.
@@ -405,7 +406,7 @@ function uploader( target, demo ) {
         cell2 += ' title="'+this.strs.language_tip+'">';
         var language = '<input';
         language += ' type="text"';
-        language += ' id="language"';
+        language += ' id="LANGUAGE"';
         language += '></input>';
         cell2 += language;
         cell2 += '</td>';
@@ -413,18 +414,18 @@ function uploader( target, demo ) {
         row1 += '</tr>\n';
         table += row1;
 
-		// row 2
+        // row 2
         var row2 = '<tr>';
         var cell3 = '<td>';
-        cell3 += " Author*: ";
+        cell3 += "Author*: ";
         cell3 += '</td>';
         row2 += cell3;
         var cell4 = '<td';
         var author = '<input';
         author += ' type="text"';
-        author += ' id="author"';
+        author += ' id="AUTHOR"';
         author += '></input>';
-        cell4 += ' title="'+self.strs.author_tip+'">';
+        cell4 += ' title="'+this.strs.author_tip+'">';
         cell4 += author;
         cell4 += '</td>'
         row2 += cell4;
@@ -438,10 +439,10 @@ function uploader( target, demo ) {
         cell5 += '</td>';
         row3 += cell5;
         var cell6 = '<td';
-        cell6 += ' title="'+self.strs.work_tip+'">';
+        cell6 += ' title="'+this.strs.work_tip+'">';
         var work = '<input';
         work += ' type="text"';
-        work += ' id="work"';
+        work += ' id="WORK"';
         work += '></input>';
         cell6 += work;
         cell6 += '</td>';
@@ -458,9 +459,9 @@ function uploader( target, demo ) {
         var cell8 = '<td';
         var section = '<input';
         section += ' type="text"';
-        section += ' id="section"';
+        section += ' id="SECTION"';
         section += '></input>';
-        cell8 += ' title="'+self.strs.section_tip+'">';
+        cell8 += ' title="'+this.strs.section_tip+'">';
         cell8 += section;
         cell8 += '</td>';
         row4 += cell8;
@@ -474,10 +475,10 @@ function uploader( target, demo ) {
         cell9 += '</td>';
         row5 += cell9;
         var cell10 = '<td';
-        cell10 += ' title="'+self.strs.subsection_tip+'">';
+        cell10 += ' title="'+this.strs.subsection_tip+'">';
         var subsection = '<input';
         subsection += ' type="text"';
-        subsection += ' id="subsection"';
+        subsection += ' id="SUBSECTION"';
         subsection += '></input>';
         cell10 += subsection;
         row5 += cell10;
@@ -492,34 +493,35 @@ function uploader( target, demo ) {
         cell11 += '</td>';
         row6 += cell11;
         var filters = '<select';
-        filters += ' name="filter">';
+        filters += ' name="FILTER">';
         var option1 = '<option';
         option1 += ' value="Empty">';
         option1 += "Empty";
-        option1 += '></option>';
-		filters += option1;
+        option1 += '</option>';
+        filters += option1;
         var option2 = '<option';
         option2 += ' value="CCE">';
         option2 += "CCE";
-        option2 += '></option>';
-		filters += option2;
+        option2 += '</option>';
+        filters += option2;
         var option3 = '<option';
         option3 += ' value="Poem">';
         option3 += "Poem";
-        option3 += '></option>';
-		filters += option3;
+        option3 += '</option>';
+        filters += option3;
         var option4 = '<option';
         option4 += ' value="Play">';
         option4 += "Play";
-        option4 += '></option>';
-		filters += option4;
+        option4 += '</option>';
+        filters += option4;
         var option5 = '<option';
         option5 += ' value="Novel">';
         option5 += "Novel";
-        option5 += '></option>';
-		filters += option5;
+        option5 += '</option>';
+        filters += option5;
+        filters += '</select>';
         var cell12 = '<td';
-        cell12 += ' title="'+self.strs.filter_tip+'">';
+        cell12 += ' title="'+this.strs.filter_tip+'">';
         cell12 += filters;
         cell12 += '</td>';
         row6 += cell12;
@@ -528,12 +530,12 @@ function uploader( target, demo ) {
         
         var row7 ='<tr>';
         var cell13 = '<td';
-        cell13 += ' title="'+self.strs.style_tip+'">';
+        cell13 += ' title="'+this.strs.style_tip+'">';
         cell13 += "Style: ";
         cell13 += '</td>';
         row7 += cell13;
         var cell14 = '<td';
-        cell14 += ' title="'+self.strs.style_tip+'">';
+        cell14 += ' title="'+this.strs.style_tip+'">';
         var group4 = '<span id="GROUP"></span>';
         cell14 += group4;
         cell14 += this.make_corform_dropdown();
@@ -544,13 +546,13 @@ function uploader( target, demo ) {
         
         var row8 = '<tr>';
         var cell15 = '<td';
-        cell15 += ' title="'+self.strs.length_tip+'">';
+        cell15 += ' title="'+this.strs.length_tip+'">';
         cell15 += "Check length: ";
         cell15 += '</td>';
         row8 += cell15;
-        var cell16 = '<td title"'+self.strs.length_tip+'">';
+        var cell16 = '<td title"'+this.strs.length_tip+'">';
         var checkbox = '<input';
-        checkbox += ' name="similarity"';
+        checkbox += ' name="SIMILARITY"';
         checkbox += ' type="checkbox"';
         checkbox += ' value="1"';
         checkbox += ' checked="checked"';
@@ -567,14 +569,14 @@ function uploader( target, demo ) {
         cell17 += '</td>';
         row9 += cell17;
         var cell18 = '<td';
-        cell18 += ' title="'+self.strs.lang_tip+'">';
+        cell18 += ' title="'+this.strs.lang_tip+'">';
         cell18 += this.make_dictionary_dropdown();
         cell18 += '</td>';
         row9 += cell18;
         row9 += '</tr>\n';
         table += row9;
         
-		div += table;
+        div += table;
         div += '</div>';
         return div;
     };
@@ -583,28 +585,29 @@ function uploader( target, demo ) {
     var lastIndex = script_name.lastIndexOf("/");
     if ( lastIndex !=-1 )
        script_name = script_name.substr(0,lastIndex);
-    script_name += '/'+this.modpath+'/js/strings.'+this.language(docid)+'.js';
+    script_name += '/'+mod_path+'/js/strings.'+language+'.js';
     jQuery.getScript(script_name)
     .done(function( script, textStatus ) {
         self.strs = load_strings();
-    console.log("loaded "+script_name+" successfully");
+        console.log("loaded "+script_name+" successfully");
+        // build form
+        var action = window.location.pathname;
+        var html = '<form name="default" method="POST" action="'+action+'"';
+        html += ' enctype="multipart/form-data">\n';
+        html += '<div class="wrapper">';
+        html += self.make_header();
+        html += self.make_text_fields();
+        html += self.make_upload_box();
+        html += '<div class="log"></log>';
+        html += self.make_docid();
+        if ( demo == 'true' )
+            html += self.make_demo_tag();
+        self.set_html( html );
+        jQuery("form").submit(this.checkform);
     })
     .fail(function( jqxhr, settings, exception ) {
         console.log("Failed to load language strings. status=",jqxhr.status );
     });
-	// build form
-	var html = '<form name="default" method="POST" action="/tests/import/"';
-    html += ' enctype="multipart/form-data">\n';
-    html += '<div class="wrapper">';
-    html += this.make_header();
-    html += this.make_text_fields();
-    html += this.make_upload_box();
-    html += '<div class="log"></log>';
-    html += this.make_docid();
-    if ( demo == 'true' )
-		html += this.make_demo_tag();
-    this.set_html( html );
-	jQuery("form").submit(this.checkform);
 }
 /**
  * This reads the "arguments" to the javascript file
@@ -645,7 +648,8 @@ function get_args( scrName )
 jQuery(document).ready(
     function(){
         var params = get_args('uploader');
-        new importer(params['target'],params['demo']);
+        new uploader(params['target'],params['demo'],
+            params['language'],params['modpath']);
     }
 );
 

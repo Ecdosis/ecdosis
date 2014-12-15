@@ -13,7 +13,9 @@ function load_strings() {
         subsection_tip: "Subdivide the work further by only uploading a sub-section. Give it a name (optional)",
         browse_tip: "Choose XML or plain text files belonging to ONE work (dissimilar files will be rejected)",
         upload_tip: "Click here when all versions of the work or part-work have been selected",
-        length_tip: "Turn on/off restrictions on length. If set, files differing greatly in length will be rejected."
+        length_tip: "Turn on/off restrictions on length. If set, files differing greatly in length will be rejected.",
+        corform_error: "Failed to load corforms",
+		dicts_error: "Failed to load dictionaries"
     };
 }
 

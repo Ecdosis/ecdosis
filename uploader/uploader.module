@@ -1,16 +1,5 @@
 <?php
-function add_meta_tag( $name, $value, $tag )
-{
-    $element = array(
-        '#tag' => 'meta',
-        '#attributes' => array(
-            'name'=> $name,
-            'content' => $value
-        )
-    );
-    drupal_add_html_head($element,$tag);
-}
-function is_editor()
+function is_editor_role()
 {
     $res = false;
     global $user;
@@ -31,17 +20,19 @@ function uploader_preprocess_page(&$vars)
 {
     if ( strpos(request_uri(),"uploader") )
     {
-        add_meta_tag('description','Upload MVDs','MVD Upload');
         drupal_add_css(drupal_get_path('module','uploader').'/uploader.css','file');
     }
 }
 function uploader_all()
 {
-    $demo = is_editor()?'true':'false';
+    $demo = is_editor_role()?'true':'false';
+    $lang = locale_get_primary_language(locale_get_default());
     $mod_path = drupal_get_path('module', 'uploader');
     $html ='<script type="text/javascript" src="'.$mod_path
           .'/js/uploader.js?target=content&'
-          .'demo='.$demo.'"></script>';
+          .'demo='.$demo.'&'
+          .'language='.$lang.'&'
+          .'modpath='.$mod_path.'"></script>';
     return $html;
 }
 function uploader_menu()
@@ -83,11 +74,14 @@ function uploader_help($path, $arg) {
 function uploader_block_view($delta = '') {
   switch ($delta) {
     case 'uploader':
+      $lang = locale_get_primary_language(locale_get_default());
       $block['subject'] = t('Upload MVD documents');
       $mod_path = drupal_get_path('module', 'uploader');
       $block['content'] ='<script type="text/javascript" src="'.$mod_path
           .'/js/uploader.js?target=content&'
-          .'demo='.$demo.'"></script>';
+          .'demo='.$demo.'&'
+          .'language='.$lang.'&'
+          .'modpath='.$mod_path.'"></script>';
       return $block;
   }
 }
