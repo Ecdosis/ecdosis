@@ -345,7 +345,7 @@ function uploader( target, demo, language, mod_path ) {
              +"/calliope/collection?collection=corform";
         jQuery.get( url, function(data) 
         {    
-            var items = data.items;
+            var items = data;
             console.log("loaded corform lists");
             if ( items != undefined && items.length > 0 )
             {
@@ -370,7 +370,7 @@ function uploader( target, demo, language, mod_path ) {
         jQuery.get( url, function(data) 
         {   
             console.log("loaded dictionary lists");
-            var dicts = data.dicts;
+            var dicts = data;
             if ( dicts != undefined )
             {
                 var list = new Array();
@@ -383,7 +383,37 @@ function uploader( target, demo, language, mod_path ) {
             }
         })
         .fail(function() {
-            console.log("failed to load dictionary lists");
+            console.log("failed to load dictionary list");
+            alert(self.strs.dicts_error);
+        });
+        // default to empty list
+        return html;
+    };
+    /**
+     * Make a dropdown list of available projects
+     * @return a html select element as a string
+     */
+    this.make_project_dropdown = function() {
+        var html = '<select name="project" id="project"></select>';
+        var url = "http://"+window.location.hostname
+              +"/project/list";
+        jQuery.get( url, function(data) 
+        {   
+            console.log("loaded project list");
+            var projects = data;
+            if ( projects != undefined )
+            {
+                var list = new Array();
+                for ( var i=0;i<projects.length;i++ )
+                {
+                    list.push( projects[i].author+": "+projects[i].work );
+                }
+                var sel = new nested_select( list, "project", "project" );
+                jQuery(sel.html).replaceAll("#project");
+            }
+        })
+        .fail(function() {
+            console.log("failed to load project list");
             alert(self.strs.dicts_error);
         });
         // default to empty list
@@ -399,57 +429,17 @@ function uploader( target, demo, language, mod_path ) {
         var table = '<table class="fields">';
         var row1 = '<tr>';
         var cell1 = '<td>';
-        cell1 += "Language*: ";
+        cell1 += "Project*: ";
         cell1 += '</td>';
         row1 += cell1;
         var cell2 = '<td';
-        cell2 += ' title="'+this.strs.language_tip+'">';
-        var language = '<input';
-        language += ' type="text"';
-        language += ' id="LANGUAGE"';
-        language += '></input>';
-        cell2 += language;
+        cell2 += ' title="'+this.strs.project_tip+'">';
+        cell2 += this.make_project_dropdown();
         cell2 += '</td>';
         row1 += cell2;
         row1 += '</tr>\n';
         table += row1;
 
-        // row 2
-        var row2 = '<tr>';
-        var cell3 = '<td>';
-        cell3 += "Author*: ";
-        cell3 += '</td>';
-        row2 += cell3;
-        var cell4 = '<td';
-        var author = '<input';
-        author += ' type="text"';
-        author += ' id="AUTHOR"';
-        author += '></input>';
-        cell4 += ' title="'+this.strs.author_tip+'">';
-        cell4 += author;
-        cell4 += '</td>'
-        row2 += cell4;
-        row2 += '</tr>\n';
-        table += row2;
-
-        // row 3
-        var row3 = '<tr>';
-        var cell5 = '<td>';
-        cell5 += "Work*: ";
-        cell5 += '</td>';
-        row3 += cell5;
-        var cell6 = '<td';
-        cell6 += ' title="'+this.strs.work_tip+'">';
-        var work = '<input';
-        work += ' type="text"';
-        work += ' id="WORK"';
-        work += '></input>';
-        cell6 += work;
-        cell6 += '</td>';
-        row3 += cell6;
-        row3 += '</tr>\n';
-        table += row3;
-        
         // row 4
         var row4 = '<tr>';
         var cell7 = '<td>';
