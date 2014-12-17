@@ -63,67 +63,26 @@ function nested_select( docids, name, id ) {
 function uploader( target, demo, language, mod_path ) {
     var self = this;
     /**
-     * Check that the form is complete and ready for upload
-     * @return true if it is OK else false
-     */
-    this.check_form = function() {
-        var language = jQuery("#LANGUAGE");
-        var author = jQuery("#AUTHOR");
-        var work = jQuery("#WORK");
-        var section = jQuery("#SECTION");
-        var subsection = jQuery("#SUBSECTION");
-        if ( this.check_files()&&this.fverify(language)
-            &&this.fverify(author)&&this.fverify(work) )
-        {
-            var docid = language.val()+"/"+author.val()+"/"+work.val();
-            if ( section.val().length > 0 )
-            {
-                docid += "/"+section.val();
-                if ( subsection.value.val()>0 )
-                    docid += "/"+subsection.val();
-            }
-            var hidden = jQuery("#docid");
-            hidden.val(docid);
-            var demo = jQuery("#demo");
-            if ( demo != undefined )
-            {
-                var password = prompt("Password","");
-                demo.val(password);
-            }
-            return true;
-        }
-        else
-            return false;
-    };
-    /**
      * Check that there is at least one file for upload
      * @return true if it is OK else false and alert the user
      */
     this.check_files = function() {
-        var repo = jQuery("#repository");
-        var child = repo.children().first();
-        var numChildren = 0;
-        while ( child != null )
+        var trs = jQuery("#listing tr");
+        if ( trs.length == 0 )
         {
-            if ( child.nodeName=="INPUT" )
-                numChildren++;
-            child = child.nextSibling;
-        }
-        if ( numChildren == 0 )
-        {
-            alert( "specify at least one file for upload" );
+            alert( this.strs.missing_files );
             return false;
         }
         else
             return true;
     };
     /**
-     * Verify athat the field is not empty or just spaces
+     * Verify that the field is not empty or just spaces
      * @param item the jQuery object representing a form field
      */
-    function fverify( item ) { 
+    this.fverify = function( item ) { 
         var name = "";
-        if ( item !=null )
+        if ( item != undefined )
         {
             name = item.attr("id");
             if ( item.val() != undefined && item.val().length>0 )
@@ -138,6 +97,36 @@ function uploader( target, demo, language, mod_path ) {
             name = "required fields";
         alert(name+" may not be empty");
         return false;
+    };
+    /** 
+     * Check that the form is complete and ready for upload
+     * @param event the submit event
+     */
+    this.check_form = function( event ) {
+        var project = jQuery("#PROJECT");
+        var section = jQuery("#SECTION");
+        var subsection = jQuery("#SUBSECTION");
+        if ( self.check_files()&&self.fverify(project) )
+        {
+            var docid = project.val();
+            if ( section.val().length > 0 )
+            {
+                docid += "/"+section.val();
+                if ( subsection.value.val()>0 )
+                    docid += "/"+subsection.val();
+            }
+            var hidden = jQuery("#docid");
+            hidden.val(docid);
+            var demo = jQuery("#demo");
+            if ( demo != undefined )
+            {
+                var password = prompt("Password","");
+                demo.val(password);
+            }
+            return;
+        }
+        else
+            event.preventDefault();
     };
     /**
      * Remove a file from the list
@@ -243,12 +232,13 @@ function uploader( target, demo, language, mod_path ) {
     this.set_html = function( html ) {
         var tgt = jQuery("#"+target);
         tgt.children().remove();
-        var form = tgt.append(html);
+        tgt.append(html);
         jQuery(".remove").click( function(event) {
             var file = jQuery(event.target).attr("data-file");
             self.remove( file );
         });
         jQuery("#input1").change( this.do_add_file );
+        jQuery('form[name="default"]').submit(this.check_form);
     };
     /**
      * Make the hidden demo tag to stop uploading
@@ -365,7 +355,7 @@ function uploader( target, demo, language, mod_path ) {
      * @return a html select element as a string
      */
     this.make_project_dropdown = function() {
-        var html = '<select name="project" id="project"></select>';
+        var html = '<select name="PROJECT" id="PROJECT">';
         var url = "http://"+window.location.hostname
               +"/project/list";
         jQuery.get( url, function(data) 
@@ -374,14 +364,15 @@ function uploader( target, demo, language, mod_path ) {
             var projects = data;
             if ( projects != undefined )
             {
-                var list = new Array();
                 for ( var i=0;i<projects.length;i++ )
                 {
-                    list.push( projects[i].author+": "+projects[i].work );
+                    html += '<option value="'+projects[i].docid
+                    +'">'+projects[i].author+": "+projects[i].work
+                    +'</option>\n';
                 }
-                var sel = new nested_select( list, "project", "project" );
-                jQuery(sel.html).replaceAll("#project");
+                console.log("loaded "+projects.length+" projects");
             }
+            html += '</select>';
         })
         .fail(function() {
             console.log("failed to load project list");
