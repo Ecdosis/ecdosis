@@ -141,105 +141,76 @@ function uploader( target, demo, language, mod_path ) {
     };
     /**
      * Remove a file from the list
-     * @param value the file name to remove
+     * @param event the event that caused it to be called
      */
-    this.remove = function( value ) {
+    this.remove = function( event ) {
         var repo = jQuery("#repository");
-        var child = repo.children().first();
-        while ( child != undefined )
-        {
-            if ( child[0].nodeName=="INPUT"&& child.val()==value )
+        var child = jQuery(event.target).parent().prev().text();
+        repo.children().each( function() {
+            var value = jQuery(this).val();
+            if ( this.nodeName=="INPUT"&& child==value )
             {
-                child.remove();
-                break;
+                jQuery(this).remove();
             }
-            child = child.next();
-        }
-        var table = jQuery("#listing");
-        child = table.children().first();
-        var finished = false;
-        while ( child != undefined && !finished )
-        {
-            if ( child[0].nodeName=="TR" )
-            {
-                var gchild = child.children().first();
-                while ( gchild != null )
-                {
-                    if ( gchild[0].nodeName=="TD" )
-                    {
-                        var ggchild = gchild.children().first();
-                        if ( ggchild!=undefined&&ggchild[0].nodeName=="SPAN" )
-                        { 
-                            if ( ggchild.text()!=undefined
-                                &&ggchild.text()==value )
-                            {
-                                finished = true;
-                                child.remove();
-                                break;
-                            }
-                        }
-                    }
-                    gchild = gchild.next();
-                }
-            }
-            child = child.next();
-        }
+        });
+        jQuery("#listing tr").each( function() {
+            if ( jQuery(this).text()==child )
+                 jQuery(this).remove();
+        });
     };
     /**
      * Find out if a file has already been specified
      * @param path the path to the file
-     * @param listing the list of table rows
      */
-    this.alreadySelected = function( path, listing ) {
-        var row = listing.children().first();
-        while ( row != undefined )
-        {
-            var firstChild = row.children().first();
-            if ( firstChild !=undefined && firstChild.text()==path )
-                return true;
-            row = row.next();
-        }
-        return false;
+    this.already_selected = function( path ) {
+        var result = false;
+        var children = jQuery("#listing tr");
+        children.each( function() {
+            if ( jQuery(this).text()==path )
+                result = true;
+        });
+        return result;
     };
     /**
      * Clear a file input field by replacing it with an empty one
      * @param input1 the old jQuery input field object
      */
-    this.clearFileInput = function( input1 ) {
+    this.clear_file_input = function( input1 ) {
         var parent = input1.parent();
-        input1.remove();
-        parent.add('<input id="input1"></input>');
+        input1.detach();
+        jQuery('<input id="input1"></input>').insertBefore(parent.children().first());
         var input2 = jQuery("#input1");
+        input1.attr( "class", "invisible" );
+	input1.removeAttr("id");
         input2.attr("type","file");
         input2.attr("name","uploadedfile[]");
-        input2.attr("class","invisible");
-        input2.change( this.doaddfile );
+        input2.change( self.do_add_file );
     };
     /**
-     * Add a file to the upload set
+     * Add a file to the upload set. Becasue this is an event-handler, 
+     * "this" is the DOM element
      */
     this.do_add_file = function() {
-        var input1 = jQuery("#input1");
         var repo = jQuery("#repository");
         var listing = jQuery("#listing");
-        if ( !this.alreadySelected(input1.val(),listing) )
+        if ( !self.already_selected(this.value) )
         {
-            clearFileInput( input1 );
-            repo.add( input1 );
+            var input1 = jQuery("#input1");
+            self.clear_file_input( input1 );
+            repo.append( input1[0] );
             // now create the row in the listing table
             var html = '<tr><td><span>';
             html += input1.val();
             html += '</span></td><td><input type="button" class="remove" value="remove"';
             var value = input1.val().replace(/\\/g,"\\\\");
-            html += ' data-file="'+value+'"></input>';
-            if ( listing.children().length == 0 )
-                listing.add( html );
-            else 
-                listing.children().first().before( html );
+            html += ' data-file="'+value+'"></input></td></tr>';
+            listing.append( html );
+            var last = jQuery(".remove").last();
+            last.click(self.remove);
         }
         else
         {
-            this.clearFileInput( input1 );
+            self.clear_file_input( jQuery("#input1") );
             alert("You have already chosen that file!");
         }
     };
@@ -329,7 +300,7 @@ function uploader( target, demo, language, mod_path ) {
         var repo = '<div id="repository"></div>';
         upload += repo;
         var input2 = "<input";
-        input2 += 'type="submit"';
+        input2 += ' type="submit"';
         input2 += ' value="Upload files"';
         input2 += ' title="'+this.strs.upload_tip+'"></input>';
         upload += input2;
@@ -565,7 +536,7 @@ function uploader( target, demo, language, mod_path ) {
         row9 += cell18;
         row9 += '</tr>\n';
         table += row9;
-        
+        table += '</table>';
         div += table;
         div += '</div>';
         return div;
