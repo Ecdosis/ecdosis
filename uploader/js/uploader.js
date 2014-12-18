@@ -311,7 +311,7 @@ function uploader( target, demo, language, mod_path ) {
             if ( items != undefined && items.length > 0 )
             {
                 var sel = new nested_select( items, "STYLE", "STYLE" );
-                jQuery(sel.html).replaceAll("#STYLE");
+                jQuery("#STYLE").replaceWith(sel.html);
             }
         })
         .fail(function() {
@@ -340,7 +340,7 @@ function uploader( target, demo, language, mod_path ) {
                     list.push( dicts[i].code );
                 }
                 var sel = new nested_select( list, "dict", "dict" );
-                jQuery(sel.html).replaceAll("#dict");
+                jQuery("#dict").replaceWith(sel.html);
             }
         })
         .fail(function() {
@@ -355,24 +355,25 @@ function uploader( target, demo, language, mod_path ) {
      * @return a html select element as a string
      */
     this.make_project_dropdown = function() {
-        var html = '<select name="PROJECT" id="PROJECT">';
+        var html = '<select name="PROJECT" id="PROJECT"></select>';
         var url = "http://"+window.location.hostname
               +"/project/list";
         jQuery.get( url, function(data) 
         {   
-            console.log("loaded project list");
             var projects = data;
             if ( projects != undefined )
             {
-                for ( var i=0;i<projects.length;i++ )
+                html = '<select name="PROJECT" id="PROJECT">';
+				for ( var i=0;i<projects.length;i++ )
                 {
                     html += '<option value="'+projects[i].docid
                     +'">'+projects[i].author+": "+projects[i].work
                     +'</option>\n';
                 }
-                console.log("loaded "+projects.length+" projects");
+                html += '</select>';
+                jQuery("#PROJECT").replaceWith(html);
             }
-            html += '</select>';
+            
         })
         .fail(function() {
             console.log("failed to load project list");
@@ -389,7 +390,7 @@ function uploader( target, demo, language, mod_path ) {
         // first row
         var div = '<div class="fields">';
         var table = '<table class="fields">';
-        var row1 = '<tr>';
+        var row1 = '<tr>';https://mail.google.com/mail/#inbox
         var cell1 = '<td>';
         cell1 += "Project*: ";
         cell1 += '</td>';
@@ -400,7 +401,7 @@ function uploader( target, demo, language, mod_path ) {
         cell2 += '</td>';
         row1 += cell2;
         row1 += '</tr>\n';
-        table += row1;
+        table += row1;https://mail.google.com/mail/#inbox
 
         // row 4
         var row4 = '<tr>';
@@ -421,13 +422,13 @@ function uploader( target, demo, language, mod_path ) {
         table += row4;
         
         // row 5
-        var row5 = '<tr>';
+        var row5 = '<tr>';https://mail.google.com/mail/#inbox
         var cell9 = '<td>';
         cell9 += "Subsection: ";
         cell9 += '</td>';
         row5 += cell9;
         var cell10 = '<td';
-        cell10 += ' title="'+this.strs.subsection_tip+'">';
+        cell10 += ' title="'+this.strs.subsection_tip+'"https://mail.google.com/mail/#inbox>';
         var subsection = '<input';
         subsection += ' type="text"';
         subsection += ' id="SUBSECTION"';
@@ -437,7 +438,7 @@ function uploader( target, demo, language, mod_path ) {
         row5 += '</td>';
         row5 += '</tr>\n';
         table += row5;
-        
+        https://mail.google.com/mail/#inbox
         // row 6
         var row6 = '<tr>';
         var cell11 = '<td>';
@@ -459,7 +460,7 @@ function uploader( target, demo, language, mod_path ) {
         var option3 = '<option';
         option3 += ' value="Poem">';
         option3 += "Poem";
-        option3 += '</option>';
+        option3 += '</option>';https://mail.google.com/mail/#inbox
         filters += option3;
         var option4 = '<option';
         option4 += ' value="Play">';
@@ -469,7 +470,7 @@ function uploader( target, demo, language, mod_path ) {
         var option5 = '<option';
         option5 += ' value="Novel">';
         option5 += "Novel";
-        option5 += '</option>';
+        option5 += '</option>';https://mail.google.com/mail/#inbox
         filters += option5;
         filters += '</select>';
         var cell12 = '<td';
