@@ -1,6 +1,5 @@
 function load_strings() {
     return {
-        header: "IMPORT",
         subtitle: "Select versions of a work or sections thereof in plain text or XML",
         upload_prompt: "Choose a file to upload",
         lang_tip: "Specify a language for intelligent hyphenation",

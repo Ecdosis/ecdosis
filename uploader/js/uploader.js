@@ -267,7 +267,6 @@ function uploader( target, demo, language, mod_path ) {
      */
     this.make_header = function() {
         var div = '<div class="header">\n';
-        div += '<h3>'+self.strs.header+'</h3>';
         div += '<p>'+self.strs.subtitle+'</p>';
         div += '</div>';
         return div;
