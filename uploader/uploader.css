@@ -2,10 +2,12 @@ div.upload
 {
     display: inline-block;
     vertical-align: top;
+    width: 50%
 }
 div.fields
 {
-    display: inline-block
+    display: inline-block;
+    width: 50%
 }
 div.wrapper
 {
@@ -20,10 +22,18 @@ input.invisible
 { 
     display: none 
 } 
-div.log 
+iframe.log 
 { 
     background-color: white; 
-    border: 1px solid #EEE; padding: 5px
+    border: 1px solid #EEE; 
+    padding: 5px;
+    display: block;
+    width: 100%;
+    height: 80px;
+}
+iframe body 
+{
+    font: 10px ariel, sans-serif;
 }
 div.header h3 
 {

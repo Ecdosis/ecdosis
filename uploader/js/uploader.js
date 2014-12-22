@@ -76,7 +76,7 @@ function uploader( target, demo, language, mod_path ) {
         else
             return true;
     };
-    /**
+    /**jQuery(this)
      * Verify that the field is not empty or just spaces
      * @param item the jQuery object representing a form field
      */
@@ -100,6 +100,7 @@ function uploader( target, demo, language, mod_path ) {
     };
     /** 
      * Check that the form is complete and ready for upload
+     * NB this is a function not a method
      * @param event the submit event
      */
     this.check_form = function( event ) {
@@ -123,7 +124,6 @@ function uploader( target, demo, language, mod_path ) {
                 var password = prompt("Password","");
                 demo.val(password);
             }
-            return;
         }
         else
             event.preventDefault();
@@ -277,7 +277,7 @@ function uploader( target, demo, language, mod_path ) {
      */
     this.make_upload_box = function()
     {
-        var upload = '<div class="upload"><div>';
+        var upload = '<div class="upload">';
         upload += this.strs.upload_prompt+': ';
         var input1 = '<input';
         input1 += ' type="file"';
@@ -294,6 +294,7 @@ function uploader( target, demo, language, mod_path ) {
         input2 += ' value="Upload files"';
         input2 += ' title="'+this.strs.upload_tip+'"></input>';
         upload += input2;
+        upload += '</div>';
         return upload;
     }
     /**
@@ -355,7 +356,7 @@ function uploader( target, demo, language, mod_path ) {
      * @return a html select element as a string
      */
     this.make_project_dropdown = function() {
-        var html = '<select name="PROJECT" id="PROJECT"></select>';
+        var html = '<select id="PROJECT"></select>';
         var url = "http://"+window.location.hostname
               +"/project/list";
         jQuery.get( url, function(data) 
@@ -390,7 +391,7 @@ function uploader( target, demo, language, mod_path ) {
         // first row
         var div = '<div class="fields">';
         var table = '<table class="fields">';
-        var row1 = '<tr>';https://mail.google.com/mail/#inbox
+        var row1 = '<tr>';
         var cell1 = '<td>';
         cell1 += "Project*: ";
         cell1 += '</td>';
@@ -401,7 +402,7 @@ function uploader( target, demo, language, mod_path ) {
         cell2 += '</td>';
         row1 += cell2;
         row1 += '</tr>\n';
-        table += row1;https://mail.google.com/mail/#inbox
+        table += row1;
 
         // row 4
         var row4 = '<tr>';
@@ -422,13 +423,13 @@ function uploader( target, demo, language, mod_path ) {
         table += row4;
         
         // row 5
-        var row5 = '<tr>';https://mail.google.com/mail/#inbox
+        var row5 = '<tr>';
         var cell9 = '<td>';
         cell9 += "Subsection: ";
         cell9 += '</td>';
         row5 += cell9;
         var cell10 = '<td';
-        cell10 += ' title="'+this.strs.subsection_tip+'"https://mail.google.com/mail/#inbox>';
+        cell10 += ' title="'+this.strs.subsection_tip+'">';
         var subsection = '<input';
         subsection += ' type="text"';
         subsection += ' id="SUBSECTION"';
@@ -438,7 +439,7 @@ function uploader( target, demo, language, mod_path ) {
         row5 += '</td>';
         row5 += '</tr>\n';
         table += row5;
-        https://mail.google.com/mail/#inbox
+        
         // row 6
         var row6 = '<tr>';
         var cell11 = '<td>';
@@ -460,7 +461,7 @@ function uploader( target, demo, language, mod_path ) {
         var option3 = '<option';
         option3 += ' value="Poem">';
         option3 += "Poem";
-        option3 += '</option>';https://mail.google.com/mail/#inbox
+        option3 += '</option>';
         filters += option3;
         var option4 = '<option';
         option4 += ' value="Play">';
@@ -470,7 +471,7 @@ function uploader( target, demo, language, mod_path ) {
         var option5 = '<option';
         option5 += ' value="Novel">';
         option5 += "Novel";
-        option5 += '</option>';https://mail.google.com/mail/#inbox
+        option5 += '</option>';
         filters += option5;
         filters += '</select>';
         var cell12 = '<td';
@@ -544,19 +545,20 @@ function uploader( target, demo, language, mod_path ) {
         self.strs = load_strings();
         console.log("loaded "+script_name+" successfully");
         // build form
-        var action = window.location.pathname;
-        var html = '<form name="default" method="POST" action="'+action+'"';
+        var action = "http://"+window.location.hostname+"/calliope/import/mixed";
+        var html = '<form name="default" method="POST" action="'+action+'" target="log"';
         html += ' enctype="multipart/form-data">\n';
         html += '<div class="wrapper">';
         html += self.make_header();
         html += self.make_text_fields();
         html += self.make_upload_box();
-        html += '<div class="log"></log>';
         html += self.make_docid();
         if ( demo == 'true' )
             html += self.make_demo_tag();
+        html += '<iframe name="log" class="log"></iframe>';
+        html += '</div></form>';
         self.set_html( html );
-        jQuery("form").submit(this.checkform);
+        jQuery('form[name="default"]').submit(this.checkform);
     })
     .fail(function( jqxhr, settings, exception ) {
         console.log("Failed to load language strings. status=",jqxhr.status );
@@ -596,7 +598,7 @@ function get_args( scrName )
     return params;
 }
 /**
- * Load the import dialog with two arguments
+ * Load the importer dialog with two arguments
  */
 jQuery(document).ready(
     function(){

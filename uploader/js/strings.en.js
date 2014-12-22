@@ -14,7 +14,8 @@ function load_strings() {
         length_tip: "Turn on/off restrictions on length. If set, files differing greatly in length will be rejected.",
         corform_error: "Failed to load corforms",
 		dicts_error: "Failed to load dictionaries",
-        missing_files: "Specify at least one file for upload"
+        missing_files: "Specify at least one file for upload",
+        upload_error: "Failed to upload data"
     };
 }
 
