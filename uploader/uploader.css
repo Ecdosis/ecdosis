@@ -2,17 +2,27 @@ div.upload
 {
     display: inline-block;
     vertical-align: top;
-    width: 50%
+    width: 50%;
+    -moz-box-sizing: border-box;
+    -webkit-box-sizing: border-box;
+    -ms-box-sizing: border-box;
+    box-sizing: border-box;
+    padding: 4px;
 }
 div.fields
 {
     display: inline-block;
-    width: 50%
+    width: 50%;
+    -moz-box-sizing: border-box;
+    -webkit-box-sizing: border-box;
+    -ms-box-sizing: border-box;
+    box-sizing: border-box;
 }
 div.wrapper
 {
     margin-left: auto;
     margin-right: auto;
+    width: 700px;
 }
 table.fields
 {
@@ -30,10 +40,10 @@ iframe.log
     display: block;
     width: 100%;
     height: 80px;
-}
-iframe body 
-{
-    font: 10px ariel, sans-serif;
+    -moz-box-sizing: border-box;
+    -webkit-box-sizing: border-box;
+    -ms-box-sizing: border-box;
+    box-sizing: border-box;
 }
 div.header h3 
 {
@@ -42,10 +52,18 @@ div.header h3
 div.header
 {
     font-size:16px;
+    -moz-box-sizing: border-box;
+    -webkit-box-sizing: border-box;
+    -ms-box-sizing: border-box;
+    box-sizing: border-box;
 }
 .fields
 {
     font-size: 16px;
     font-family: Georgia,"Times New Roman",Times,serif;
+    -moz-box-sizing: border-box;
+    -webkit-box-sizing: border-box;
+    -ms-box-sizing: border-box;
+    box-sizing: border-box;
 }
 

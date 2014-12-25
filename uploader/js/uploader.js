@@ -392,7 +392,7 @@ function uploader( target, demo, language, mod_path ) {
         var table = '<table class="fields">';
         var row1 = '<tr>';
         var cell1 = '<td>';
-        cell1 += "Project*: ";
+        cell1 += "Project: ";
         cell1 += '</td>';
         row1 += cell1;
         var cell2 = '<td';
