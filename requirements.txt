@@ -1,2 +1,2 @@
-php-intl
-nss-myhostname
+php5-intl
+libnss-myhostname
