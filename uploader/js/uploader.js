@@ -351,20 +351,41 @@ function uploader( target, demo, language, mod_path ) {
         return html;
     };
     /**
+     * Make a new row to record the work name
+     * @return HTML for a table row in the "fields" div
+     */
+    this.make_work_row = function() {
+        var row = '<tr>';
+        var cell1 = '<td>';
+        cell1 += "Work: ";
+        cell1 += '</td>';
+        row += cell1;
+        var cell2 = '<td';
+        var work = '<input';
+        work += ' type="text"';
+        work += ' id="WORK"';
+        work += '></input>';
+        cell2 += ' title="'+this.strs.work_tip+'">';
+        cell2 += work;
+        cell2 += '</td>';
+        row += cell2;
+        row += '</tr>\n';
+        return row;
+    };
+    /**
      * Make a dropdown list of available projects
      * @return a html select element as a string
      */
     this.make_project_dropdown = function() {
         var html = '<select id="PROJECT"></select>';
-        var url = "http://"+window.location.hostname
-              +"/project/list";
+        var url = "http://"+window.location.hostname+"/project/list";
         jQuery.get( url, function(data) 
         {   
             var projects = data;
             if ( projects != undefined )
             {
                 html = '<select name="PROJECT" id="PROJECT">';
-				for ( var i=0;i<projects.length;i++ )
+                for ( var i=0;i<projects.length;i++ )
                 {
                     html += '<option value="'+projects[i].docid
                     +'">'+projects[i].author+": "+projects[i].work
@@ -372,8 +393,25 @@ function uploader( target, demo, language, mod_path ) {
                 }
                 html += '</select>';
                 jQuery("#PROJECT").replaceWith(html);
+                jQuery("#PROJECT").change(function(){
+                    var docid = jQuery(this).val();
+                    var parts = docid.split("/");
+                    if ( parts.length==2 )
+                    {
+                        var section = jQuery("#SECTION").closest("tr");
+                        var children = section.parent().children();
+                        var index = children.index(section);
+                        if ( index==1 )
+                            section.before(self.make_work_row());
+                    }
+                    else if ( parts.length==3 )
+                    {
+                        var work = jQuery("#WORK").closest("tr");
+                        if ( work != undefined )
+                            work.remove();
+                    }
+                });   
             }
-            
         })
         .fail(function() {
             console.log("failed to load project list");
