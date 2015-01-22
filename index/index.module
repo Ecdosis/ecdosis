@@ -1,0 +1,70 @@
+<?php
+function is_admin_role()
+{
+    $res = false;
+    global $user;
+    if ( $user )
+    {
+        foreach ( $user->roles as $role )
+        {
+            if ( $role == 'administrator' )
+            {
+                $res = true;
+                break;
+            }
+        }
+    }
+    return $res;
+}
+function index_preprocess_page(&$vars)
+{
+    if ( strpos(request_uri(),"index") )
+    {
+        drupal_add_css(drupal_get_path('module','index').'/index.css','file');
+    }
+}
+function index_all()
+{
+    $demo = is_admin_role()?'true':'false';
+    $mod_path = drupal_get_path('module', 'index');
+    $html ='<script type="text/javascript" src="'.$mod_path
+          .'/index.js?target=content&'
+          .'admin='.$demo.'"></script>';
+    return $html;
+}
+function index_menu()
+{
+    $items = array();
+    $items['admin/config/content/index'] = array(
+        'title'=>'Rebuild index on back-end',
+        'description' => 'Rebuild index',
+        'page callback' => 'drupal_get_form',
+        'page arguments' => array('index_form'),
+        'access arguments' => array('access administration pages'),
+        'type' => MENU_NORMAL_ITEM
+    );
+    $items['index'] = array(
+        'title' => 'Regenerate index',
+        'page callback' => 'index_all',
+        'access arguments' => array('access content'),
+        'type' => MENU_CALLBACK
+    );
+    return $items;
+}
+function index_block_info() {
+  $blocks['index'] = array(
+    'info' => t('Rebuild index'),
+    'cache' => DRUPAL_CACHE_PER_ROLE,
+  );
+  return $blocks;
+}
+function index_help($path, $arg) {
+}
+function index_block_view($delta = '') {
+  switch ($delta) {
+    case 'index':
+      $block['subject'] = t('Index');
+      $block['content'] = '<script type="text/javascript" src="'.drupal_get_path('module', 'index').'/index.js?target=content&admin='.is_admin_role().'"></script>';
+      return $block;
+  }
+}

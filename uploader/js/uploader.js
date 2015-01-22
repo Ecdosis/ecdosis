@@ -13,7 +13,7 @@ function nested_select( docids, name, id ) {
             this.place_key(top,parts);
         }
         // so now top is a nested hash of options
-        this.html += this.build_options( top );
+        this.html += this.build_options( top,"" );
     };
     /**
      * Place a key in a nested array recursively
@@ -33,19 +33,23 @@ function nested_select( docids, name, id ) {
     /**
      * Build the actual select element
      * @param array the top-level associative array
+     * @param value the partial or complete option value
      */
-    this.build_options = function(array) {
+    this.build_options = function(array,value) {
         var html = "";
         for ( var key in array )
         {
             var count = 0;
             for ( var i in array[key] )
                 count++;
+            var new_value = (value.length==0)?key:value+"/"+key;
             if ( count == 0 )
-                html += '<option value="'+key+'">'+key+'</option>';
+                html += '<option value="'+new_value+'">'+key+'</option>';
             else
+            {
                 html += '<optgroup label="'+key+'">'
-                    +this.build_options(array[key])+'</optgroup>';
+                    +this.build_options(array[key],new_value)+'</optgroup>';
+            }
         }
         return html;
     };
@@ -107,9 +111,14 @@ function uploader( target, demo, language, mod_path ) {
         var project = jQuery("#PROJECT");
         var section = jQuery("#SECTION");
         var subsection = jQuery("#SUBSECTION");
-        if ( self.check_files()&&self.fverify(project) )
+        var work = jQuery("#WORK");
+        if ( work != undefined && !self.fverify(work) )
+             event.preventDefault();
+        else if ( self.check_files()&&self.fverify(project) )
         {
             var docid = project.val();
+            if ( work != undefined && work.val().length>0 )
+                docid += "/"+work.val();
             if ( section.val().length > 0 )
             {
                 docid += "/"+section.val();
@@ -595,7 +604,7 @@ function uploader( target, demo, language, mod_path ) {
         html += '<iframe name="log" class="log"></iframe>';
         html += '</div></form>';
         self.set_html( html );
-        jQuery('form[name="default"]').submit(this.checkform);
+        jQuery('form[name="default"]').submit(this.check_form);
     })
     .fail(function( jqxhr, settings, exception ) {
         console.log("Failed to load language strings. status=",jqxhr.status );
