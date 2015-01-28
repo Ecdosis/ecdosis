@@ -1,4 +1,8 @@
 <?php
+function project_icon_preprocess_page(&$vars)
+{
+    drupal_add_css(drupal_get_path('theme','ecdosis').'/css/font-awesome.min.css','file');
+}
 function project_icon_block_info() {
   $blocks['project_icon'] = array(
     'info' => t('project icon'),

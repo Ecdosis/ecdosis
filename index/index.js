@@ -29,23 +29,28 @@ function index(target,admin)
     this.set_html( html );
     jQuery("#rebuild").click( function() {
         var readSoFar=0;
+        self.draw_slider( 100, 0 );	
         client = new XMLHttpRequest();
         client.open("GET", "http://"+window.location.hostname+"/search/build");
+        //client.open("GET", "http://localhost/search/build");
         client.send();
         // Track the state changes of the request
         client.onreadystatechange = function(){
             // Ready state 3 means that data is ready
-            if (client.readyState === 3) {
+            if (client.readyState == 3) {
                 // <300 is a successful return
                 if(client.status ==200) {
                     var len = client.responseText.length-readSoFar;
                     var num = client.responseText.substr(readSoFar,len);
-                    var numbers = num.split("\r\n");
-                    var i = numbers.length-1;
-                    while ( i>0 && numbers[i].length<1 )
-                        i--;
-                    var val = parseInt(numbers[i]);
-                    self.draw_slider( 100, val );
+                    var numbers = num.split("\n");
+                    for ( var i=0;i<numbers.length;i++ )
+                    { 
+                        if ( numbers[i].length > 0 )
+                        {
+                            var val = parseInt(numbers[i]);
+                            self.draw_slider( 100, val );	
+                        }
+                    }
                     readSoFar = client.responseText.length;
                 }
                 else if ( client.status >= 300 )
