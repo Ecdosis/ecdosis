@@ -2,7 +2,7 @@ div.upload
 {
     display: inline-block;
     vertical-align: top;
-    width: 50%;
+    width:50%;
     -moz-box-sizing: border-box;
     -webkit-box-sizing: border-box;
     -ms-box-sizing: border-box;
@@ -66,4 +66,7 @@ div.header
     -ms-box-sizing: border-box;
     box-sizing: border-box;
 }
-
+#PROJECT
+{
+    max-width: 210px;
+}

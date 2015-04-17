@@ -12,6 +12,7 @@ function index(target,admin)
         tgt.append(html);
     };
     var self = this;
+    this.admin = (admin=="true")?true:false;
     this.draw_slider = function(max, val) 
     {
         var percent=Math.round((val*100)/max);
@@ -28,6 +29,13 @@ function index(target,admin)
     html += '</div>';
     this.set_html( html );
     jQuery("#rebuild").click( function() {
+        if ( !self.admin )
+        {
+            alert("Only an administrator can do that!");
+            return;
+        }
+        else
+            console.log("admin="+self.admin);
         var readSoFar=0;
         self.draw_slider( 100, 0 );	
         client = new XMLHttpRequest();
