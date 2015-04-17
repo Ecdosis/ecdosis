@@ -241,7 +241,7 @@ function events(target,docid,author,modpath)
             if ( jQuery("div.tinyeditor").length>0 )
                 self.restore_div();
             if ( self.index != undefined )
-                self.install_editor(jQuery(e.target));
+                self.install_editor(jQuery(e.target).closest(".edit-region"));
         });
     };
     /**
@@ -307,7 +307,7 @@ function events(target,docid,author,modpath)
                 return false;
             }
         }
-        if ( this.isEmpty(day) )
+        /*if ( this.isEmpty(day) )
         {
             if ( this.isEmpty(qualifier) )
             {
@@ -315,10 +315,10 @@ function events(target,docid,author,modpath)
                 alert(self.strs.day_and_qualifier_empty);
                 return false;
             }
-        }
+        }*/
         if ( this.isEmpty(month) )
         {
-            if ( !this.isEmpty(day)||this.isEmpty(qualifier) )
+            if ( !this.isEmpty(day) )
             {
                 alert(self.strs.month_empty);
                 self.flash(month);
@@ -772,6 +772,7 @@ function events(target,docid,author,modpath)
 	    toggle: {text: 'source', activetext: 'wysiwyg', cssclass: 'toggle'},
 	    resize: {cssclass: 'resize'}
         });
+        jQuery("div.tinyeditor").css("overflow-y","visible");
     };
     /**
      * Remove the editor and restore the old div with the new text
@@ -789,22 +790,19 @@ function events(target,docid,author,modpath)
             else
                 content = self.strs.empty_references;
         }
-        var id = 'id="description"';
+        var id = 'description';
         if ( parent.next("tr").length== 0)
-            id = 'id="references"';
-        jQuery("div.tinyeditor").replaceWith('<div '+id+' class="'
+            id = 'references';
+        jQuery("div.tinyeditor").replaceWith('<div id="'+id+'" class="'
             +class_name+'">'+content+'</div>');
         if ( self.pDoc.events[this.index].status != 'added' )
             self.pDoc.events[this.index].status = 'changed';
-        jQuery(self.selector).click( function(e) {
+        jQuery("#"+id).click( function(e) {
             if ( jQuery("#tinyeditor").length>0 )
                 self.restore_div();
-            var editables = jQuery("div.edit-region");
-            var length = editables.length;
-            var index = editables.index( e.target );
-            if ( index != undefined )
-                self.install_editor("div.edit-region:eq("+index+")");
+            self.install_editor(jQuery(this));
         });
+        jQuery("#"+id).css("overflow-y","auto");
     };
     /**
      * Make a dropdown (select) menu
@@ -936,7 +934,6 @@ function events(target,docid,author,modpath)
     /* Download all the events in compact form for this project */
     jQuery.get( "http://"+window.location.hostname+"/project/events/"+docid, function(data)
     {
-        //console.log(data);
         self.pDoc = data;//JSON.parse(data);
         var html = '<div class="events">';
         html += '<div id="left-sidebar"><i id="goleft" class="fa fa-chevron-left fa-3x"></i></div>';

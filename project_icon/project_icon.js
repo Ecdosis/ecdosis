@@ -163,6 +163,7 @@ function getArgs( scrName )
 jQuery(document).ready(
     function(){
         var params = getArgs('project_icon');
+        console.log("target="+params['target']+" role="+params['role']+" owner="+params['owner']);
         new project_icon(params['target'],params['role']!=undefined&&params['role']=='editor',params['owner']);
     }
 );

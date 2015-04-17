@@ -1,0 +1,4 @@
+name = Index
+description = A simple back-end interface for regenerating the search index
+core = 7.x
+configure = admin/config/content/index

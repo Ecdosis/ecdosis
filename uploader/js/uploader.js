@@ -13,7 +13,7 @@ function nested_select( docids, name, id ) {
             this.place_key(top,parts);
         }
         // so now top is a nested hash of options
-        this.html += this.build_options( top );
+        this.html += this.build_options( top,"" );
     };
     /**
      * Place a key in a nested array recursively
@@ -33,19 +33,23 @@ function nested_select( docids, name, id ) {
     /**
      * Build the actual select element
      * @param array the top-level associative array
+     * @param value the partial or complete option value
      */
-    this.build_options = function(array) {
+    this.build_options = function(array,value) {
         var html = "";
         for ( var key in array )
         {
             var count = 0;
             for ( var i in array[key] )
                 count++;
+            var new_value = (value.length==0)?key:value+"/"+key;
             if ( count == 0 )
-                html += '<option value="'+key+'">'+key+'</option>';
+                html += '<option value="'+new_value+'">'+key+'</option>';
             else
+            {
                 html += '<optgroup label="'+key+'">'
-                    +this.build_options(array[key])+'</optgroup>';
+                    +this.build_options(array[key],new_value)+'</optgroup>';
+            }
         }
         return html;
     };
@@ -107,9 +111,14 @@ function uploader( target, demo, language, mod_path ) {
         var project = jQuery("#PROJECT");
         var section = jQuery("#SECTION");
         var subsection = jQuery("#SUBSECTION");
-        if ( self.check_files()&&self.fverify(project) )
+        var work = jQuery("#WORK");
+        if ( work != undefined && !self.fverify(work) )
+             event.preventDefault();
+        else if ( self.check_files()&&self.fverify(project) )
         {
             var docid = project.val();
+            if ( work != undefined && work.val().length>0 )
+                docid += "/"+work.val();
             if ( section.val().length > 0 )
             {
                 docid += "/"+section.val();
@@ -302,7 +311,8 @@ function uploader( target, demo, language, mod_path ) {
      */
     this.make_corform_dropdown = function() {
         var html = '<select name="STYLE" id="STYLE"></select>';
-        var url = "http://"+window.location.hostname
+        var url = "http://"
+             +window.location.host
              +"/calliope/collection?collection=corform";
         jQuery.get( url, function(data) 
         {    
@@ -326,7 +336,8 @@ function uploader( target, demo, language, mod_path ) {
      */
     this.make_dictionary_dropdown = function() {
         var html = '<select name="dict" id="dict"></select>';
-        var url = "http://"+window.location.hostname
+        var url = "http://"
+              +window.location.host
               +"/calliope/json/dicts";
         jQuery.get( url, function(data) 
         {   
@@ -351,20 +362,41 @@ function uploader( target, demo, language, mod_path ) {
         return html;
     };
     /**
+     * Make a new row to record the work name
+     * @return HTML for a table row in the "fields" div
+     */
+    this.make_work_row = function() {
+        var row = '<tr>';
+        var cell1 = '<td>';
+        cell1 += "Work: ";
+        cell1 += '</td>';
+        row += cell1;
+        var cell2 = '<td';
+        var work = '<input';
+        work += ' type="text"';
+        work += ' id="WORK"';
+        work += '></input>';
+        cell2 += ' title="'+this.strs.work_tip+'">';
+        cell2 += work;
+        cell2 += '</td>';
+        row += cell2;
+        row += '</tr>\n';
+        return row;
+    };
+    /**
      * Make a dropdown list of available projects
      * @return a html select element as a string
      */
     this.make_project_dropdown = function() {
         var html = '<select id="PROJECT"></select>';
-        var url = "http://"+window.location.hostname
-              +"/project/list";
+        var url = "http://"+window.location.hostname+"/project/list";
         jQuery.get( url, function(data) 
         {   
             var projects = data;
             if ( projects != undefined )
             {
                 html = '<select name="PROJECT" id="PROJECT">';
-				for ( var i=0;i<projects.length;i++ )
+                for ( var i=0;i<projects.length;i++ )
                 {
                     html += '<option value="'+projects[i].docid
                     +'">'+projects[i].author+": "+projects[i].work
@@ -372,8 +404,25 @@ function uploader( target, demo, language, mod_path ) {
                 }
                 html += '</select>';
                 jQuery("#PROJECT").replaceWith(html);
+                jQuery("#PROJECT").change(function(){
+                    var docid = jQuery(this).val();
+                    var parts = docid.split("/");
+                    if ( parts.length==2 )
+                    {
+                        var section = jQuery("#SECTION").closest("tr");
+                        var children = section.parent().children();
+                        var index = children.index(section);
+                        if ( index==1 )
+                            section.before(self.make_work_row());
+                    }
+                    else if ( parts.length==3 )
+                    {
+                        var work = jQuery("#WORK").closest("tr");
+                        if ( work != undefined )
+                            work.remove();
+                    }
+                });   
             }
-            
         })
         .fail(function() {
             console.log("failed to load project list");
@@ -557,7 +606,7 @@ function uploader( target, demo, language, mod_path ) {
         html += '<iframe name="log" class="log"></iframe>';
         html += '</div></form>';
         self.set_html( html );
-        jQuery('form[name="default"]').submit(this.checkform);
+        jQuery('form[name="default"]').submit(this.check_form);
     })
     .fail(function( jqxhr, settings, exception ) {
         console.log("Failed to load language strings. status=",jqxhr.status );
