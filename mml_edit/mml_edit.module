@@ -12,21 +12,33 @@ function add_meta_tag( $name, $value, $tag )
 }
 function mml_edit_preprocess_page(&$vars)
 {
+    drupal_add_js('var $ = jQuery;', 'inline');
     if ( strpos(request_uri(),"mml_edit") )
     {
         add_meta_tag('description','Minimal markup language editor','MML editor');
-        drupal_add_js(drupal_get_path('module', 'mml_edit').'/js/ierange-m2-packed.js','file');
         drupal_add_css(drupal_get_path('theme','ecdosis').'/css/font-awesome.min.css','file');
-        drupal_add_css(drupal_get_path('module','mml_edit').'/css/mml_edit.css','file');
+        drupal_add_css("/mml/static/css/mml.css","external");
+        drupal_add_css("/mml/static/css/custom/jquery-ui.min.css","external");
+        drupal_add_css("/mml/static/css/tinyeditor.css","external");
+        drupal_add_js( "/mml/static/js/jquery-ui.js","external" );
+        drupal_Add_js( "/mml/static/js/refloc.js","external" );
+        drupal_add_js( "/mml/static/js/formatter.js","external" );
+        drupal_add_js( "/mml/static/js/info.js","external" );
+        drupal_add_js( "/mml/static/js/rangyinputs-jquery.js","external");
+        drupal_add_js( "/mml/static/js/styles.js","external");
+        drupal_add_js( "/mml/static/js/rangy-core.js","external");
+        drupal_add_js( "/mml/static/js/buffer.js","external");
+        drupal_add_js( "/mml/static/js/tiny.editor.js","external" );
+        drupal_add_js( "/mml/static/js/annotate.js","external");
+        drupal_add_js( "/mml/static/js/mml.js","external" );
     }
 }
 function mml_edit_all()
 {
     $mod_path = drupal_get_path('module', 'mml_edit');
     $html ='<script type="text/javascript" src="'.$mod_path
-          .'/js/mml.js?target=content&'
+          .'/js/editor.js?target=content&'
           .'docid='.$_GET['docid']
-          .'&version1='.$_GET['version1']
           .'&modpath='.$mod_path.'"></script>';
     return $html;
 }
@@ -72,9 +84,8 @@ function mml_edit_block_view($delta = '') {
       $block['subject'] = t('Edit MML documents');
       $mod_path = drupal_get_path('module', 'mml_edit');
       $block['content'] = '<script type="text/javascript" src="'.$mod_path
-          .'/js/mml.js?target=content&'
-          .$_GET["docid"].'&version1='.$_GET['version1']
-          .'&modpath='.$mod_path.'"></script>';
+          .'/js/editor.js?target=content&'
+          .$_GET["docid"].'&modpath='.$mod_path.'"></script>';
       error_log($block['content']);
       return $block;
   }
