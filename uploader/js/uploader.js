@@ -176,10 +176,10 @@ function uploader( target, demo, language, mod_path ) {
     this.clear_file_input = function( input1 ) {
         var parent = input1.parent();
         input1.detach();
-        jQuery('<input id="input1"></input>').insertBefore(parent.children().first());
+        parent.append('<input id="input1"></input>');
         var input2 = jQuery("#input1");
         input1.attr( "class", "invisible" );
-	input1.removeAttr("id");
+	    input1.removeAttr("id");
         input2.attr("type","file");
         input2.attr("name","uploadedfile[]");
         input2.change( self.do_add_file );
@@ -276,8 +276,15 @@ function uploader( target, demo, language, mod_path ) {
      */
     this.make_header = function() {
         var div = '<div class="header">\n';
-        div += '<p>'+self.strs.subtitle+'</p>';
-        div += '</div>';
+        div += '<table><tr><td>'+self.strs.subtitle+'</td><td>';
+        div += this.strs.upload_prompt+': ';
+        var input1 = '<input';
+        input1 += ' type="file"';
+        input1 += ' name="file"';
+        input1 += ' id="input1"';
+        input1 += ' title="'+this.strs.browse_tip+'"></input>';
+        div += input1;
+        div += '</td></tr></table></div>';
         return div;
     };
     /**
@@ -285,16 +292,7 @@ function uploader( target, demo, language, mod_path ) {
      */
     this.make_upload_box = function()
     {
-        var upload = '<div class="upload">';
-        upload += this.strs.upload_prompt+': ';
-        var input1 = '<input';
-        input1 += ' type="file"';
-        input1 += ' name="file"';
-        input1 += ' id="input1"';
-        input1 += ' title="'+this.strs.browse_tip+'"></input>';
-        upload += input1;
-        var table = '<table id="listing"></table>';
-        upload += table;
+        var upload = '<div id="upload"><table id="listing"></table>';
         var repo = '<div id="repository"></div>';
         upload += repo;
         var input2 = "<input";
@@ -307,10 +305,8 @@ function uploader( target, demo, language, mod_path ) {
     }
     /**
      * Make a dropdown menu of CorForms available on server
-     * @return a select dropdown (possibly empty if it failed)
      */
     this.make_corform_dropdown = function() {
-        var html = '<select name="STYLE" id="STYLE"></select>';
         var url = "http://"
              +window.location.host
              +"/calliope/collection?collection=corform";
@@ -328,14 +324,11 @@ function uploader( target, demo, language, mod_path ) {
             console.log("failed to load corform lists");
             alert(self.strs.corform_error);
         });
-        return html;
     };
     /**
      * Make a dropdown list of available aspell dictionaries
-     * @return a html select element as a string
      */
     this.make_dictionary_dropdown = function() {
-        var html = '<select name="dict" id="dict"></select>';
         var url = "http://"
               +window.location.host
               +"/calliope/json/dicts";
@@ -358,8 +351,6 @@ function uploader( target, demo, language, mod_path ) {
             console.log("failed to load dictionary list");
             alert(self.strs.dicts_error);
         });
-        // default to empty list
-        return html;
     };
     /**
      * Make a new row to record the work name
@@ -388,13 +379,13 @@ function uploader( target, demo, language, mod_path ) {
      * @return a html select element as a string
      */
     this.make_project_dropdown = function() {
-        var html = '<select id="PROJECT"></select>';
         var url = "http://"+window.location.hostname+"/project/list";
         jQuery.get( url, function(data) 
         {   
             var projects = data;
             if ( projects != undefined )
             {
+                console.log("received "+projects.length+" projects");
                 html = '<select name="PROJECT" id="PROJECT">';
                 for ( var i=0;i<projects.length;i++ )
                 {
@@ -409,6 +400,7 @@ function uploader( target, demo, language, mod_path ) {
                     var parts = docid.split("/");
                     if ( parts.length==2 )
                     {
+                        console.log("two part docid");
                         var section = jQuery("#SECTION").closest("tr");
                         var children = section.parent().children();
                         var index = children.index(section);
@@ -417,6 +409,8 @@ function uploader( target, demo, language, mod_path ) {
                     }
                     else if ( parts.length==3 )
                     {
+                        console.log("three part docid");
+                        console.log("removing work row ");
                         var work = jQuery("#WORK").closest("tr");
                         if ( work != undefined )
                             work.remove();
@@ -428,8 +422,6 @@ function uploader( target, demo, language, mod_path ) {
             console.log("failed to load project list");
             alert(self.strs.dicts_error);
         });
-        // default to empty list
-        return html;
     };
     /**
      * Make all the input fields and the filter dropdown.
@@ -437,8 +429,8 @@ function uploader( target, demo, language, mod_path ) {
      */
     this.make_text_fields = function() {
         // first row
-        var div = '<div class="fields">';
-        var table = '<table class="fields">';
+        var div = '<div id="fields">';
+        var table = '<table>';
         var row1 = '<tr>';
         var cell1 = '<td>';
         cell1 += "Project: ";
@@ -446,12 +438,12 @@ function uploader( target, demo, language, mod_path ) {
         row1 += cell1;
         var cell2 = '<td';
         cell2 += ' title="'+this.strs.project_tip+'">';
-        cell2 += this.make_project_dropdown();
+        cell2 += '<select id="PROJECT"></select>';
         cell2 += '</td>';
         row1 += cell2;
         row1 += '</tr>\n';
         table += row1;
-
+        table += this.make_work_row();
         // row 4
         var row4 = '<tr>';
         var cell7 = '<td>';
@@ -540,7 +532,7 @@ function uploader( target, demo, language, mod_path ) {
         cell14 += ' title="'+this.strs.style_tip+'">';
         var group4 = '<span id="GROUP"></span>';
         cell14 += group4;
-        cell14 += this.make_corform_dropdown();
+        cell14 += '<select name="STYLE" id="STYLE"></select>';
         cell14 += '</td>';
         row7 += cell14;
         row7 += '</tr>\n';
@@ -572,7 +564,7 @@ function uploader( target, demo, language, mod_path ) {
         row9 += cell17;
         var cell18 = '<td';
         cell18 += ' title="'+this.strs.lang_tip+'">';
-        cell18 += this.make_dictionary_dropdown();
+        cell18 += '<select name="dict" id="dict"></select>';
         cell18 += '</td>';
         row9 += cell18;
         row9 += '</tr>\n';
@@ -598,14 +590,19 @@ function uploader( target, demo, language, mod_path ) {
         html += ' enctype="multipart/form-data">\n';
         html += '<div class="wrapper">';
         html += self.make_header();
+        html += '<div id="inner_wrapper">';
         html += self.make_text_fields();
         html += self.make_upload_box();
+        html += '</div>';
         html += self.make_docid();
         if ( demo == 'true' )
             html += self.make_demo_tag();
         html += '<iframe name="log" class="log"></iframe>';
         html += '</div></form>';
         self.set_html( html );
+        self.make_project_dropdown();
+        self.make_corform_dropdown();
+        self.make_dictionary_dropdown();
         jQuery('form[name="default"]').submit(this.check_form);
     })
     .fail(function( jqxhr, settings, exception ) {

@@ -1,4 +1,4 @@
-div.upload
+#upload
 {
     display: inline-block;
     vertical-align: top;
@@ -9,7 +9,7 @@ div.upload
     box-sizing: border-box;
     padding: 4px;
 }
-div.fields
+#fields
 {
     display: inline-block;
     width: 50%;
@@ -39,7 +39,7 @@ iframe.log
     padding: 5px;
     display: block;
     width: 100%;
-    height: 80px;
+    height: 180px;
     -moz-box-sizing: border-box;
     -webkit-box-sizing: border-box;
     -ms-box-sizing: border-box;
@@ -56,6 +56,10 @@ div.header
     -webkit-box-sizing: border-box;
     -ms-box-sizing: border-box;
     box-sizing: border-box;
+}
+div.header tr 
+{
+    background-color: white;
 }
 .fields
 {

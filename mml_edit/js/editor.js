@@ -31,30 +31,18 @@ function Editor( target, docid, modpath )
     /**
      * Get the mml text for this document
      */
-    this.getVersions = function() {
-        $.get("/mml/versions?docid="+this.docid,
-            function(data) {
-            self.versions = data;
-            self.setup();
-        })
-        .fail(function() {
-            alert("failed to load versions");
-        });
-    }
-    /**
-     * Get the mml text for this document
-     */
     this.getMml = function() {
         $.get("/mml/mml?docid="+this.docid+"&version1="+this.version1,
             function(data) {
             self.text = data;
-            self.getVersions();
+            self.reload();
+            self.mml = new MML( self.opts, self.dialect );
         })
         .fail(function() {
             alert("failed to load MML");
         });
     }
-     /**
+    /**
      * Get the images for this document
      */
     this.getImages = function() {
@@ -87,6 +75,19 @@ function Editor( target, docid, modpath )
             return this.docid;
     }
     /**
+     * Get the list of versions
+     */
+    this.getVersions = function() {
+        $.get("/mml/versions?docid="+this.docid,
+            function(data) {
+            self.versions = data;
+            self.setup();
+        })
+        .fail(function() {
+            alert("failed to load versions");
+        });
+    }
+    /**
      * Get the css for this document
      */
     this.getCss = function() { 
@@ -94,7 +95,7 @@ function Editor( target, docid, modpath )
             function(data){
             var styleElement = '<style type="text/css">\n'+data+'\n</style>';
             $("head").append(styleElement);
-            self.getImages();
+                self.getVersions();
         })
         .fail(function() {
             alert("failed to load css");
@@ -148,11 +149,24 @@ function Editor( target, docid, modpath )
             function( data ) {
                 self.version1 = data;
                 self.getDialect();
-        })
+         })
         .fail( function() {
             alert("failed to load metadata");
         });
     };
+    /**
+     * Reformat the text, html and images
+     */
+    this.reload = function() { 
+        $("#images").replaceWith( this.images );
+        $("#source").text(this.text);
+        $("#version1").val(this.version1);
+        if ( self.mml != undefined )
+        {
+            self.mml.changed = true;
+            self.mml.recomputeImageHeights();
+        }
+    }; 
     /**
      * Add a single hidden tag to the form
      * @param name the name of the hidden input
@@ -190,16 +204,14 @@ function Editor( target, docid, modpath )
         $("#toolbar-wrapper").append(this.getVersionDropdown());
     }
     /**
-     * Build the test age for the editor
-     * @throws MMLTestException 
+     * Build the page for the editor, ready to receive images and text
      */
     this.composePage = function() {
         this.createToolbar();
         $("#"+this.target).append('<div id="wrapper"></div>');
-        $("#wrapper").append( this.images );
+        $("#wrapper").append('<div id="images"></div>');
         $("#wrapper").append('<div id="help"></div>');
         $("#wrapper").append('<textarea id="source"></textarea>');
-        $("#source").val(this.text);
         $("#wrapper").append('<div id="target"></div>');
         this.writeHiddenTags();
     };
@@ -212,24 +224,13 @@ function Editor( target, docid, modpath )
         this.host = window.location.hostname;
         this.requestURL = window.location.href;
         this.composePage();
-        this.mml = new MML( this.opts, this.dialect );
+        this.getImages();   // also gets mml
         $(window).load(function() {
-            self.mml.recomputeImageHeights()
+            self.mml.recomputeImageHeights();
         }); 
-        $("#info").click( function() {
-            self.toggleHelp();
-        });
-        $("#save").click( function() {
-            self.mml.save();
-        });
-        $("#dropdown").change( function() {
-            var parts = jQuery("#dropdown").val().split("&");
-            for ( var i=0;i<parts.length;i++ ) {
-                var value = parts[i].split("=");
-                if ( value.length == 2 )
-                    $("#"+value[0]).val(value[1]);
-            }
-            $("form").submit();
+        $("#versions").change(function() {
+            self.version1 = $(this).val();
+            self.getImages();
         });
     };
     /**
