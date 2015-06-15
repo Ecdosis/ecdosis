@@ -136,6 +136,7 @@ function uploader( target, demo, language, mod_path ) {
         }
         else
             event.preventDefault();
+        jQuery(".log").children().remove();
     };
     /**
      * Remove a file from the list
@@ -297,7 +298,7 @@ function uploader( target, demo, language, mod_path ) {
         upload += repo;
         var input2 = "<input";
         input2 += ' type="submit"';
-        input2 += ' value="Upload files"';
+        input2 += ' value="'+this.strs.upload_button+'"';
         input2 += ' title="'+this.strs.upload_tip+'"></input>';
         upload += input2;
         upload += '</div>';

@@ -1,6 +1,7 @@
 function load_strings() {
     return {
         subtitle: "Select versions of a work or sections thereof in plain text or XML",
+        upload_button: "Upload files",
         upload_prompt: "Choose a file to upload",
         lang_tip: "Specify a language for intelligent hyphenation",
         style_tip: "Specify a CSS format name to associate with the document",
