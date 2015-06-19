@@ -63,7 +63,7 @@ function Editor( target, docid, modpath )
                         case 1:
                             if ( c == leftTag )
                                 state = 2;
-                            else 
+                            else if ( c != '\n' )
                                 state = 0;
                             break;
                         case 2:
