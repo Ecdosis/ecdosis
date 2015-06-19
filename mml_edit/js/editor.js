@@ -29,32 +29,93 @@ function Editor( target, docid, modpath )
     this.encoding = "UTF-8";
     var self = this;
     /**
+     * Extract the page refs in the order in which they appear in the MML
+     * @return a comma-separated list of page references e.g. 4e,2f
+     */
+    this.getPageRefs = function() {
+        if ( this.dialect.milestones != undefined )
+        {
+            var leftTag,rightTag;
+            var mls = this.dialect.milestones;
+            for ( var i=0;i<mls.length;i++ )
+            {
+                if ( mls[i].prop == "page" )
+                {
+                    leftTag = mls[i].leftTag;
+                    rightTag = mls[i].rightTag;
+                    break;
+                }
+            }
+            if ( leftTag != undefined && rightTag != undefined )
+            {
+                var sb = "";
+                var state = 1;
+                current = "";
+                for ( var i=0;i<this.text.length;i++ )
+                {
+                    var c = this.text[i];
+                    switch ( state )
+                    {
+                        case 0:
+                            if ( c == '\n' )
+                                state = 1;
+                            break;
+                        case 1:
+                            if ( c == leftTag )
+                                state = 2;
+                            else 
+                                state = 0;
+                            break;
+                        case 2:
+                            if ( c != rightTag )
+                                current += c;
+                            else
+                            {
+                                if ( sb.length > 0 )
+                                    sb += ',';
+                                sb += current;
+                                current = "";
+                                state = 0;
+                            }
+                            break;
+                    }
+                }
+                return sb;
+            }
+        }
+        return null;
+    };
+    /**
+     * Get the images for this document
+     */
+    this.getImages = function() {
+        var url = "/mml/images?docid="+this.docid
+            +"&version1="+this.version1;
+        var pageRefs = this.getPageRefs(this.text);
+        if ( pageRefs != null && pageRefs.length>0 )
+            url += "&pagerefs="+pageRefs;
+        $.get(url,function(data) {
+            self.images = data;
+            self.reload();
+            self.mml = new MML( self.opts, self.dialect );
+        })
+        .fail( function() {
+            alert("failed to load images");
+        });
+    };
+    /**
      * Get the mml text for this document
      */
     this.getMml = function() {
         $.get("/mml/mml?docid="+this.docid+"&version1="+this.version1,
             function(data) {
             self.text = data;
-            self.reload();
-            self.mml = new MML( self.opts, self.dialect );
+            self.getImages();
         })
         .fail(function() {
             alert("failed to load MML");
         });
-    }
-    /**
-     * Get the images for this document
-     */
-    this.getImages = function() {
-        $.get("/mml/images?docid="+this.docid
-            +"&version1="+this.version1,function(data) {
-            self.images = data;
-            self.getMml();
-        })
-        .fail( function() {
-            alert("failed to load images");
-        });
-    }
+    };
     /**
      * Get the short version of the docid (language/author/work)
      * @return a shortened docid for dialect etc
@@ -73,7 +134,7 @@ function Editor( target, docid, modpath )
         }
         else
             return this.docid;
-    }
+    };
     /**
      * Get the list of versions
      */
@@ -86,7 +147,7 @@ function Editor( target, docid, modpath )
         .fail(function() {
             alert("failed to load versions");
         });
-    }
+    };
     /**
      * Get the css for this document
      */
@@ -100,7 +161,7 @@ function Editor( target, docid, modpath )
         .fail(function() {
             alert("failed to load css");
         });
-    }
+    };
     /**
      * Get the opts for this editor
      * @return a JSON document
@@ -112,7 +173,7 @@ function Editor( target, docid, modpath )
             images: "images",
             formid: "tostil"
         };
-    }
+    };
     /**
      * Get the metadata
      */
@@ -224,13 +285,13 @@ function Editor( target, docid, modpath )
         this.host = window.location.hostname;
         this.requestURL = window.location.href;
         this.composePage();
-        this.getImages();   // also gets mml
+        this.getMml();   // also gets images
         $(window).load(function() {
             self.mml.recomputeImageHeights();
         }); 
         $("#versions").change(function() {
             self.version1 = $(this).val();
-            self.getImages();
+            self.getMml();
         });
     };
     /**

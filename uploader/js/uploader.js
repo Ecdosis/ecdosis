@@ -80,7 +80,7 @@ function uploader( target, demo, language, mod_path ) {
         else
             return true;
     };
-    /**jQuery(this)
+    /**
      * Verify that the field is not empty or just spaces
      * @param item the jQuery object representing a form field
      */
@@ -112,12 +112,12 @@ function uploader( target, demo, language, mod_path ) {
         var section = jQuery("#SECTION");
         var subsection = jQuery("#SUBSECTION");
         var work = jQuery("#WORK");
-        if ( work != undefined && !self.fverify(work) )
+        if ( work.length > 0 && !self.fverify(work) )
              event.preventDefault();
         else if ( self.check_files()&&self.fverify(project) )
         {
             var docid = project.val();
-            if ( work != undefined && work.val().length>0 )
+            if ( work.length>0 && work.val().length>0 )
                 docid += "/"+work.val();
             if ( section.val().length > 0 )
             {
