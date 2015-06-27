@@ -1,0 +1,103 @@
+form 
+{
+	margin: 0;
+	padding: 0;
+	border: 0;
+	color: #0F0F0F;
+}
+form a:link, a:visited 
+{
+	text-decoration: underline;
+	font-weight: normal;
+	color: #000;
+	outline: none;
+	text-align: left;
+}
+div#twinCentreColumn 
+{ 
+	border: 0; 
+	position: relative; 
+	height: 1000px; 
+	top: 0px; 
+	background-color: white; 
+	width: 978px; 
+	margin-left: auto; 
+	margin-right: auto; 
+	text-align: left 
+}
+div#leftColumn 
+{
+	background-color: white; 
+	float: left; 
+	left: auto; 
+	margin-right: 5px;
+	padding: 10px;
+	width: 45%;
+	overflow-y: auto;
+	overflow-x: hidden;
+}
+div#leftColumn select
+{
+	text-align: center;
+}
+div#rightColumn select
+{
+	text-align: center;
+}
+div#rightColumn 
+{
+	background-color: white; 
+	float: right; 
+	right: auto; 
+	margin-left: 5px;
+	padding: 10px;
+	width: 45%;
+	overflow-y: auto;
+	overflow-x: hidden;
+}
+div#top
+{
+	text-align: center;
+	font-family: serif; 
+	font-weight: bold; 
+	font-size:16px;
+}
+div#leftWrapper
+{
+	text-align:center;
+	margin-left: auto;
+	margin-right: auto;
+	float: left; 
+	left: auto; 
+	width: 45%;
+}
+div#rightWrapper
+{
+	text-align: center;
+	margin-left: auto;
+	margin-right: auto;
+	float: right; 
+	right: auto; 
+	width: 45%;
+}
+span.description 
+{ 
+	text-align: center;
+	font-weight: normal;
+}
+span.deleted 
+{ 
+	color: red 
+}
+span.selected
+{
+	background-color: LightSkyBlue
+}
+span.transposed 
+{ 
+	color: grey 
+}
+span.added 
+{ 
+	color: blue 
+}
