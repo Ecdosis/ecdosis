@@ -4,17 +4,10 @@ function comparer( target, docid, modpath )
     this.modpath = modpath;
     this.docid = docid;
     this.title = "Untitled";
-    /** the vertical scroll positions of the two panels */
-    this.leftScrollPos;
-    this.rightScrollPos;
-    /** used to compute the closest span to a given vertical position */
-    this.scrolledDiff;
-    /** the closest span element to a given vertical position */
-    this.scrolledSpan;
-    /** the fixed div to which the other one aligns itself */
-    this.fixedDiv;
-    /** the div being aligned to fixedDiv */
-    this.scrolledDiv;
+    // don't link with these ids
+    this.banned = {};
+    /** timeoutId for clearning scrolling flag */
+    this.timeoutId = 0;
     var self = this;
     /**
      * Get a list menu
@@ -73,6 +66,9 @@ function comparer( target, docid, modpath )
                     self.fitWithinParent("leftColumn");
                     self.fitWithinParent("rightColumn");
                     self.fitWithinParent("twinCentreColumn");
+                    this.banned = {};
+                    self.buildLeftScrollTables();
+                    self.buildRightScrollTables();
                 }
             }
         })
@@ -168,17 +164,23 @@ function comparer( target, docid, modpath )
         var css = null;
         var pos1 = body.indexOf("<!--styles: ");
         var pos2 = body.indexOf("-->",pos1+12);
-        if ( pos1 >= 0 && pos2 > 0 && pos1 < pos2 )
+        while ( pos1 >= 0 && pos2 > 0 && pos1 < pos2 )
         {
-            // skip "<!--styles: "
-            css = body.substring( 12+pos1, pos2 );
-            // add extracted CSS to head
-            $("head style").last().after(
-                '<style type="text/css">'
-                +css+'</style>');
+            if ( !this.cssAlreadyAdded )
+            {
+                // skip "<!--styles: "
+                css = body.substring( 12+pos1, pos2 );
+                // add extracted CSS to head
+                $("head style").last().after(
+                    '<style type="text/css">'
+                    +css+'</style>');
+            }
             var p1 = body.substring( 0, pos1 );
             var p2 = body.substring( pos2+3 );
             body = p1+p2;
+            pos1 = body.indexOf("<!--styles: ");
+            pos2 = body.indexOf("-->",pos1+12);
+            this.cssAlreadyAdded = true;
         }
         return body;
     };
@@ -197,81 +199,195 @@ function comparer( target, docid, modpath )
 	    var tempHeight = windowHeight-(topOffset+vPadding+vBorder);
 	    elem.height(tempHeight);
     };
+    function checkIndex(value,index, table ){
+        for ( var i=0;i<table.length;i++ )
+        {
+            if ( table[i].offset > value )
+            {
+                if ( index != i-1 && i > 0 )
+                {
+                    console.log("index "+index+" incorrect. should be "+(i-1));
+                }
+                break;
+            }
+        }
+    };
+    /**
+     * Set a timeout for when we reset the this.scroller field
+     */
+    this.setScrollTimeout = function() {
+        if ( this.timeoutId == 0 )
+            this.timeoutId = window.setTimeout(function(){
+                self.scroller=undefined;
+                self.timeoutId = 0;
+                self.leftScrollTop = $("#leftColumn").scrollTop();
+                self.rightScrollTop = $("#rightColumn").scrollTop();
+            }, 500);
+    };
     /**
      * Coordinate the scrolling of the two panels
      */
     this.synchroScroll = function()
     {
-	    // 1. find the side that has scrolled most recently
-	    // and the side that has probably remained static
 	    var leftDiv = $("#leftColumn");
-	    var rightDiv = $("#rightColumn");
-	    if ( leftDiv.scrollTop() != self.leftScrollPos )
-	    {
-		    self.leftScrollPos = leftDiv.scrollTop();
-		    self.scrolledDiv = leftDiv;
-		    self.staticDiv = rightDiv;
-	    }
-	    else if ( self.rightScrollPos != rightDiv.scrollTop() )
-	    {
-		    self.rightScrollPos = rightDiv.scrollTop();
-		    self.scrolledDiv = rightDiv;
-		    self.staticDiv = leftDiv;
-	    }
-	    else	// nothing to do
-		    return;
-	    // 2. find the most central span in the scrolled div
-	    self.scrolledDiff = 4294967296;
-	    self.scrolledSpan = null;
-	    var scrolledDivTop = self.scrolledDiv.offset().top;
-	    var staticDivTop = self.staticDiv.offset().top;
-	    var centre = self.scrolledDiv.height()/2
-		    +self.scrolledDiv.scrollTop();
-	    self.findSpanAtOffset( self.scrolledDiv, centre, scrolledDivTop );
-	    // 3. find the corresponding span on the other side
-	    if ( self.scrolledSpan != null )
-	    {
-		    var staticId = self.scrolledSpan.attr("id");
-		    if ( staticId.charAt(0)=='a' )
-			    staticId = "d"+staticId.substring(1);
-		    else
-			    staticId = "a"+staticId.substring(1);
-		    var staticSpan = $("#"+staticId );
-		    if ( staticSpan != undefined )
-		    {
-			    // 4. compute relative topOffset of scrolledSpan
-			    var scrolledTopOffset = self.scrolledSpan.offsetTop()
-				    -scrolledDivTop;
-			    // 5. compute relative topOffset of staticSpan
-			    var staticTopOffset = staticSpan.offsetTop()-staticDivTop;
-			    // 6. scroll the static div level with scrolledSpan
-			    var top = staticTopOffset-self.staticDiv.height()/2;
-			    if ( top < 0 )
-				    self.staticDiv.scrollTop(0);
-			    else
-				    self.staticDiv.scrollTop(top);
-		    }
-	    }
+        var leftTop = leftDiv.scrollTop();
+        var rightDiv = $("#rightColumn");
+        var rightTop = rightDiv.scrollTop();
+        if ( rightTop != self.rightScrollTop )
+        {
+            if (self.scroller==undefined||self.scroller=="right")
+            {
+                var leftOffset = 0;
+                self.scroller = "right";
+                var rIndex = self.findHighestIndex(self.rightOffsetsToIds,
+                    rightTop+rightDiv.height()/2);
+                if ( rIndex == -1 )
+                    leftOffset = 0;
+                else
+                {
+                    var rightId = self.rightOffsetsToIds[rIndex].id;
+                    var leftId = "d"+rightId.substr(1);
+                    // find offset of left id
+                    leftOffset = self.leftIdsToOffsets[leftId]-leftDiv.height()/2;
+                    if ( leftOffset < 0 )
+                        leftOffset = 0;
+                }
+                self.leftScrollTop = leftOffset;
+                self.rightScrollTop = rightTop;
+                leftDiv.scrollTop(leftOffset);  
+                self.setScrollTimeout();  
+            }
+            else
+                console.log("ignoring left scroll")
+        }
+        else if ( leftTop != self.leftScrollTop )
+        {
+            if (self.scroller==undefined||self.scroller=="left")
+            {
+                var rightOffset = 0;
+                self.scroller = "left";
+                var lIndex = self.findHighestIndex(self.leftOffsetsToIds,
+                    leftTop+leftDiv.height()/2);
+                if ( lIndex == -1 )
+                    rightOffset = 0;
+                else
+                {
+                    var leftId = self.leftOffsetsToIds[lIndex].id;
+                    var rightId = "a"+leftId.substr(1);
+                    // find offset of right id
+                    rightOffset = self.rightIdsToOffsets[rightId]-rightDiv.height()/2;
+                    if ( rightOffset < 0 )
+                        rightOffset = 0;
+                }
+                self.rightScrollTop = rightOffset;
+                self.leftScrollTop = leftTop;
+                rightDiv.scrollTop(rightOffset); 
+                self.setScrollTimeout(); 
+            }
+            else
+                console.log("ignoring right scroll")
+        }
+        // wait until one side stabilises
     }
     /**
-     * Find the closest span to a given offset
+     * Look for spans with an id attribute set
+     * @param elem the element to search from
+     * @param hash the hashtable to store the id->offset key-value
+     * @param index the sorted offset array giving us the id
      */
-    this.findSpanAtOffset = function( elem, pos, divOffset ) {
-	    if ( elem[0].nodeName == "span"
-		    && elem.getAttribute('id') != null )
-	    {
-		    var idAttr = elem.getAttribute('id');
-		    var spanRelOffset = elem.offsetTop-divOffset;
-		    if ( Math.abs(spanRelOffset-pos) < self.scrolledDiff )
-		    {
-			    self.scrolledSpan = elem;
-			    self.scrolledDiff = Math.abs(spanRelOffset-pos);
-		    }
-	    }
-	    else if ( elem.firstChild != null )
-		    self.findSpanAtOffset( elem.firstChild, pos, divOffset );
-	    if ( elem.nextSibling != null )
-		    self.findSpanAtOffset( elem.nextSibling, pos, divOffset );
+    this.findIds = function( elem, hash, index ) {
+        if ( elem[0].nodeName == "SPAN"
+	        && elem.attr('id') != undefined )
+        {
+	        var idAttr = elem.attr('id');
+            var spanOffset;
+            if ( elem.css("display")=="none" ||elem.parent().css("display")=="none" )
+                this.banned[idAttr] = elem.offset().top;
+            else if ( this.banned[idAttr] == undefined )
+                spanOffset = elem.offset().top;
+	        hash[idAttr] = spanOffset;
+            index.push( {offset: spanOffset, id: idAttr} );
+            //console.log("found "+idAttr);
+        }
+        else if ( elem.children().length > 0 )
+	        this.findIds( elem.children().first(), hash, index );
+        if ( elem.next().length > 0 )
+	        this.findIds( elem.next(), hash, index );
+    };
+    /**
+     * Find the highest offset in a sorted list of {offset, id} objects
+     * @param list the list of objects
+     * @param value the value which should be just a bit less or equal
+     * @return the index of the item just a bit bigger than value
+     */
+    this.findHighestIndex = function( list, value )
+    {
+        var top = 0;
+        var bot = list.length-1;
+        var mid=0;
+        while ( top <= bot )
+        {
+            mid = Math.floor((top+bot)/2);
+            if ( value < list[mid].offset )
+            {
+                if ( mid == 0 )
+                {
+                    // value < than first item
+                    return -1;
+                }
+                else
+                    bot = mid-1;
+            }
+            else    // value >= list[mid].loc
+            {
+                if ( mid == list.length-1 )
+                    // value is >= last item
+                    break;
+                else if ( value >= list[mid+1].offset )
+                    top = mid+1;
+                else // list[mid] must be biggest <= value
+                    break;
+            }
+        }
+        //console.log("value="+value+" mid="+mid);
+        return mid;
+    }
+    /**
+     * Sort a list of {offset,id} objects by offset
+     * @param a the array
+     */
+    this.sortOffsets = function(a) {
+        for (var h = a.length; h = parseInt(h/2);) {
+            for (var i = h; i < a.length; i++) {
+                var k = a[i];
+                for (var j = i; j >= h && k.offset < a[j-h].offset; j -= h)
+                    a[j] = a[j-h];
+                a[j] = k;
+            }
+        };
+        return a;
+    }
+    this.buildLeftScrollTables=function(){
+        var lhs = $("#leftColumn");
+        lhs.scrollTop(0);
+        this.leftScrollTop = 0;
+        this.leftIdsToOffsets = {};
+        this.leftOffsetsToIds = new Array();
+        this.findIds( lhs.children().first(), this.leftIdsToOffsets, this.leftOffsetsToIds );
+        this.sortOffsets( this.leftOffsetsToIds );
+/*        for ( var i=0;i<50;i++ )
+            console.log("left:"+this.leftOffsetsToIds[i].offset+" "+this.leftOffsetsToIds[i].id);*/
+    };
+    this.buildRightScrollTables=function(){
+        var rhs = $("#rightColumn");
+        rhs.scrollTop(0);
+        this.rightScrollTop = 0;
+        this.rightIdsToOffsets = {};
+        this.rightOffsetsToIds = new Array();
+        this.findIds( rhs.children().first(), this.rightIdsToOffsets, this.rightOffsetsToIds );
+        this.sortOffsets( this.rightOffsetsToIds );
+/*        for ( var i=0;i<50;i++ )
+            console.log("right:"+this.rightOffsetsToIds[i].offset+" "+this.rightOffsetsToIds[i].id);*/
     };
     /**
      * Build the content of this view
@@ -297,7 +413,7 @@ function comparer( target, docid, modpath )
         this.getVersion1();
     };
     this.build();
-    setInterval(this.synchroScroll,500);
+    setInterval(this.synchroScroll,300);
 }
 /**
  * This reads the "arguments" to the javascript file

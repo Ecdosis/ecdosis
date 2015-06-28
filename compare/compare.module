@@ -11,9 +11,12 @@ function compare_all()
 {
     $mod_path = drupal_get_path('module', 'compare');
     $doc_path = drupal_get_path('module', 'documents');
+    $docid = "";
+    if ( array_key_exists ("docid", $_GET) )
+	$docid = $_GET["docid"];
     $html ='<script type="text/javascript" src="'.$mod_path
           .'/js/compare.js?target=content&'
-          .'docid='.$_GET["docid"].'"></script>';
+          .'docid='.$docid.'"></script>';
     return $html;
 }
 function compare_menu()
