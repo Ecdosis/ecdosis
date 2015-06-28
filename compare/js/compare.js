@@ -34,6 +34,20 @@ function comparer( target, docid, modpath )
                 id = longNameId.substr("long_name".length,longNameId.length);
                 var desc = $("#long_name"+id);
 	            desc.text($("#version"+id+" :selected").attr("title"));
+                $("#version"+id).change( function(){
+                    // reload the versions
+                    var id = "#version"+id;
+                    if ( id == "#version1" )
+                        self.version1 = $("#version1").val();
+                    else
+                        self.version2 = $("#version2").val();
+                    // set content for left hand side
+                    self.getTextVersion(self.version1,
+                        self.version2,"deleted","leftColumn");
+                    // set content for rhs
+                    self.getTextVersion(self.version2,
+                        self.version1,"added","rightColumn");
+                    });
             }
         })
         .fail(function() {
@@ -44,7 +58,7 @@ function comparer( target, docid, modpath )
      * Get a text version
      * @param v1 the first version
      * @param v2 the second version
-     * @param diffKind ChunkState.DELETED or ChunkState.ADDED
+     * @param diffKind "deleted" or ChunkState.ADDED
      * @param parentId the idof the enclosing parent element
      */ 
     this.getTextVersion = function( v1, v2, diffKind, parentId )
@@ -199,19 +213,6 @@ function comparer( target, docid, modpath )
 	    var tempHeight = windowHeight-(topOffset+vPadding+vBorder);
 	    elem.height(tempHeight);
     };
-    function checkIndex(value,index, table ){
-        for ( var i=0;i<table.length;i++ )
-        {
-            if ( table[i].offset > value )
-            {
-                if ( index != i-1 && i > 0 )
-                {
-                    console.log("index "+index+" incorrect. should be "+(i-1));
-                }
-                break;
-            }
-        }
-    };
     /**
      * Set a timeout for when we reset the this.scroller field
      */
@@ -222,7 +223,9 @@ function comparer( target, docid, modpath )
                 self.timeoutId = 0;
                 self.leftScrollTop = $("#leftColumn").scrollTop();
                 self.rightScrollTop = $("#rightColumn").scrollTop();
-            }, 500);
+            // this should be fairly coarse-grained
+            // the shortest time for switching between scroll-sides
+            }, 300);
     };
     /**
      * Coordinate the scrolling of the two panels
@@ -260,7 +263,7 @@ function comparer( target, docid, modpath )
             else
                 console.log("ignoring left scroll")
         }
-        else if ( leftTop != self.leftScrollTop )
+        if ( leftTop != self.leftScrollTop )
         {
             if (self.scroller==undefined||self.scroller=="left")
             {
@@ -296,13 +299,22 @@ function comparer( target, docid, modpath )
      * @param index the sorted offset array giving us the id
      */
     this.findIds = function( elem, hash, index ) {
+        if ( elem[0] == undefined )
+            console.log("undefined");
         if ( elem[0].nodeName == "SPAN"
 	        && elem.attr('id') != undefined )
         {
 	        var idAttr = elem.attr('id');
             var spanOffset;
             if ( elem.css("display")=="none" ||elem.parent().css("display")=="none" )
-                this.banned[idAttr] = elem.offset().top;
+            {
+                var topOff = elem.offset().top;
+                this.banned[idAttr] = topOff;
+                if ( idAttr.charAt(0)=='a' )
+                    this.banned['d'+idAttr.substr(1)] = topOff;
+                else
+                    this.banned['a'+idAttr.substr(1)] = topOff;
+            }
             else if ( this.banned[idAttr] == undefined )
                 spanOffset = elem.offset().top;
 	        hash[idAttr] = spanOffset;
@@ -388,6 +400,9 @@ function comparer( target, docid, modpath )
         this.sortOffsets( this.rightOffsetsToIds );
 /*        for ( var i=0;i<50;i++ )
             console.log("right:"+this.rightOffsetsToIds[i].offset+" "+this.rightOffsetsToIds[i].id);*/
+        // wait unti both lists are loaded 
+        // this should be fairly fine-grained
+        setInterval(this.synchroScroll,50);
     };
     /**
      * Build the content of this view
@@ -413,7 +428,6 @@ function comparer( target, docid, modpath )
         this.getVersion1();
     };
     this.build();
-    setInterval(this.synchroScroll,300);
 }
 /**
  * This reads the "arguments" to the javascript file
