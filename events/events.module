@@ -12,44 +12,12 @@ function my_add_meta_tag( $name, $value, $tag )
 }
 function events_preprocess_page(&$vars)
 {
-    if ( strpos(request_uri(),"events") )
-    {
-        my_add_meta_tag('description','Events editor','Event editor');
-        drupal_add_js(drupal_get_path('module', 'events').'/js/tiny.editor.js','file');
-        drupal_add_js(drupal_get_path('module', 'events').'/js/jquery-ui.js','file');
-        drupal_add_css(drupal_get_path('module','events').'/css/events.css','file');
-        drupal_add_css(drupal_get_path('module','events').'/css/tinyeditor.css','file');
-        drupal_add_css(drupal_get_path('module','events').'/css/jquery-ui.css','file');
-    }
-}
-function events_all()
-{
-    $mod_path = drupal_get_path('module', 'events');
-    $html ='<script type="text/javascript" src="'.$mod_path
-        .'/events.js?target=content&'
-        .'docid='.$_GET['docid']
-        .'&author='.$_GET['author'].'&modpath='.$mod_path.'"></script>';
-    error_log($html);
-    return $html;
-}
-function events_menu()
-{
-    $items = array();
-    $items['admin/config/content/events'] = array(
-        'title'=>'Edit events',
-        'description' => 'Edit events for an author',
-        'page callback' => 'drupal_get_form',
-        'page arguments' => array('events_form'),
-        'access arguments' => array('access administration pages'),
-        'type' => MENU_NORMAL_ITEM
-    );
-    $items['events'] = array(
-        'title' => 'Edit events',
-        'page callback' => 'events_all',
-        'access arguments' => array('access content'),
-        'type' => MENU_CALLBACK
-    );
-    return $items;
+    my_add_meta_tag('description','Events editor','Event editor');
+    drupal_add_js(drupal_get_path('module', 'events').'/js/tiny.editor.js','file');
+    drupal_add_js(drupal_get_path('module', 'events').'/js/jquery-ui.js','file');
+    drupal_add_css(drupal_get_path('module','events').'/css/events.css','file');
+    drupal_add_css(drupal_get_path('module','events').'/css/tinyeditor.css','file');
+    drupal_add_css(drupal_get_path('module','events').'/css/jquery-ui.css','file');
 }
 function events_block_info() {
   $blocks['events'] = array(
@@ -71,27 +39,12 @@ function events_help($path, $arg) {
 function events_block_view($delta = '') {
   switch ($delta) {
     case 'events':
+      $mod_path = drupal_get_path('module', 'events');
       $block['subject'] = t('Edit events');
-      $block['content'] = '';
+      $block['content'] = '<script type="text/javascript" src="'.$mod_path
+        .'/events.js?target=content&'
+        .'docid='.$_GET['docid']
+        .'&modpath='.$mod_path.'"></script>';
       return $block;
   }
-}
-/**
- * Page callback: Events settings
- * @param form the form object to override
- * @param form_state the current state of the form (keys->values)
- * @return an updated form
- * @see events_menu()
- */
-function events_form($form, &$form_state)
-{
-    $form['events_docid'] = array(
-        '#type' => 'textfield',
-        '#title' => t('Default docid'),
-        '#default_value' => 'italian/deroberto',
-        '#size' => 128,
-        '#maxlength' => 256,
-        '#required' => TRUE
-    );
-    return $form;
 }

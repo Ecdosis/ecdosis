@@ -74,3 +74,9 @@ div.header tr
 {
     max-width: 210px;
 }
+#STYLE optgroup optgroup
+{
+    margin-left:10px;
+}
+#STYLE optgroup option { margin-left:10px }
+#STYLE optgroup optgroup option { margin-left: 20px }

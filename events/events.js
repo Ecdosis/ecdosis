@@ -64,10 +64,9 @@ function SearchExpr( field, index, pos, length )
  * Object to represent events in a project
  * @param target the id of the element to add ourselves to as a child
  * @param docid the docid of the project e.g. italian/deroberto
- * @param author the name of the author
  * @param modpath the path from web-root to the events.js file
  */
-function events(target,docid,author,modpath)
+function events(target,docid,modpath)
 {
     this.target = target;
     this.modpath = modpath;
@@ -76,7 +75,6 @@ function events(target,docid,author,modpath)
     this.docid = docid;
     this.deleted_events = undefined;
     this.search_expr = undefined;
-    this.author = author;
     // event index
     this.index = 0;
     // width of event editing box
@@ -86,31 +84,6 @@ function events(target,docid,author,modpath)
         '13','14','15','16','17','18','19','20','21','22','23','24','25','26','27','28',
         '29','30','31'];
     var self = this;
-    /**
-     * Extract the docid's language key to an ISO 2-letter key
-     * @return a two-letter code for supported languages or 'en' as default
-     */
-    this.language = function() {
-        var parts = self.docid.split("/");
-        if ( parts.length>0&&self.languages[parts[0]]!=undefined )
-            return self.languages[parts[0]];
-        else
-            return 'en';
-    };
-    /* define all language-related strings for later */
-    var script_name = window.location.pathname;
-    var lastIndex = script_name.lastIndexOf("/");
-    if ( lastIndex !=-1 )
-       script_name = script_name.substr(0,lastIndex);
-    script_name += '/'+this.modpath+'/js/strings.'+this.language(docid)+'.js';
-    jQuery.getScript(script_name)
-    .done(function( script, textStatus ) {
-        self.strs = load_strings();
-    //console.log("loaded "+script_name+" successfully");
-    })
-    .fail(function( jqxhr, settings, exception ) {
-        console.log("Failed to load language strings. status=",jqxhr.status );
-    });
     /**
      * Create a blank event (based on the previous one)
      * @param prev the previous event in the pDoc.events array
@@ -609,6 +582,8 @@ function events(target,docid,author,modpath)
     this.setHtml = function( html )
     {
         var tgt = jQuery("#"+this.target);
+        if ( tgt == undefined || tgt.length==0 )
+            console.log("Couldn't find target: "+this.target);
         tgt.append(html);
         // now the page is built we can set up the event-handlers
         jQuery("#goleft").click( function() {
@@ -932,29 +907,57 @@ function events(target,docid,author,modpath)
         });
     };
     /* Download all the events in compact form for this project */
-    jQuery.get( "http://"+window.location.hostname+"/project/events/"+docid, function(data)
-    {
-        self.pDoc = data;//JSON.parse(data);
-        var html = '<div class="events">';
-        html += '<div id="left-sidebar"><i id="goleft" class="fa fa-chevron-left fa-3x"></i></div>';
-        var events = self.pDoc.events;
-        if ( events != undefined )
+    this.downloadEvents = function() {
+        jQuery.get( "http://"+window.location.hostname+"/project/events/"+docid, function(data)
         {
-            html += '<div id="centre_panel">\n';
-            html += self.make_toolbar();
-            for ( var i=0;i<events.length;i++ )
+            self.pDoc = data;//JSON.parse(data);
+            var html = '<div class="events">';
+            html += '<div id="left-sidebar"><i id="goleft" class="fa fa-chevron-left fa-3x"></i></div>';
+            var events = self.pDoc.events;
+            if ( events != undefined )
             {
-                events[i].status = 'unchanged';
+                html += '<div id="centre_panel">\n';
+                html += self.make_toolbar();
+                for ( var i=0;i<events.length;i++ )
+                {
+                    events[i].status = 'unchanged';
+                }
+                if ( events.length==0 )
+                    events.push(self.create_empty_event());
+                html += self.create_box(events[0]);
+                html += '</div>';
             }
-            if ( events.length==0 )
-                events.push(self.create_empty_event());
-            html += self.create_box(events[0]);
-            html += '</div>';
-        }
-        html += '<div id="right-sidebar"><i id="goright" class="fa fa-chevron-right fa-3x"></i></div>';
-        html += "</div>";
-        self.setHtml(html);
-        self.install_slider();
+            html += '<div id="right-sidebar"><i id="goright" class="fa fa-chevron-right fa-3x"></i></div>';
+            html += "</div>";
+            self.setHtml(html);
+            self.install_slider();
+        });
+    };
+    /**
+     * Reduce the docid's language key to an ISO 2-letter key
+     * @return a two-letter code for supported languages or 'en' as default
+     */
+    this.language = function() {
+        var parts = self.docid.split("/");
+        if ( parts.length>0&&self.languages[parts[0]]!=undefined )
+            return self.languages[parts[0]];
+        else
+            return 'en';
+    };
+    /* define all language-related strings for later */
+    var script_name = window.location.pathname;
+    var lastIndex = script_name.lastIndexOf("/");
+    if ( lastIndex !=-1 )
+       script_name = script_name.substr(0,lastIndex);
+    script_name += '/'+this.modpath+'/js/strings.'+this.language(docid)+'.js';
+    jQuery.getScript(script_name)
+    .done(function( script, textStatus ) {
+        self.strs = load_strings();
+        self.downloadEvents();
+    //console.log("loaded "+script_name+" successfully");
+    })
+    .fail(function( jqxhr, settings, exception ) {
+        console.log("Failed to load language strings. status=",jqxhr.status );
     });
 }
 /**
@@ -993,5 +996,6 @@ function getArgs( scrName )
 jQuery(function(){
     // DOM Ready - do your stuff 
     var params = getArgs('events.js');
-    var editor = new events(params['target'],params['docid'],params['author'],params['modpath']);
+    console.log("events:"+params['target']+","+params['docid']+","+params['modpath']);
+    var editor = new events(params['target'],params['docid'],params['modpath']);
 }); 

@@ -10,6 +10,7 @@ function load_strings() {
         work_tip: "Provide a name for this work (required)",
         section_tip: "Subdivide the work by uploading only a section. Give it a name (optional)",
         subsection_tip: "Subdivide the work further by only uploading a sub-section. Give it a name (optional)",
+        title_tip: "Title of the work being uploaded (optional)",
         browse_tip: "Choose XML or plain text files belonging to ONE work (dissimilar files will be rejected)",
         upload_tip: "Click here when all versions of the work or part-work have been selected",
         length_tip: "Turn on/off restrictions on length. If set, files differing greatly in length will be rejected.",
