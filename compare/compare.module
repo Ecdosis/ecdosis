@@ -1,0 +1,88 @@
+<?php
+function compare_preprocess_page(&$vars)
+{
+    if ( strpos(request_uri(),"compare") )
+    {
+        drupal_add_css(drupal_get_path('module','compare').'/css/compare.css','file');
+        drupal_add_css(drupal_get_path('module','compare').'/js/compare.js','file');
+    }
+}
+function compare_all()
+{
+    $mod_path = drupal_get_path('module', 'compare');
+    $doc_path = drupal_get_path('module', 'documents');
+    $docid = "";
+    if ( array_key_exists ("docid", $_GET) )
+	$docid = $_GET["docid"];
+    $html ='<script type="text/javascript" src="'.$mod_path
+          .'/js/compare.js?target=content&'
+          .'docid='.$docid.'"></script>';
+    return $html;
+}
+function compare_menu()
+{
+    $items = array();
+    $items['admin/config/content/compare'] = array(
+        'title'=>'Compare',
+        'description' => 'Compare MVDs 2 or 3-way',
+        'page callback' => 'drupal_get_form',
+        'page arguments' => array('compare_form'),
+        'access arguments' => array('access administration pages'),
+        'type' => MENU_NORMAL_ITEM
+    );
+    $items['compare'] = array(
+        'title' => 'Compare MVDs',
+        'page callback' => 'compare_all',
+        'access arguments' => array('access content'),
+        'type' => MENU_CALLBACK
+    );
+    return $items;
+}
+function compare_block_info() {
+  $blocks['compare'] = array(
+    'info' => t('Compare MVDs'),
+    'cache' => DRUPAL_CACHE_PER_ROLE,
+  );
+  return $blocks;
+}
+function compare_help($path, $arg) {
+    switch ($path)
+    {
+        case "admin/help#compare":
+            return '<p>' .
+                t("Compare MVDs")
+                . '</p>';
+            break;
+    }
+}
+function compare_block_view($delta = '') {
+  switch ($delta) {
+    case 'compare':
+      $block['subject'] = t('Compare MVDs');
+      $mod_path = drupal_get_path('module', 'compare');
+      $block['content'] = '<script type="text/javascript" src="'.$mod_path
+          .'/js/compare.js?target=content&'
+          .'docid='.$_GET["docid"].'"></script>';
+      return $block;
+  }
+}
+/**
+ * Page callback: Compare settings
+ * @param form the form object to override
+ * @param form_state the current state of the form (keys->values)
+ * @return an updated form
+ * @see quote_ticker_menu()
+ */
+function compare_form($form, &$form_state)
+{
+    $form['compare_docid'] = array(
+        '#type' => 'textfield',
+        '#title' => t('Default docid'),
+        '#default_value' => 'english/harpur/h642',
+        '#size' => 128,
+        '#maxlength' => 256,
+        '#required' => TRUE
+    );
+    return $form;
+}
+
