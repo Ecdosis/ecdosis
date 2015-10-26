@@ -72,6 +72,8 @@ function nested_select( docids, name, id ) {
  */
 function uploader( target, demo, language, mod_path ) {
     var self = this;
+    this.language = language;
+    this.languages = {en_CA:"Canadian English",en_GB:"British English","en_US":"US English",it:"Italiano",es:"Español"};
     /**
      * Check that there is at least one file for upload
      * @return true if it is OK else false and alert the user
@@ -344,13 +346,25 @@ function uploader( target, demo, language, mod_path ) {
             var dicts = data;
             if ( dicts != undefined )
             {
-                var list = new Array();
+                var html = '<select name="dict" id="dict">\n';
+                var selected = false;
                 for ( var i=0;i<dicts.length;i++ )
                 {
-                    list.push( dicts[i].code );
+                    if ( dicts[i].code in self.languages )
+                    {
+                        var parts = dicts[i].code.split("_");
+                        html += '<option value="'+dicts[i].code+'"';
+                        console.log(navigator.language);
+                        if ( !selected && parts[0] == self.language )
+                        {
+                            html += " selected";
+                            selected = true;
+                        }
+                        html += '>'+self.languages[dicts[i].code]+'</option>';
+                    }
                 }
-                var sel = new nested_select( list, "dict", "dict" );
-                jQuery("#dict").replaceWith(sel.html);
+                html +="\n</select>";
+                jQuery("#dict").replaceWith(html);
             }
         })
         .fail(function() {
