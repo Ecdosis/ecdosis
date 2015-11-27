@@ -90,7 +90,10 @@ function index(target,admin)
                             if ( isNaN(numbers[i]) )
                             {
                                 if ( !startedLog )
+                                {
+                                    jQuery("#log").empty();
                                     jQuery("#log").append("<h3>Log</h3>");
+                                }
                                 jQuery("#log").append(numbers[i]);
                             }
                             else 
