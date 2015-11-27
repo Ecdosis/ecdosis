@@ -25,11 +25,12 @@ function index_preprocess_page(&$vars)
 }
 function index_all()
 {
-    $demo = is_admin_role()?'true':'false';
+    $demo = is_admin_role();
     $mod_path = drupal_get_path('module', 'index');
     $html ='<script type="text/javascript" src="'.$mod_path
           .'/index.js?target=content&'
           .'admin='.$demo.'"></script>';
+    print_r("admin=".$demo);
     return $html;
 }
 function index_menu()
@@ -65,6 +66,7 @@ function index_block_view($delta = '') {
     case 'index':
       $block['subject'] = t('Index');
       $block['content'] = '<script type="text/javascript" src="'.drupal_get_path('module', 'index').'/index.js?target=content&admin='.is_admin_role().'"></script>';
+      print_r($block['content']);
       return $block;
   }
 }

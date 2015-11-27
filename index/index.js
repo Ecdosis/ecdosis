@@ -6,40 +6,72 @@
 function index(target,admin)
 {
     this.target = target;
+    this.admin = (admin==1)?true:false;
+    var self = this;
+    /**
+     * Install a dropdown list of available projects
+     */
+    this.makeProjectDropdown = function() {
+        var url = "http://"+window.location.hostname+"/project/list";
+        jQuery.get( url, function(data)
+        {
+            var projects = data;
+            if ( projects != undefined )
+            {
+                console.log("received "+projects.length+" projects");
+                var html = '<select id="projectlist">';
+                for ( var i=0;i<projects.length;i++ )
+                {
+                    html += '<option value="'+projects[i].docid
+                    +'">'+projects[i].author+": "+projects[i].work
+                    +'</option>\n';
+                }
+                html += '</select>';
+                jQuery("#projects").append(html);
+            }
+        })
+        .fail(function() {
+            console.log("failed to load projects");
+        });
+    };
     this.set_html = function( html )
     {
         var tgt = jQuery("#"+this.target);
-        tgt.append(html);
+        tgt.replaceWith(html);
     };
-    var self = this;
     this.admin = (admin=="true")?true:false;
     this.draw_slider = function(max, val) 
     {
         var percent=Math.round((val*100)/max);
         jQuery("#szliderbar").css("width",percent+"%");
     }
-    var html = '<div id="indexer">';    
-    html += '<input type="button" id="rebuild" value="Rebuild index"></input>';
+    var html = '<div id="indexer">';   
+    html += '<div id="spacer"></div>'; 
+    html += '<div id="projects"></div>';
     html += '<div id="progress_bar">';
     html += '<div id="szlider">';
     html += '<div id="szliderbar"></div>';
     html += '<div id="szazalek"></div>';
     html += '</div>';
-    html += '</div>';
+    html += '</div>';   // end progress-bar
+    html += '<input type="button" id="rebuild" value="Rebuild index"></input>';
+    html += '<div id="log"></div>';
     html += '</div>';
     this.set_html( html );
+    this.makeProjectDropdown();
     jQuery("#rebuild").click( function() {
-        if ( !self.admin )
+        if ( admin!=1 || !admin )
         {
             alert("Only an administrator can do that!");
             return;
         }
-        else
-            console.log("admin="+self.admin);
         var readSoFar=0;
+        var url = "http://"+window.location.hostname+"/search/build";
+        var startedLog = false;
+        url += "?docid="+jQuery("#projectlist").val();
         self.draw_slider( 100, 0 );	
         client = new XMLHttpRequest();
-        client.open("GET", "http://"+window.location.hostname+"/search/build");
+        client.open("GET", url);
         //client.open("GET", "http://localhost/search/build");
         client.send();
         // Track the state changes of the request
@@ -55,8 +87,17 @@ function index(target,admin)
                     { 
                         if ( numbers[i].length > 0 )
                         {
-                            var val = parseInt(numbers[i]);
-                            self.draw_slider( 100, val );	
+                            if ( isNaN(numbers[i]) )
+                            {
+                                if ( !startedLog )
+                                    jQuery("#log").append("<h3>Log</h3>");
+                                jQuery("#log").append(numbers[i]);
+                            }
+                            else 
+                            {
+                                var val = parseInt(numbers[i]);
+                                self.draw_slider( 100, val );	
+                            }
                         }
                     }
                     readSoFar = client.responseText.length;

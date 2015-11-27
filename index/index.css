@@ -1,5 +1,8 @@
 #indexer { width: 100%; }
-#rebuild { display: block;  margin : 0 auto; margin-top: 200px; }
+#rebuild { display: block;  margin : 0 auto; }
+#projects { display:table;  margin: 150px auto 0; }
+#log { display: table;  margin : 0 auto; margin-top: 50px; height: 200px; overflow-y: auto }
+#log h3 { font-weight: bold; text-align:center}
 #progress_bar { margin-left: auto;
     margin-right: auto;
     width: 300px; padding: 50px; }
