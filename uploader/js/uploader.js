@@ -13,7 +13,7 @@ function nested_select( docids, name, id ) {
             this.place_key(top,parts);
         }
         // so now top is a nested hash of options
-        this.html += this.build_options( top,"" );
+        this.html += this.build_options( top );
     };
     /**
      * Place a key in a nested array recursively
@@ -23,32 +23,38 @@ function nested_select( docids, name, id ) {
     this.place_key = function(array,parts) {
         if ( parts.length > 0 )
         {
-            if ( array[parts[0]] == undefined )
+            if ( parts.length > 1 )
             {
-                array[parts[0]] = new Array();
-                this.place_key(array[parts[0]],parts.slice(1));
+                if ( array[parts[0]] == undefined )
+                    array[parts[0]] = new Array();
+                var options = array[parts[0]];
+                options.push(parts.slice(1).join("-"));
             }
         }
     };
     /**
      * Build the actual select element
      * @param array the top-level associative array
-     * @param value the partial or complete option value
      */
-    this.build_options = function(array,value) {
+    this.build_options = function(array) {
         var html = "";
         for ( var key in array )
         {
-            var count = 0;
-            for ( var i in array[key] )
-                count++;
-            var new_value = (value.length==0)?key:value+"/"+key;
-            if ( count == 0 )
-                html += '<option value="'+new_value+'">'+key+'</option>';
+            if ( array[key].length == 1 && array[key][0].length==0 )
+                html += '<option value="'+key+'">'+key+'</option>';
             else
             {
-                html += '<optgroup label="'+key+'">'
-                    +this.build_options(array[key],new_value)+'</optgroup>';
+                html += '<optgroup label="'+key+'">';
+                var options = array[key];
+                for ( var j=0;j<options.length;j++ )
+                {
+                    var value = key+'/'+options[j].replace(/-/g,"/");
+                    html += '<option value="'+value+'"';
+                    if ( value == "TEI/default" )
+                        html += ' selected';
+                    html += '>'+options[j]+'</option>';
+                }
+                html += '</optgroup>';
             }
         }
         return html;
@@ -66,6 +72,8 @@ function nested_select( docids, name, id ) {
  */
 function uploader( target, demo, language, mod_path ) {
     var self = this;
+    this.language = language;
+    this.languages = {en_CA:"Canadian English",en_GB:"British English","en_US":"US English",it:"Italiano",es:"Español"};
     /**
      * Check that there is at least one file for upload
      * @return true if it is OK else false and alert the user
@@ -80,7 +88,7 @@ function uploader( target, demo, language, mod_path ) {
         else
             return true;
     };
-    /**jQuery(this)
+    /**
      * Verify that the field is not empty or just spaces
      * @param item the jQuery object representing a form field
      */
@@ -112,17 +120,17 @@ function uploader( target, demo, language, mod_path ) {
         var section = jQuery("#SECTION");
         var subsection = jQuery("#SUBSECTION");
         var work = jQuery("#WORK");
-        if ( work != undefined && !self.fverify(work) )
+        if ( work.length > 0 && !self.fverify(work) )
              event.preventDefault();
         else if ( self.check_files()&&self.fverify(project) )
         {
             var docid = project.val();
-            if ( work != undefined && work.val().length>0 )
+            if ( work.length>0 && work.val().length>0 )
                 docid += "/"+work.val();
             if ( section.val().length > 0 )
             {
                 docid += "/"+section.val();
-                if ( subsection.value.val()>0 )
+                if ( subsection.val()>0 )
                     docid += "/"+subsection.val();
             }
             var hidden = jQuery("#docid");
@@ -186,7 +194,7 @@ function uploader( target, demo, language, mod_path ) {
         input2.change( self.do_add_file );
     };
     /**
-     * Add a file to the upload set. Becasue this is an event-handler, 
+     * Add a file to the upload set. Becasue this is an event-handler,
      * "this" is the DOM element
      */
     this.do_add_file = function() {
@@ -281,7 +289,7 @@ function uploader( target, demo, language, mod_path ) {
         div += this.strs.upload_prompt+': ';
         var input1 = '<input';
         input1 += ' type="file"';
-        input1 += ' name="file"';
+        input1 += ' name="uploadedfile[]"';
         input1 += ' id="input1"';
         input1 += ' title="'+this.strs.browse_tip+'"></input>';
         div += input1;
@@ -310,11 +318,10 @@ function uploader( target, demo, language, mod_path ) {
     this.make_corform_dropdown = function() {
         var url = "http://"
              +window.location.host
-             +"/calliope/collection?collection=corform";
+             +"/importer/collection?collection=corform";
         jQuery.get( url, function(data) 
         {    
             var items = data;
-            console.log("loaded corform lists");
             if ( items != undefined && items.length > 0 )
             {
                 var sel = new nested_select( items, "STYLE", "STYLE" );
@@ -332,20 +339,32 @@ function uploader( target, demo, language, mod_path ) {
     this.make_dictionary_dropdown = function() {
         var url = "http://"
               +window.location.host
-              +"/calliope/json/dicts";
+              +"/importer/json/dicts";
         jQuery.get( url, function(data) 
         {   
             console.log("loaded dictionary lists");
             var dicts = data;
             if ( dicts != undefined )
             {
-                var list = new Array();
+                var html = '<select name="dict" id="dict">\n';
+                var selected = false;
                 for ( var i=0;i<dicts.length;i++ )
                 {
-                    list.push( dicts[i].code );
+                    if ( dicts[i].code in self.languages )
+                    {
+                        var parts = dicts[i].code.split("_");
+                        html += '<option value="'+dicts[i].code+'"';
+                        console.log(navigator.language);
+                        if ( !selected && parts[0] == self.language )
+                        {
+                            html += " selected";
+                            selected = true;
+                        }
+                        html += '>'+self.languages[dicts[i].code]+'</option>';
+                    }
                 }
-                var sel = new nested_select( list, "dict", "dict" );
-                jQuery("#dict").replaceWith(sel.html);
+                html +="\n</select>";
+                jQuery("#dict").replaceWith(html);
             }
         })
         .fail(function() {
@@ -396,6 +415,7 @@ function uploader( target, demo, language, mod_path ) {
                 }
                 html += '</select>';
                 jQuery("#PROJECT").replaceWith(html);
+                self.set_title(jQuery("#PROJECT").val());
                 jQuery("#PROJECT").change(function(){
                     var docid = jQuery(this).val();
                     var parts = docid.split("/");
@@ -416,12 +436,29 @@ function uploader( target, demo, language, mod_path ) {
                         if ( work != undefined )
                             work.remove();
                     }
+                    self.set_title(docid);
                 });   
             }
         })
         .fail(function() {
             console.log("failed to load project list");
             alert(self.strs.dicts_error);
+        });
+    };
+    /**
+     * Try to get the title from the currently selected project metadata
+     */
+    this.set_title = function(docid) {
+        var project = jQuery("#PROJECT").val();
+        var url = "http://"+window.location.hostname+"/project/metadata";
+        url += "?docid="+docid;
+        jQuery.get( url, function(data) {
+            var metadata = data;
+            if ( metadata != undefined )
+            {
+                if ( metadata.work != undefined )
+                    jQuery("#TITLE").val(metadata.work);
+            }
         });
     };
     /**
@@ -480,13 +517,31 @@ function uploader( target, demo, language, mod_path ) {
         row5 += '</td>';
         row5 += '</tr>\n';
         table += row5;
-        
+
         // row 6
         var row6 = '<tr>';
         var cell11 = '<td>';
-        cell11 += "Filter: ";
+        cell11 += "Title: ";
         cell11 += '</td>';
         row6 += cell11;
+        var cell12 = '<td';
+        cell12 += ' title="'+this.strs.title_tip+'">';
+        var title = '<input';
+        title += ' type="text"';
+        title += ' id="TITLE" name="TITLE"';
+        title += '></input>';
+        cell12 += title;
+        cell12 += '</td>';
+        row6 += cell12;
+        row6 += '</tr>\n';
+        table += row6;
+        
+        // row 7
+        var row7 = '<tr>';
+        var cell13 = '<td>';
+        cell13 += "Filter: ";
+        cell13 += '</td>';
+        row7 += cell13;
         var filters = '<select';
         filters += ' name="FILTER">';
         var option1 = '<option';
@@ -515,61 +570,61 @@ function uploader( target, demo, language, mod_path ) {
         option5 += '</option>';
         filters += option5;
         filters += '</select>';
-        var cell12 = '<td';
-        cell12 += ' title="'+this.strs.filter_tip+'">';
-        cell12 += filters;
-        cell12 += '</td>';
-        row6 += cell12;
-        row6 += '</tr>\n';
-        table += row6;
-        
-        var row7 ='<tr>';
-        var cell13 = '<td';
-        cell13 += ' title="'+this.strs.style_tip+'">';
-        cell13 += "Style: ";
-        cell13 += '</td>';
-        row7 += cell13;
         var cell14 = '<td';
-        cell14 += ' title="'+this.strs.style_tip+'">';
-        var group4 = '<span id="GROUP"></span>';
-        cell14 += group4;
-        cell14 += '<select name="STYLE" id="STYLE"></select>';
+        cell14 += ' title="'+this.strs.filter_tip+'">';
+        cell14 += filters;
         cell14 += '</td>';
         row7 += cell14;
         row7 += '</tr>\n';
         table += row7;
         
-        var row8 = '<tr>';
+        var row8 ='<tr>';
         var cell15 = '<td';
-        cell15 += ' title="'+this.strs.length_tip+'">';
-        cell15 += "Check length: ";
+        cell15 += ' title="'+this.strs.style_tip+'">';
+        cell15 += "Style: ";
         cell15 += '</td>';
         row8 += cell15;
-        var cell16 = '<td title"'+this.strs.length_tip+'">';
-        var checkbox = '<input';
-        checkbox += ' name="SIMILARITY"';
-        checkbox += ' type="checkbox"';
-        checkbox += ' value="1"';
-        checkbox += ' checked="checked"';
-        checkbox += '></input>';
-        cell16 += checkbox;
+        var cell16 = '<td';
+        cell16 += ' title="'+this.strs.style_tip+'">';
+        var group4 = '<span id="GROUP"></span>';
+        cell16 += group4;
+        cell16 += '<select name="STYLE" id="STYLE"></select>';
         cell16 += '</td>';
         row8 += cell16;
         row8 += '</tr>\n';
         table += row8;
         
         var row9 = '<tr>';
-        var cell17 = '<td>';
-        cell17 += "Language: ";
+        var cell17 = '<td';
+        cell17 += ' title="'+this.strs.length_tip+'">';
+        cell17 += "Check length: ";
         cell17 += '</td>';
         row9 += cell17;
-        var cell18 = '<td';
-        cell18 += ' title="'+this.strs.lang_tip+'">';
-        cell18 += '<select name="dict" id="dict"></select>';
+        var cell18 = '<td title"'+this.strs.length_tip+'">';
+        var checkbox = '<input';
+        checkbox += ' name="SIMILARITY"';
+        checkbox += ' type="checkbox"';
+        checkbox += ' value="1"';
+        checkbox += ' checked="checked"';
+        checkbox += '></input>';
+        cell18 += checkbox;
         cell18 += '</td>';
         row9 += cell18;
         row9 += '</tr>\n';
         table += row9;
+        
+        var row10 = '<tr>';
+        var cell19 = '<td>';
+        cell19 += "Language: ";
+        cell19 += '</td>';
+        row10 += cell19;
+        var cell20 = '<td';
+        cell20 += ' title="'+this.strs.lang_tip+'">';
+        cell20 += '<select name="dict" id="dict"></select>';
+        cell20 += '</td>';
+        row10 += cell20;
+        row10 += '</tr>\n';
+        table += row10;
         table += '</table>';
         div += table;
         div += '</div>';
@@ -586,7 +641,7 @@ function uploader( target, demo, language, mod_path ) {
         self.strs = load_strings();
         console.log("loaded "+script_name+" successfully");
         // build form
-        var action = "http://"+window.location.hostname+"/calliope/import/mixed";
+        var action = "http://"+window.location.hostname+"/importer/mixed";
         var html = '<form name="default" method="POST" action="'+action+'" target="log"';
         html += ' enctype="multipart/form-data">\n';
         html += '<div class="wrapper">';

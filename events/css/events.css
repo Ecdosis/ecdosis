@@ -22,4 +22,4 @@ input.filler {visibility:hidden;width:1px}
 /*slider*/
 #slider {height: 10px;margin-left: 9px;margin-right: 9px;margin-top:10px}
 .ui-slider .ui-slider-handle {width:18px;height:18px;margin-left:-9px;}
-
+.events {text-align:center}

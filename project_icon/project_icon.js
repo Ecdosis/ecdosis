@@ -96,12 +96,13 @@ function project_icon(target,editor,owner)
         var html = '<div class="'+projectClass+'"><a href="http://';
         if (editor)
         {
-            var index = window.location.pathname.indexOf("/node");
             var path = window.location.pathname;
-            var path = (index!=-1)?path.substring(0,index):path;
-            if ( path.length>0&&path.charAt(path.length-1)=='/' )
-                path = path.substring(0,path.length-1);
-            html += window.location.hostname+path+'/project_edit';
+            var parts = path.split("/");
+            if ( parts.length==0 )
+                path="";
+            else
+                path = parts[1];
+            html += window.location.hostname+'/'+path+'/project_edit';
         }
         else
             html += window.location.hostname+'/project/view';

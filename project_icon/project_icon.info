@@ -2,4 +2,3 @@ name = Project Icon
 description = Edit and display project icons with a link to the project sites
 core = 7.x
 configure = admin/config/content/project_icon
-stylesheets[all][] = project_icon.css
