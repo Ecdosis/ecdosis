@@ -174,7 +174,7 @@ function events(target,docid,modpath)
      * @param amount the number of events to move by
      */
     this.move_right = function(amount) {
-        if ( jQuery("div.tinyeditor").length>0 )
+        if ( jQuery("#tinyeditor").length>0 )
             self.restore_div();
         if ( this.save_event() )
         {
@@ -191,7 +191,7 @@ function events(target,docid,modpath)
      * @param amount the number of events to move left
      */
     this.move_left = function( amount ) {
-        if ( jQuery("div.tinyeditor").length>0 )
+        if ( jQuery("#tinyeditor").length>0 )
             self.restore_div();
         if ( this.save_event() )
         {
@@ -211,7 +211,7 @@ function events(target,docid,modpath)
     this.init_editables = function( objs ) {
         // if the user clicks on it, turn it into an editor
         objs.click( function(e) {
-            if ( jQuery("div.tinyeditor").length>0 )
+            if ( jQuery("#tinyeditor").length>0 )
                 self.restore_div();
             if ( self.index != undefined )
                 self.install_editor(jQuery(e.target).closest(".edit-region"));
@@ -223,7 +223,7 @@ function events(target,docid,modpath)
      */
     this.init_type_select = function(obj) {
         obj.click( function() {
-            if ( jQuery("div.tinyeditor").length>0 )
+            if ( jQuery("#tinyeditor").length>0 )
                 self.restore_div();
         });
         obj.change( function(e) {
@@ -366,7 +366,7 @@ function events(target,docid,modpath)
         var month = jQuery("#month");
         var year = jQuery("#year");
         var type = jQuery("#type");
-        var editor = jQuery("div.tinyeditor");
+        var editor = jQuery("#tinyeditor");
         if ( editor.length==1 )
             self.restore_div();                
         event.title = title.val();
@@ -584,6 +584,7 @@ function events(target,docid,modpath)
         var tgt = jQuery("#"+this.target);
         if ( tgt == undefined || tgt.length==0 )
             console.log("Couldn't find target: "+this.target);
+        tgt.contents().remove();
         tgt.append(html);
         // now the page is built we can set up the event-handlers
         jQuery("#goleft").click( function() {
@@ -727,7 +728,7 @@ function events(target,docid,modpath)
         target.replaceWith(function(){
             return '<textarea id="tinyeditor">'+content+'</textarea>';
         });
-        var editor = new TINY.editor.edit('editor', {
+        /*var editor = new TINY.editor.edit('editor', {
 	    id: 'tinyeditor',
 	    width: 584,
 	    height: 175,
@@ -746,18 +747,17 @@ function events(target,docid,modpath)
 	    footerclass: 'tinyeditor-footer',
 	    toggle: {text: 'source', activetext: 'wysiwyg', cssclass: 'toggle'},
 	    resize: {cssclass: 'resize'}
-        });
-        jQuery("div.tinyeditor").css("overflow-y","visible");
+        });*/
+        //jQuery("#tinyeditor").css("overflow-y","visible");
     };
     /**
      * Remove the editor and restore the old div with the new text
      */
     this.restore_div = function() {
-        var iframe = jQuery("#tinyeditor").next();
-        var html = iframe[0].contentDocument.documentElement;
-        var content = html.lastChild.innerHTML;
+        var ta = jQuery("#tinyeditor");
+        var content = ta.val();
         var class_name = "edit-region";
-        var parent = iframe.closest("tr");
+        var parent = ta.closest("tr");
         if ( content=='<br>' )
         {
             if ( parent.next("tr").length!= 0)
@@ -768,7 +768,7 @@ function events(target,docid,modpath)
         var id = 'description';
         if ( parent.next("tr").length== 0)
             id = 'references';
-        jQuery("div.tinyeditor").replaceWith('<div id="'+id+'" class="'
+        jQuery("#tinyeditor").replaceWith('<div id="'+id+'" class="'
             +class_name+'">'+content+'</div>');
         if ( self.pDoc.events[this.index].status != 'added' )
             self.pDoc.events[this.index].status = 'changed';
@@ -999,3 +999,4 @@ jQuery(function(){
     console.log("events:"+params['target']+","+params['docid']+","+params['modpath']);
     var editor = new events(params['target'],params['docid'],params['modpath']);
 }); 
+

@@ -5,13 +5,13 @@
 #left-sidebar :hover {opacity:0.4;cursor:pointer}
 #centre_panel {vertical-align:middle;display:inline-block;width:604px}
 #wire_frame {width:100%;overflow-x:scroll;overflow-y:hidden}
-div.box {width:604px;display:inline-block}
-div.box input[type="text"] {width:300px}
+div.box {min-width:604px;display:inline-block}
+div.box input[type="text"] {min-width:300px}
 .textarea-prompt {vertical-align:top;padding-top:7px}
 div.edit-region { overflow-y: auto; border: 1px solid lightgrey;border-radius:3px;-moz-border-radius:3px;-webkit-border-radius:3px;
-    background-color:white;height:4em;padding: 3px 5px 3px 5px }
+    background-color:white;min-height:4em;max-height:20em;overflow-y:auto;padding: 3px 5px 3px 5px }
 span.placeholder {color:#959595}
-input#year { width: 50px !important }
+input#year { min-width: 50px !important }
 div.event-button { display:inline; border: 1px solid grey;padding: 5px 5px 5px 5px;border-radius:3px;margin-right:10px;}
 div.event-button:hover {background-color: lightgrey; cursor:pointer }
 #search_button { margin-right: 0px }
@@ -23,3 +23,4 @@ input.filler {visibility:hidden;width:1px}
 #slider {height: 10px;margin-left: 9px;margin-right: 9px;margin-top:10px}
 .ui-slider .ui-slider-handle {width:18px;height:18px;margin-left:-9px;}
 .events {text-align:center}
+#tinyeditor {width: 584px; height: 175px}

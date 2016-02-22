@@ -30,7 +30,6 @@ function index_all()
     $html ='<script type="text/javascript" src="'.$mod_path
           .'/index.js?target=content&'
           .'admin='.$demo.'"></script>';
-    print_r("admin=".$demo);
     return $html;
 }
 function index_menu()
@@ -70,3 +69,23 @@ function index_block_view($delta = '') {
       return $block;
   }
 }
+/**
+ * Page callback: Index settings
+ * @param form the form object to override
+ * @param form_state the current state of the form (keys->values)
+ * @return an updated form
+ * @see quote_ticker_menu()
+ */
+function index_form($form, &$form_state)
+{
+    $form['compare_projid'] = array(
+        '#type' => 'textfield',
+        '#title' => t('Default projid'),
+        '#default_value' => 'english/harpur',
+        '#size' => 128,
+        '#maxlength' => 256,
+        '#required' => TRUE
+    );
+    return $form;
+}
+

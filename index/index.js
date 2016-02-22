@@ -39,79 +39,88 @@ function index(target,admin)
         var tgt = jQuery("#"+this.target);
         tgt.replaceWith(html);
     };
-    this.admin = (admin=="true")?true:false;
     this.draw_slider = function(max, val) 
     {
         var percent=Math.round((val*100)/max);
         jQuery("#szliderbar").css("width",percent+"%");
     }
-    var html = '<div id="indexer">';   
-    html += '<div id="spacer"></div>'; 
-    html += '<div id="projects"></div>';
-    html += '<div id="progress_bar">';
-    html += '<div id="szlider">';
-    html += '<div id="szliderbar"></div>';
-    html += '<div id="szazalek"></div>';
-    html += '</div>';
-    html += '</div>';   // end progress-bar
-    html += '<input type="button" id="rebuild" value="Rebuild index"></input>';
-    html += '<div id="log"></div>';
-    html += '</div>';
-    this.set_html( html );
-    this.makeProjectDropdown();
-    jQuery("#rebuild").click( function() {
-        if ( admin!=1 || !admin )
-        {
-            alert("Only an administrator can do that!");
-            return;
-        }
-        var readSoFar=0;
-        var url = "http://"+window.location.hostname+"/search/build";
-        var startedLog = false;
-        url += "?docid="+jQuery("#projectlist").val();
-        self.draw_slider( 100, 0 );	
-        client = new XMLHttpRequest();
-        client.open("GET", url);
-        //client.open("GET", "http://localhost/search/build");
-        client.send();
-        // Track the state changes of the request
-        client.onreadystatechange = function(){
-            // Ready state 3 means that data is ready
-            if (client.readyState == 3) {
-                // <300 is a successful return
-                if(client.status ==200) {
-                    var len = client.responseText.length-readSoFar;
-                    var num = client.responseText.substr(readSoFar,len);
-                    var numbers = num.split("\n");
-                    for ( var i=0;i<numbers.length;i++ )
-                    { 
-                        if ( numbers[i].length > 0 )
-                        {
-                            if ( isNaN(numbers[i]) )
+    if ( admin!=1 || !admin )
+    {
+        html = '<div id="indexer">';
+        html += '<p>Access to this module is limited to the administrator</p>';
+        html += '</div>';
+        this.set_html( html );
+    }
+    else
+    {
+        var html = '<div id="indexer">';   
+        html += '<div id="spacer"></div>'; 
+        html += '<div id="projects"></div>';
+        html += '<div id="progress_bar">';
+        html += '<div id="szlider">';
+        html += '<div id="szliderbar"></div>';
+        html += '<div id="szazalek"></div>';
+        html += '</div>';
+        html += '</div>';   // end progress-bar
+        html += '<input type="button" id="rebuild" value="Rebuild index"></input>';
+        html += '<div id="log"></div>';
+        html += '</div>';
+        this.set_html( html );
+        this.makeProjectDropdown();
+        jQuery("#rebuild").click( function() {
+            var readSoFar=0;
+            var url = "http://"+window.location.hostname+"/search/build";
+            var startedLog = false;
+            url += "?docid="+jQuery("#projectlist").val();
+            self.draw_slider( 100, 0 );	
+            client = new XMLHttpRequest();
+            client.open("GET", url);
+            //client.open("GET", "http://localhost/search/build");
+            client.send();
+            // Track the state changes of the request
+            client.onreadystatechange = function(){
+                // Ready state 3 means that data is ready
+                if (client.readyState == 3) {
+                    // <300 is a successful return
+                    if(client.status ==200) {
+                        var len = client.responseText.length-readSoFar;
+                        var num = client.responseText.substr(readSoFar,len);
+                        var numbers = num.split("\n");
+                        for ( var i=0;i<numbers.length;i++ )
+                        { 
+                            if ( numbers[i].length > 0 )
                             {
-                                if ( !startedLog )
+                                if ( isNaN(numbers[i]) )
                                 {
-                                    jQuery("#log").empty();
-                                    jQuery("#log").append("<h3>Log</h3>");
+                                    if ( !startedLog )
+                                    {
+                                        jQuery("#log").empty();
+                                        jQuery("#log").append("<h3>Log</h3>");
+                                        startedLog = true;
+                                    }
+                                    if ( i == numbers.length-1 )
+                                        jQuery("#log").append(numbers[i]);
+                                    else
+                                        jQuery("#log").append(numbers[i]+"\n");
                                 }
-                                jQuery("#log").append(numbers[i]);
-                            }
-                            else 
-                            {
-                                var val = parseInt(numbers[i]);
-                                self.draw_slider( 100, val );	
+                                else 
+                                {
+                                    var val = parseInt(numbers[i]);
+                                    self.draw_slider( 100, val );	
+                                    console.log(val);
+                                }
                             }
                         }
+                        readSoFar = client.responseText.length;
                     }
-                    readSoFar = client.responseText.length;
+                    else if ( client.status >= 300 )
+                       console.log("Error:"+client.status); 
                 }
-                else if ( client.status >= 300 )
-                   console.log("Error:"+client.status); 
-            }
-            else if ( client.status >= 300 && clientreadyState==4 )
-               console.log("Error:"+client.status);
-        };
-    });
+                else if ( client.status >= 300 && client.readyState==4 )
+                   console.log("Error:"+client.status);
+            };
+        });
+    }
 }
 /**
  * This reads the "arguments" to the javascript file

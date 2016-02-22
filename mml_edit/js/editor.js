@@ -92,6 +92,7 @@ function Editor( target, docid, modpath )
         var url = "/mml/images?docid="+this.docid
             +"&version1="+this.version1;
         var pageRefs = this.getPageRefs(this.text);
+        console.log(pageRefs);
         if ( pageRefs != null && pageRefs.length>0 )
             url += "&pagerefs="+pageRefs;
         $.get(url,function(data) {
