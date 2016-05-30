@@ -14,6 +14,6 @@ function load_strings() {
         month_names: ['','Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep',
             'Oct','Nov','Dec'],
         qualifiers: ['','start','end','from','perhaps','circa'],
-        event_types: ['biography','composition','letters']
+        event_types: ['biography','composition','letter','location','other']
     };
 }

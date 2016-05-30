@@ -1,0 +1,94 @@
+<?php
+function misceditor_preprocess_page(&$vars)
+{
+    if ( strpos(request_uri(),"misceditor") )
+    {
+        drupal_add_css(drupal_get_path('module','misceditor').'/css/misceditor.css','file');
+    }
+}
+/**
+ * Compose a JSON string describing the current user for later encryption
+ * @return a JSON string contain roles and user name
+ */
+function get_userdata()
+{
+    global $user;
+    if ( $user )
+    {
+        $udata = "{\"name\":";
+        $udata .= (array_key_exists("name",$user))?"\"".$user->name."\",":"\"guest\",";
+        $udata .= "\"roles\": [";
+        foreach ( $user->roles as $role )
+        {
+            if ( $udata[strlen($udata)-1]!='[' )
+                $udata .= ",";
+            $udata .= "\"".$role."\"";
+        }
+        $udata .= "]}";
+        /*print_r($udata);*/
+        return $udata;
+    }
+    else
+        return "{\"name\":\"guest\",\"roles\":[]}";
+}
+/**
+ * A simple and custom scrambling function for user data
+ * @paramt $text the text to scramble
+ * @return a scrmabled version thereof
+ */
+function scramble( $text )
+{
+    $key = "I tell a settlers tale of the old times";
+    $enciphered = "";
+    $klen = strlen($key);
+    $tlen = strlen($text);
+    for ( $i=0;$i<$tlen;$i++ )
+        $enciphered .= $text[$i] ^ $key[$i%$klen];
+    $b64 = base64_encode($enciphered);
+/*  $orig = base64_decode($b64);
+    $deciphered = "";
+    $olen = strlen($enciphered);
+    for ( $i=0;$i<$olen;$i++ )
+        $deciphered .= $enciphered[$i] ^ $key[$i%$klen];*/
+    return $b64;
+}
+function build_misceditor_args()
+{
+    $args = "";
+    if ( array_key_exists ("target", $_GET) )
+        $args .= '&target='.$_GET["target"];
+    $args .= '&udata='.scramble(get_userdata());
+    if ( strpos($args,'&')==0 )
+        $args = substr($args,1);
+    //print_r($args);
+    return $args;
+}
+function misceditor_block_info() {
+  $blocks['misceditor'] = array(
+    'info' => t('Edit miscellaneous documents in an edition'),
+    'cache' => DRUPAL_CACHE_PER_ROLE,
+  );
+  return $blocks;
+}
+function misceditor_help($path, $arg) {
+    switch ($path)
+    {
+        case "admin/help#misceditor":
+            return '<p>' .
+                t("Edit miscellaneous documents in an edition")
+                . '</p>';
+            break;
+    }
+}
+function misceditor_block_view($delta = '') {
+  switch ($delta) {
+    case 'misceditor':
+      $args = build_misceditor_args();
+      $mod_path = drupal_get_path('module', 'misceditor');
+      $block['content'] = '<script type="text/javascript" src="'.$mod_path
+          .'/js/misceditor.js?'.$args.'"></script>';
+      return $block;
+  }
+}
+
+

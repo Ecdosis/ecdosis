@@ -19,7 +19,7 @@ function SearchExpr( field, index, pos, length )
      * @return undefined if it failed else the original object
      */
     this.advance = function( event,next ) {
-        if ( this.field==='title' )
+        if ( this.field==='title' && event.hasOwnProperty('title') )
         {
             if ( this.pos+this.length>= event.title.length )
             {
@@ -30,7 +30,7 @@ function SearchExpr( field, index, pos, length )
                 this.pos += this.length;
             this.length = 0;
         }
-        else if ( this.field == 'description' )
+        else if ( this.field == 'description' && event.hasOwnProperty('description') )
         {
             if ( this.pos+this.length>= event.description.length )
             {
@@ -41,7 +41,7 @@ function SearchExpr( field, index, pos, length )
                 this.pos += this.length;
             this.length = 0;
         }
-        else if ( this.field == 'references' )
+        else if ( this.field == 'references' && event.hasOwnProperty('references') )
         {
             if ( this.pos+this.length >= event.references.length )
             {
@@ -509,7 +509,7 @@ function events(target,docid,modpath)
             for ( i=0;i<lim;i++ )
             {
                 var res = 0;
-                if ( expr.field=='title' )
+                if ( expr.field=='title' && event.hasOwnProperty("title") )
                 {
                     res = event.title.substr(expr.pos).search(pat);
                     if ( res != -1 )
@@ -524,7 +524,7 @@ function events(target,docid,modpath)
                         expr.pos = 0;
                     }
                 }
-                if ( expr.field == 'description' )
+                if ( expr.field == 'description' && event.hasOwnProperty("description") )
                 {
                     res = self.html_search(event.description.substr(expr.pos),pat);
                     if ( res != -1 )
@@ -539,7 +539,7 @@ function events(target,docid,modpath)
                         expr.pos = 0;
                     }
                 }
-                if ( expr.field == 'references' )
+                if ( expr.field == 'references' && event.hasOwnProperty("references") )
                 {
                     res = self.html_search(event.references.substr(expr.pos),pat);
                     if ( res != -1 )
