@@ -7,16 +7,19 @@ function misceditor( target, udata )
     this.encrypted = udata;
     // hash of temporarily saved versions not sent to server
     this.saved = {};
-	   this.decode = function( enc ) {
+    /**
+     * Decode an encrypted userdata string using the key.
+     */
+    this.decode = function( enc ) {
         var plain = atob(enc);
-	var sb = "";
-	for ( var i=0;i<plain.length;i++ )
-	{
-	    var kchar = this.key.charCodeAt(i%this.key.length);
-	    var pchr = plain.charCodeAt(i)^kchar;
-	    sb += String.fromCharCode(pchr);
-	}
-	return sb;
+        var sb = "";
+        for ( var i=0;i<plain.length;i++ )
+        {
+            var kchar = this.key.charCodeAt(i%this.key.length);
+            var pchr = plain.charCodeAt(i)^kchar;
+            sb += String.fromCharCode(pchr);
+        }
+        return sb;
     };
     var decoded = this.decode(udata);
     console.log(decoded);
@@ -25,14 +28,14 @@ function misceditor( target, udata )
      * Is the currently logged-in user an editor
      * @return true if the user is logged in and has a role "editor"
      */
-     this.isEditor = function() {
-	if ( this.userdata.name.length > 0 && this.userdata.roles.length > 0 )
-	{
-	    for ( var i=0;i<this.userdata.roles.length;i++ )
-		if ( this.userdata.roles[i] == "editor" )
-		    return true;
-	}
-	return false;
+    this.isEditor = function() {
+        if ( this.userdata.name.length > 0 && this.userdata.roles.length > 0 )
+        {
+            for ( var i=0;i<this.userdata.roles.length;i++ )
+            if ( this.userdata.roles[i] == "editor" )
+                return true;
+        }
+        return false;
     };
     /**
      * Remove escaped slashes from jSON
@@ -53,25 +56,25 @@ function misceditor( target, udata )
         var oldDocid = jQuery("#docid").val();
         if ( oldDocid != undefined && oldDocid.length>0 && oldDocid != docid )
         {
-    	    this.saved[oldDocid] = jQuery("#text").val();
-    	    console.log("auto-saving "+oldDocid);
+            this.saved[oldDocid] = jQuery("#text").val();
+            console.log("auto-saving "+oldDocid);
         }
         if ( this.saved[docid] != undefined && this.saved[docid].length>0 )
         {
-    	    jQuery("#text").val(this.saved[docid]);
-    	    jQuery("#text").text(this.saved[docid]);
-    	    jQuery("#title").val(title);
-    	    this.rebuildDocid();
+            jQuery("#text").val(this.saved[docid]);
+            jQuery("#text").text(this.saved[docid]);
+            jQuery("#title").val(title);
+            this.rebuildDocid();
         }
         else
         {
             jQuery.get("/misc/?docid="+docid,function(data) {
-    	    jQuery("#title").val(title);
-    	    jQuery("#text").text(data);
-    	    jQuery("#text").val(data);
-    	    self.saved[docid] = data;
-    	    self.rebuildDocid();
-    	});
+            jQuery("#title").val(title);
+            jQuery("#text").text(data);
+            jQuery("#text").val(data);
+            self.saved[docid] = data;
+            self.rebuildDocid();
+        });
         }
         // make sure we don't delete it on save!
         jQuery("#delete").val("");
@@ -79,92 +82,92 @@ function misceditor( target, udata )
     /**
      * Load the titles and docids of all the documents in this category
      */
-	this.loadDocuments = function()
-	{
-	    var docid = jQuery("#project").val()+"/"+jQuery("#category").val();
-	    jQuery.get("/misc/documents?docid="+docid+"&format=text/x-markdown",function(data) {
-		    var files = jQuery("#files");
-		    files.empty();
-		    for ( var i=0;i<data.length;i++ )
-		    {
-		        files.append('<option value="'
-		            +data[i].docid+'">'+data[i].title+'</option>\n');
-		    }
-		    if ( data.length>0 )
-		    {
-		        self.loadDocument(data[0].docid,data[0].title);
-		    }
-	    });
-	};
+    this.loadDocuments = function()
+    {
+        var docid = jQuery("#project").val()+"/"+jQuery("#category").val();
+        jQuery.get("/misc/documents?docid="+docid+"&format=text/x-markdown",function(data) {
+            var files = jQuery("#files");
+            files.empty();
+            for ( var i=0;i<data.length;i++ )
+            {
+                files.append('<option value="'
+                    +data[i].docid+'">'+data[i].title+'</option>\n');
+            }
+            if ( data.length>0 )
+            {
+                self.loadDocument(data[0].docid,data[0].title);
+            }
+        });
+    };
     /**
      * Get the list of categories for this project
      */
-	this.loadCategoryList = function()
-	{
-	    jQuery.get("/misc/categories?docid="+jQuery("#project").val(),function(data) {
-		    var categories = jQuery("#category");
-		    categories.empty();
-		    for ( var i=0;i<data.length;i++ )
-		    {
-		        categories.append('<option value="'
-		            +self.strip(data[i])+'">'+self.strip(data[i])+'</option>\n');
-		    }
-		    self.loadDocuments();
-	    });
-	}
+    this.loadCategoryList = function()
+    {
+        jQuery.get("/misc/categories?docid="+jQuery("#project").val(),function(data) {
+            var categories = jQuery("#category");
+            categories.empty();
+            for ( var i=0;i<data.length;i++ )
+            {
+                categories.append('<option value="'
+                    +self.strip(data[i])+'">'+self.strip(data[i])+'</option>\n');
+            }
+            self.loadDocuments();
+        });
+    }
     /**
      * Get the list of available projects
      */
-	this.loadProjectList = function()
-	{
-	    jQuery.get("/project/list",function(data) {
-		    var projects = jQuery("#project");
-		    projects.empty();
-		    for ( var i=0;i<data.length;i++ )
-		    {
-		        projects.append('<option value="'
-		            +self.strip(data[i].docid)+'">'+data[i].work+'</option>\n');
-		    }
-		    self.loadCategoryList();
-	    });
-	}
+    this.loadProjectList = function()
+    {
+        jQuery.get("/project/list",function(data) {
+            var projects = jQuery("#project");
+            projects.empty();
+            for ( var i=0;i<data.length;i++ )
+            {
+                projects.append('<option value="'
+                    +self.strip(data[i].docid)+'">'+data[i].work+'</option>\n');
+            }
+            self.loadCategoryList();
+        });
+    }
     /**
      * Turn a title into the last part of a docid
      * @return the cleaned title
      */
-	this.cleanTitle = function( title )
-	{
-	    title = title.replace(/ /g,"-");
-	    title = title.toLowerCase();
-	    return title.replace(/[,.;:!\[\]{}']/g,"");
-	}
+    this.cleanTitle = function( title )
+    {
+        title = title.replace(/ /g,"-");
+        title = title.toLowerCase();
+        return title.replace(/[,.;:!\[\]{}']/g,"");
+    }
     /**
      * Rebuild the docid based on current selections of category etc
      */
-	this.rebuildDocid = function()
-	{
-	    // normalise title
-	    var title = this.cleanTitle(jQuery("#title").val());
-	    var newValue = jQuery("#project").val()+"/"
-		    +jQuery("#category").val()+"/"+title;
-	    newValue = newValue.replace(/\/\//g,"/");
-	    jQuery("#docid").val(newValue);
-	}
+    this.rebuildDocid = function()
+    {
+        // normalise title
+        var title = this.cleanTitle(jQuery("#title").val());
+        var newValue = jQuery("#project").val()+"/"
+            +jQuery("#category").val()+"/"+title;
+        newValue = newValue.replace(/\/\//g,"/");
+        jQuery("#docid").val(newValue);
+    }
     /**
      * Does the files list already contain a title?
      * @param title the title to test for
      * @return true if it is already present
      */
-	this.filesContain = function( title )
-	{
-	    var found = false;
-	    jQuery("#files option").each(function(i) {
-		var optTitle = jQuery(this).text();
-		if ( optTitle == title )
-		    found = true;
-	    });
-	    return found;
-	}
+    this.filesContain = function( title )
+    {
+        var found = false;
+        jQuery("#files option").each(function(i) {
+        var optTitle = jQuery(this).text();
+        if ( optTitle == title )
+            found = true;
+        });
+        return found;
+    }
     this.initEventHandlers = function() {
         // set up event handlers for each input control
         jQuery("#category").change(function(){
@@ -177,7 +180,7 @@ function misceditor( target, udata )
         });
         jQuery("#project").change(function() {
             self.rebuildDocid();
-        	self.loadProjectList();
+            self.loadProjectList();
         });
         jQuery("#source").val(window.location.href);
         jQuery("#new").click(function() {
@@ -312,14 +315,12 @@ function getMiscEditorArgs( scrName )
             return params;
         });
     }
-    if ( !('mod-target' in params) && ('target' in params) )
-        params['mod-target'] = params['target'];
     return params;
 }
 jQuery(document).ready(function(){
     var params = getMiscEditorArgs('misceditor');
     jQuery("#"+params['mod-target']).css("visibility","hidden");
     console.log(params['udata']);
-    var me = new misceditor(params['mod-target'],params['udata']);
+    var me = new misceditor(params['target'],params['udata']);
 });
 
