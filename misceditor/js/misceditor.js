@@ -7,6 +7,10 @@ function misceditor( target, udata )
     this.encrypted = udata;
     // hash of temporarily saved versions not sent to server
     this.saved = {};
+    // hash of saved states;
+    this.status = {};
+    // status of current doc
+    this.currStatus = "saved";
     /**
      * Decode an encrypted userdata string using the key.
      */
@@ -22,7 +26,7 @@ function misceditor( target, udata )
         return sb;
     };
     var decoded = this.decode(udata);
-    console.log(decoded);
+    //console.log(decoded);
     this.userdata = JSON.parse(decoded);
     /**
      * Is the currently logged-in user an editor
@@ -46,6 +50,24 @@ function misceditor( target, udata )
         var rep = str.replace(/\\\//g,"/");
         return rep;
     };
+    /** 
+     * Set the status icon
+     */
+    this.updateStatus = function() {
+         var st = jQuery("#status i");
+         if ( st.hasClass("fa-check") )
+             st.removeClass("fa-check");
+         if ( st.hasClass("fa-times") )
+             st.removeClass("fa-times");
+         if ( st.hasClass("fa-exclamation-triangle") )
+             st.removeClass("exclamation-triangle");
+         if ( this.currStatus == "saved" )
+             st.addClass("fa-check");
+         else if ( this.currStatus == "unsaved" )
+             st.addClass("fa-times");
+         else if ( this.currStatus == "error")
+             st.addClass("fa-exclamation-triangle");
+    };
     /**
      * Load a single document
      * @param docid the document identifier
@@ -54,35 +76,45 @@ function misceditor( target, udata )
     this.loadDocument = function( docid, title )
     {
         var oldDocid = jQuery("#docid").val();
+        console.log("loading "+docid+" title="+title);
         if ( oldDocid != undefined && oldDocid.length>0 && oldDocid != docid )
         {
             this.saved[oldDocid] = jQuery("#text").val();
+            this.status[oldDocid] = this.currStatus;
             console.log("auto-saving "+oldDocid);
         }
         if ( this.saved[docid] != undefined && this.saved[docid].length>0 )
         {
             jQuery("#text").val(this.saved[docid]);
             jQuery("#text").text(this.saved[docid]);
+            this.currStatus = this.status[docid];
             jQuery("#title").val(title);
             this.rebuildDocid();
+            this.updateStatus();
+            jQuery("#delete").val("false");
         }
         else
         {
             jQuery.get("/misc/?docid="+docid,function(data) {
-            jQuery("#title").val(title);
-            jQuery("#text").text(data);
-            jQuery("#text").val(data);
-            self.saved[docid] = data;
-            self.rebuildDocid();
-        });
+                jQuery("#title").val(title);
+                jQuery("#text").text(data);
+                jQuery("#text").val(data);
+                self.saved[docid] = data;
+                self.currStatus = "saved";
+                //console.log("currStatus ="+self.currStatus);
+                self.rebuildDocid();
+                self.updateStatus();
+                // make sure we don't delete it on save!
+                jQuery("#delete").val("false");
+            });
         }
-        // make sure we don't delete it on save!
-        jQuery("#delete").val("");
     };
     /**
      * Load the titles and docids of all the documents in this category
+     * @param optDocid optional docid
+     * @param optTitle optional title
      */
-    this.loadDocuments = function()
+    this.loadDocuments = function(optDocid,optTitle)
     {
         var docid = jQuery("#project").val()+"/"+jQuery("#category").val();
         jQuery.get("/misc/documents?docid="+docid+"&format=text/x-markdown",function(data) {
@@ -95,7 +127,13 @@ function misceditor( target, udata )
             }
             if ( data.length>0 )
             {
-                self.loadDocument(data[0].docid,data[0].title);
+                if ( optDocid == null || optDocid == undefined )
+                    self.loadDocument(data[0].docid,data[0].title);
+                else
+                {
+                    self.loadDocument(optDocid,optTitle);
+                    jQuery("#files").val( optDocid );
+                }
             }
         });
     };
@@ -112,7 +150,7 @@ function misceditor( target, udata )
                 categories.append('<option value="'
                     +self.strip(data[i])+'">'+self.strip(data[i])+'</option>\n');
             }
-            self.loadDocuments();
+            self.loadDocuments(null,null);
         });
     }
     /**
@@ -168,10 +206,47 @@ function misceditor( target, udata )
         });
         return found;
     }
+    /**
+     * Use the result of a POST operation to set the saved status
+     */
+    this.parseResponse = function(resp) {
+        var scPos = resp.indexOf(";");
+        if ( scPos != -1 )
+        {
+             var status = resp.substring(0,scPos);
+             if ( status.indexOf("Status")!= -1 )
+             {
+                 var statusCode = status.substring(7);
+                 var code = parseInt(statusCode);
+                 if ( code == 200 )
+                     this.currStatus = "saved";
+                 else if ( code >= 400 )
+                     this.currStatus = "error";
+                 this.updateStatus();
+             }
+        }
+    };
+    /**
+     * Get the docid and title of the previous document
+     */
+    this.loadLastDocument = function() {
+        var docid = jQuery("#docid").val();
+        jQuery.get("/misc/previous?docid="+docid,function(data){
+            jQuery("#docid").val("");
+            // now set the category and file name
+            var parts = data.docid.split("/");
+            if ( parts.length > 1 )
+            {
+                var category = parts[parts.length-2];
+                jQuery("#category").val(category);
+                self.loadDocuments(data.docid,data.title);
+            }
+        });
+    };
     this.initEventHandlers = function() {
         // set up event handlers for each input control
         jQuery("#category").change(function(){
-            self.loadDocuments();
+            self.loadDocuments(null,null);
         });
         jQuery("#files").change(function(){
             var value = jQuery(this).val();
@@ -188,7 +263,7 @@ function misceditor( target, udata )
             while ( self.filesContain(title) )
                 title = prompt("That title is already taken. Please choose another.", title);
             var newDocid = jQuery("#project").val()+"/"
-                +jQuery("#category").val()+"/"+cleanTitle(title);
+                +jQuery("#category").val()+"/"+self.cleanTitle(title);
             newDocid = newDocid.replace(/\/\//g,"/");
             jQuery("#files").append('<option value="'
                     +newDocid+'">'+title+'</option>\n');
@@ -210,6 +285,42 @@ function misceditor( target, udata )
                 jQuery("#delete").val("true");
             }
         });
+        jQuery(document).submit( function(e) {
+            var f = jQuery("#postform");
+            jQuery("#userdata").val(self.encrypted);
+            var jqxhr = jQuery.ajax({
+	            url: f.attr('action'),
+	            type: f.attr('method'),
+	            data: f.serialize(),
+	            success: function(html) {
+	                console.log('post was ok');
+                    self.parseResponse(html);
+                    if ( jQuery("#delete").val()=="true" )
+                    {
+                        jQuery("#files option:selected").remove();
+                        var docid = jQuery("#docid").val();
+                        if ( docid in self.saved )
+                            delete self.saved[docid];
+                        if ( docid in self.status )
+                            delete self.status[docid];
+                        self.loadLastDocument();
+                    }
+ 	            },
+                error:function(jqXHR, textStatus, errorThrown){
+                    console.log("Error: "+jqXHR.textResponse);
+                    console.log(textStatus);
+                    console.log(errorThrown);
+                }
+            });
+           e.preventDefault();
+        });
+        jQuery("#text").keypress(function(){
+            if ( self.currStatus == "saved" )
+            {
+                self.currStatus = "unsaved";
+                self.updateStatus();
+            }
+        });
     };
     /**
      * Build the HTML of this form and append it to the target div
@@ -217,7 +328,7 @@ function misceditor( target, udata )
     this.buildHtml = function() {
         if ( this.isEditor() )
         {
-            var html = '<form method="POST" accept-charset="UTF-8" action="/misc/">';
+            var html = '<form id="postform" method="POST" accept-charset="UTF-8" action="/misc/">';
             html += '<table id="toolmenu"><tr><td><span class="prompt">Project:</span>';
             html += '<select id="project"></select>';
             html += '<span class="prompt">Category:</span>';
@@ -228,7 +339,8 @@ function misceditor( target, udata )
             html += '<input type="text" id="title"></input>';
             html += '<input id="new" type="button"Value="New"></input>';
             html += '<input type="submit" id="delete_button" value="Delete"></input>';
-            html += '<input type="submit" id="save" value="Save"></input></td></tr></table>';
+            html += '<input type="submit" id="save" value="Save"></input>';
+            html += '<span id="status"><i class="fa fa-lg fa-check"></i></span></td></tr></table>';
             html += '<textarea name="text" rows="30" cols="50" id="text"></textarea>';
             html += '<input type="hidden" id="docid" name="docid"></input>';
             html += '<input type="hidden" name="format" value="text/x-markdown"></input>';

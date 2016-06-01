@@ -2,3 +2,7 @@
 #toolmenu { width: 100% }
 #toolmenu span {padding: 0.4em}
 #toolmenu input {margin: 0.4em}
+.fa-check {color:lawngreen}
+.fa-times {color:red}
+.fa-exclamation-triangle {color:red}
+

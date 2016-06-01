@@ -4,6 +4,7 @@ function misceditor_preprocess_page(&$vars)
     if ( strpos(request_uri(),"misceditor") )
     {
         drupal_add_css(drupal_get_path('module','misceditor').'/css/misceditor.css','file');
+        drupal_add_css(drupal_get_path('module','misceditor').'/css/font-awesome.min.css','file');
     }
 }
 /**
