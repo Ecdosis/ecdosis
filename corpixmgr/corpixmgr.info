@@ -1,0 +1,6 @@
+name = corpixmgr
+description = Manage a Corpix collection of images
+core = 7.x
+configure = admin/config/content/corpixmgr
+
+
