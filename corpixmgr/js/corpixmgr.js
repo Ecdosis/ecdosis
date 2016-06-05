@@ -1,7 +1,39 @@
-function CorpixManager( target, projid )
+function CorpixManager( target, udata )
 {
     var self = this;
     this.target = target;
+    this.key = "I tell a settlers tale of the old times";
+    // save a copy of the old userdata for later verification
+    this.encrypted = udata;
+    /**
+     * Decode an encrypted userdata string using the key.
+     */
+    this.decode = function( enc ) {
+        var plain = atob(enc);
+        var sb = "";
+        for ( var i=0;i<plain.length;i++ )
+        {
+            var kchar = this.key.charCodeAt(i%this.key.length);
+            var pchr = plain.charCodeAt(i)^kchar;
+            sb += String.fromCharCode(pchr);
+        }
+        return sb;
+    };
+    var decoded = this.decode(udata);
+    this.userdata = JSON.parse(decoded);
+    /**
+     * Is the currently logged-in user an editor
+     * @return true if the user is logged in and has a role "editor"
+     */
+    this.isEditor = function() {
+        if ( this.userdata.name.length > 0 && this.userdata.roles.length > 0 )
+        {
+            for ( var i=0;i<this.userdata.roles.length;i++ )
+            if ( this.userdata.roles[i] == "editor" )
+                return true;
+        }
+        return false;
+    };
     /**
      * Is this file-name of an image?
      */
@@ -35,8 +67,9 @@ function CorpixManager( target, projid )
             html += '</ul>';
             jQuery("#corpix-filelist").empty();
             jQuery("#corpix-filelist").append(html);
-            self.createEventHandlers();
+            self.updateFileHandlers();
             jQuery("#url_button").attr('disabled',true);
+            jQuery("#delete_button").attr('disabled',true);
         });
     };
     /**
@@ -95,9 +128,76 @@ function CorpixManager( target, projid )
         }
     };
     /**
+     * Read the params of the currently selected preview image
+     * @return an object containing the params
+     */
+    this.getPreviewImageParams = function() {
+        var url = jQuery("#preview img").attr("src");
+        var ind = url.indexOf("?");
+        var params = {};
+        if ( ind != -1 )
+        {
+            url = url.substring(ind+1);
+            var parts = url.split("&");
+            for ( var i=0;i<parts.length;i++ )
+            {
+                var halves = parts[i].split("=");
+                if ( halves.length==2 )
+                    params[halves[0]] = halves[1];
+            }
+        }
+        return params; 
+    };
+    /**
+     * Get the last part of a url
+     * @param url the url to get it from
+     * @return the url's file-name
+     */
+    this.getFileName = function(url) {
+        var parts = url.split("/");
+        return parts[parts.length-1];
+    };
+    /**
+     * Remove a file from the sorted list
+     * @param name the name of the file to delete
+     */
+    this.deleteFile = function(name){
+        var delendum = -1;
+        jQuery("#corpix-filelist li").each(function(i){
+            var item = jQuery(this).text();
+            if ( item != undefined && item.length> 0 && item.trim() == name )
+                delendum = i;
+        });
+        if ( delendum != -1 )
+            jQuery('#corpix-filelist li:eq('+delendum+')').remove();
+    };
+    /**
+     * Add a file to the sorted list in order
+     * @param name the name of the file to add
+     */
+    this.insertFile = function(name){
+        var insertPos = 0;
+        jQuery("#corpix-filelist li").each(function(i){
+            var item = jQuery(this).text();
+            if ( item != undefined && item.length> 0 && item.trim() >= name )
+                if ( insertPos == 0 )
+                    insertPos = i;
+        });
+        var li = '<li>';
+        if ( self.isImage(name) )
+            li += '<i class="fa fa-lg fa-file-image-o"></i> ';
+        else
+            li += '<i class="fa fa-lg fa-file-o"></i> ';
+        li += name;
+        li += '</li>';
+        jQuery('#corpix-filelist li:eq('+insertPos+')').before(li);
+        this.updateFileHandlers();
+    };
+    /**
      * Set up the event handlers
      */
-    this.createEventHandlers = function() {
+    this.updateFileHandlers = function() {
+        jQuery("#corpix-files li").off("dblclick");
         // double-click handler
         jQuery("#corpix-files li").dblclick(function(){
             var text = jQuery(this).text().trim();
@@ -130,6 +230,7 @@ function CorpixManager( target, projid )
             self.loadFileList();
         });
         // single click handler (NB also fires on dblclick)
+        jQuery("#corpix-files li").off('click');
         jQuery("#corpix-files li").click(function(){
             var name = jQuery(this).text().trim();
             if ( self.isImage(name) )
@@ -146,29 +247,61 @@ function CorpixManager( target, projid )
                 preview.append('<img src="'+url+'">');
                 self.getMetadata(name);
                 jQuery("#url_button").attr('disabled',false);
+                jQuery("#delete_button").attr('disabled',false);
             }
         });
     };
+    /**
+     * Create handlers for the buttons on the toolbar
+     */
     this.createButtonHandlers = function(){
         // click handler for copy url button
         jQuery("#url_button").click(function(e){
-            var url = jQuery("#preview img").attr("src");
-            var ind = url.indexOf("?");
-            if ( ind != -1 )
-            {
-                url = url.substring(ind+1);
-                var parts = url.split("&");
-                var params = {};
-                for ( var i=0;i<parts.length;i++ )
-                {
-                    var halves = parts[i].split("=");
-                    if ( halves.length==2 )
-                        params[halves[0]] = halves[1];
-                }
-            }
+            var params = self.getPreviewImageParams();
             var copy = "/corpix/"+params['docid']+params['url'];
             window.prompt("Copy link: Ctrl/Cmd + C, Enter", copy);
             return false;
+        });
+        jQuery("#delete_button").click(function(){
+            jQuery("#userdata").val(self.encrypted);
+            var params = self.getPreviewImageParams();
+            params.userdata = jQuery("#userdata").val();
+            jQuery.post("/corpixmgr/delete",params,
+                function( res, status, jqXHR )
+                {
+                    if ( !res.success )
+                        alert( res.message );
+                    else
+                    {
+                        var name = self.getFileName(params['url']);
+                        self.deleteFile(name);
+                        jQuery("#preview").empty();
+                    }
+                }
+            );
+        });
+        jQuery("#fileUpload").change(function(){
+            jQuery("#userdata").val(self.encrypted);
+            jQuery("#corpix-wrapper").trigger('submit');
+            var intervalid = setInterval(function(){
+                var html = jQuery('#myiframe').contents().find("html");
+                var pre = html.find("pre");
+                if ( pre.text().length > 0)
+                {
+                    var jObj = JSON.parse( pre.text() );
+                    if ( !jObj.success )
+                        alert(jObj.message);
+                    else
+                    {
+                        var name = jQuery("#fileUpload").val();
+                        self.insertFile(name);
+                    }
+                    clearInterval(intervalid);
+                }
+            },1000);
+        });
+        jQuery("#add_button").click(function(){
+            jQuery("#fileUpload").trigger('click');
         });
     };
     /**
@@ -194,31 +327,97 @@ function CorpixManager( target, projid )
      * Build the HTML of this form and append it to the target div
      */
     this.buildHtml = function() {
-        var html = '<form id="corpix-wrapper" method="POST" action="/corpixmgr/">';
-        html += '<div id="corpix-lhs"><table id="corpix-toolbar"><tr><td>';
-        html += '<span class="prompt">Project:</span>';
-        html += '<select id="project"></select>';
-        html += '<input type="button" id="add_button" value="add"></input>';
-        html += '<input type="button" id="delete_button" value="delete"></input>';
-        html += '<input id="url_button" type="button" value="copy" disabled title="copy location">';
-        html += '</input></tr></td></table>';
-        html += '<div id="filelist-wrapper"><div id="corpix-filelist"></div></div></div>';
-        html += '<div id="corpix-rhs"><div id="preview"></div></div>';
-        html += '<input type="hidden" id="subpath" name="subpath"></input>';
-        html += '</form>';        
-        jQuery("#"+this.target).empty();
-        jQuery("#"+this.target).append(html);
-        this.createButtonHandlers();
+        if ( this.isEditor() )
+        {
+            var html = '<form id="corpix-wrapper" enctype="multipart/form-data" ';
+            html += 'method="POST" target="myiframe" action="/corpixmgr/add">';
+            html += '<div id="corpix-lhs"><table id="corpix-toolbar"><tr><td>';
+            html += '<span class="prompt">Project:</span>';
+            html += '<select name="docid" id="project"></select>';
+            html += '<input type="button" id="add_button" value="add"></input>';
+            html += '<input type="button" id="delete_button" disabled value="delete"></input>';
+            html += '<input id="url_button" type="button" value="copy" disabled title="copy location">';
+            html += '</input><input type="file" style="display:none" name="fileupload" '
+            html += 'id="fileUpload"></input></tr></td></table>';
+            html += '<div id="filelist-wrapper"><div id="corpix-filelist"></div></div></div>';
+            html += '<div id="corpix-rhs"><div id="preview"></div></div>';
+            html += '<input type="hidden" id="subpath" name="subpath"></input>';
+            html += '<input type="hidden" id="userdata" name="userdata"></input>';
+            html += '</form><iframe id="myiframe" name="myiframe"></iframe>';        
+            jQuery("#"+this.target).empty();
+            jQuery("#"+this.target).append(html);
+            this.createButtonHandlers();
+            return true;
+        }
+        else
+        {
+            var html = '<p class="error">You are not logged in</p>';
+            jQuery("#"+this.target).empty();
+            jQuery("#"+this.target).append(html);
+            jQuery("#"+this.target).css("visibility","visible");
+            return false;
+        }
     };
-    // set the ball rolling
 
-    this.buildHtml(projid);
-    this.scaleBoxes();
-    this.loadProjectList();
-    jQuery("#project").val(projid);
-    jQuery("#subpath").val("/");
+    // set the ball rolling
+    if ( this.buildHtml() )
+    {
+        this.scaleBoxes();
+        this.loadProjectList();
+        jQuery("#subpath").val("/");
+    }
+}
+/**
+ * This reads the "arguments" to the javascript file
+ * @param scrName the name of the script file minus ".js"
+ */
+function getCorpixMgrArgs( scrName )
+{
+    var params = new Object ();
+    var module_params = jQuery("#corpixmgr_params").val();
+    if ( module_params != undefined && module_params.length>0 )
+    {
+        var parts = module_params.split("&");
+        for ( var i=0;i<parts.length;i++ )
+        {
+            var halves = parts[i].split("=");
+            if ( halves.length==2 )
+                params[halves[0]] = halves[1];
+        }
+    }
+    else
+    {
+        var scripts = jQuery("script");
+        scripts.each( function(i) {
+            var src = jQuery(this).attr("src");
+            if ( src != undefined && src.indexOf(scrName) != -1 )
+            {
+                var qStr = src.replace(/^[^\?]+\??/,'');
+                if ( qStr )
+                {
+                    var pairs = qStr.split(/[;&]/);
+                    for ( var i = 0; i < pairs.length; i++ )
+                    {
+                        var index = pairs[i].indexOf("=");
+                        if ( index != -1 )
+                        {
+                            var keyVal = pairs[i].substring(0,index);
+                            var key = unescape( keyVal );
+                            var value = pairs[i].substring(index+1);
+                            var val = unescape( value );
+                            val = val.replace(/\+/g, ' ');
+                            params[key] = val;
+                        }
+                    }
+                }
+            }
+            return params;
+        });
+    }
+    return params;
 }
 jQuery(document).ready(function(){
-   var cm = new CorpixManager("content","english/harpur");
+    var params = getCorpixMgrArgs('corpixmgr');
+    var cm = new CorpixManager(params['target'],params['udata']);
 });
 
