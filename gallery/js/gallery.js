@@ -1,4 +1,4 @@
-function CorpixManager( target, udata )
+function Gallery( target, udata )
 {
     var self = this;
     this.target = target;
@@ -44,20 +44,23 @@ function CorpixManager( target, udata )
              || name.lastIndexOf(".tif")==term);
 
     };
+    /**
+     * Get the list of files from the server 
+     */
     this.loadFileList = function() {
         var url = "/corpixmgr/list?docid="+jQuery("#project").val();
         url += "&subpath="+jQuery("#subpath").val();
         jQuery.get(url,function(data){
-            var html = '<ul id="corpix-files">';
+            var html = '<ul id="gallery-files">';
             for ( var i=0;i<data.length;i++ )
             {
                 html += '<li>';
                 if ( 'isdir' in data[i] && data[i].isdir )
                     html += '<i class="fa fa-lg fa-folder-o"></i> ';
+                if ( 'isalias' in data[i] && data[i].isalias )
+                    html += '<i class="alias fa fa-lg fa-file-o"></i> ';
                 else if ( self.isImage(data[i].name) )
                     html += '<i class="fa fa-lg fa-file-image-o"></i> ';
-                else
-                    html += '<i class="fa fa-lg fa-file-o"></i> ';
                 if ( data[i].name == ".." )
                     html += ".. <em>up a level</em>";
                 else
@@ -65,11 +68,12 @@ function CorpixManager( target, udata )
                 html == '</li>';
             }
             html += '</ul>';
-            jQuery("#corpix-filelist").empty();
-            jQuery("#corpix-filelist").append(html);
+            jQuery("#gallery-filelist").empty();
+            jQuery("#gallery-filelist").append(html);
             self.updateFileHandlers();
             jQuery("#url_button").attr('disabled',true);
             jQuery("#delete_button").attr('disabled',true);
+            jQuery("#alias_button").attr('disabled',true);
         });
     };
     /**
@@ -118,11 +122,20 @@ function CorpixManager( target, udata )
             var url = "/corpixmgr/metadata?docid="+jQuery("#project").val()+"&url="+path;
             jQuery.get(url,function(data){
                 var metadata = '<div id="metadata">';
-                metadata += '<span class="label">height: </span>'+data.height;
-                metadata += '; <span class="label">width: </span>'+data.width+'<br>';
-                metadata += '<span class="label">image type: </span>'+data.type+'<br>';
-                metadata += '<span class="label">compression: </span>'+data.compression+'%<br>';
-                metadata += '<span class="label">size: </span>'+Math.round(data.size/1024)+'K</div>';
+                if ( 'isalias' in data && "link" in data )
+                {
+                    metadata += '<span class="label">type: </span>alias';
+                    metadata += '; <span class="label">links to: </span>'+data.link;
+                }
+                else
+                {
+                    metadata += '<span class="label">height: </span>'+data.height;
+                    metadata += '; <span class="label">width: </span>'+data.width+'<br>';
+                    metadata += '<span class="label">image type: </span>'+data.type+'<br>';
+                    metadata += '<span class="label">compression: </span>'+data.compression+'%<br>';
+                    metadata += '<span class="label">size: </span>'+Math.round(data.size/1024)+'K';
+                }
+                metadata += '</div>';
                 jQuery("#preview").append(metadata);
             });
         }
@@ -163,21 +176,22 @@ function CorpixManager( target, udata )
      */
     this.deleteFile = function(name){
         var delendum = -1;
-        jQuery("#corpix-filelist li").each(function(i){
+        jQuery("#gallery-filelist li").each(function(i){
             var item = jQuery(this).text();
             if ( item != undefined && item.length> 0 && item.trim() == name )
                 delendum = i;
         });
         if ( delendum != -1 )
-            jQuery('#corpix-filelist li:eq('+delendum+')').remove();
+            jQuery('#gallery-filelist li:eq('+delendum+')').remove();
     };
     /**
      * Add a file to the sorted list in order
      * @param name the name of the file to add
+     * @param alias true if this is an alias
      */
-    this.insertFile = function(name){
+    this.insertFile = function(name,alias){
         var insertPos = 0;
-        jQuery("#corpix-filelist li").each(function(i){
+        jQuery("#gallery-filelist li").each(function(i){
             var item = jQuery(this).text();
             if ( item != undefined && item.length> 0 && item.trim() >= name )
                 if ( insertPos == 0 )
@@ -186,20 +200,22 @@ function CorpixManager( target, udata )
         var li = '<li>';
         if ( self.isImage(name) )
             li += '<i class="fa fa-lg fa-file-image-o"></i> ';
+        else if ( alias )
+            li += '<i class="alias fa fa-lg fa-file-o"></i> ';
         else
             li += '<i class="fa fa-lg fa-file-o"></i> ';
         li += name;
         li += '</li>';
-        jQuery('#corpix-filelist li:eq('+insertPos+')').before(li);
+        jQuery('#gallery-filelist li:eq('+insertPos+')').before(li);
         this.updateFileHandlers();
     };
     /**
      * Set up the event handlers
      */
     this.updateFileHandlers = function() {
-        jQuery("#corpix-files li").off("dblclick");
+        jQuery("#gallery-files li").off("dblclick");
         // double-click handler
-        jQuery("#corpix-files li").dblclick(function(){
+        jQuery("#gallery-files li").dblclick(function(){
             var text = jQuery(this).text().trim();
             if ( text.length>1&&text.substring(0,2) == ".." )
             {
@@ -230,13 +246,13 @@ function CorpixManager( target, udata )
             self.loadFileList();
         });
         // single click handler (NB also fires on dblclick)
-        jQuery("#corpix-files li").off('click');
-        jQuery("#corpix-files li").click(function(){
+        jQuery("#gallery-files li").off('click');
+        jQuery("#gallery-files li").click(function(){
             var name = jQuery(this).text().trim();
-            if ( self.isImage(name) )
+            if ( self.isImage(name) || jQuery(this).find("i").hasClass("alias") )
             {
-                var width = Math.round((jQuery("#corpix-rhs").width()*9)/10);
-                var height = Math.round((jQuery("#corpix-rhs").height()*8)/10);
+                var width = Math.round((jQuery("#gallery-rhs").width()*9)/10);
+                var height = Math.round((jQuery("#gallery-rhs").height()*8)/10);
                 var preview = jQuery("#preview");
                 preview.empty();
                 var url = "/corpixmgr/thumbnail?docid="+jQuery("#project").val();
@@ -244,11 +260,32 @@ function CorpixManager( target, udata )
                 url += "&maxwidth="+width;
                 url += "&maxheight="+height;
                 //console.log("width="+width+" height="+height);
-                preview.append('<img src="'+url+'">');
+                preview.append('<a href="#" id="enlarge"><img src="'+url+'"></a>');
                 self.getMetadata(name);
                 jQuery("#url_button").attr('disabled',false);
                 jQuery("#delete_button").attr('disabled',false);
+                if ( self.isImage(name) )
+                    jQuery("#alias_button").attr('disabled',false);
+                else
+                    jQuery("#alias_button").attr('disabled',true);
+                jQuery("#enlarge").click(function(){
+                    var wrapper = jQuery("#gallery-wrapper");
+                    self.oldWrapperDisplay = wrapper.css("display");
+                    wrapper.css("display","none");
+                    var big = jQuery("#big_preview");
+                    big.css("display","block");
+                    var src = "/corpix/"+jQuery("#project").val()+jQuery("#subpath").val()+"/"+name;
+                    big.append('<div id="big_wrapper">'
+                    +'<img title="click to remove" id="big_picture" src="'+src+'"></div>');
+                    jQuery("#big_picture").click(function(){
+                        jQuery("#gallery-wrapper").css("display",self.oldWrapperDisplay);
+                        jQuery("#big_preview").css("display","none");
+                        big.empty();
+                    });
+                });
             }
+            else
+                jQuery("#alias_button").attr('disabled',true);
         });
     };
     /**
@@ -282,7 +319,7 @@ function CorpixManager( target, udata )
         });
         jQuery("#fileUpload").change(function(){
             jQuery("#userdata").val(self.encrypted);
-            jQuery("#corpix-wrapper").trigger('submit');
+            jQuery("#gallery-wrapper").trigger('submit');
             var intervalid = setInterval(function(){
                 var html = jQuery('#myiframe').contents().find("html");
                 var pre = html.find("pre");
@@ -294,7 +331,7 @@ function CorpixManager( target, udata )
                     else
                     {
                         var name = jQuery("#fileUpload").val();
-                        self.insertFile(name);
+                        self.insertFile(name,false);
                     }
                     clearInterval(intervalid);
                 }
@@ -303,25 +340,44 @@ function CorpixManager( target, udata )
         jQuery("#add_button").click(function(){
             jQuery("#fileUpload").trigger('click');
         });
+        jQuery("#alias_button").click(function(){
+            var name = prompt("Enter the alias name");
+            if ( name != null )
+            {
+                jQuery("#userdata").val(self.encrypted);
+                var params = self.getPreviewImageParams();
+                params.alias = name;
+                params.userdata = jQuery("#userdata").val();
+                jQuery.post("/corpixmgr/alias",params,
+                    function( res, status, jqXHR )
+                    {
+                        if ( !res.success )
+                            alert( res.message );
+                        else
+                            self.insertFile(name,true);
+                    }
+                );
+            }
+        });
     };
     /**
      * Scale the various boxes of the display
      */
     this.scaleBoxes = function() {
-        var ht = jQuery(window).height()-jQuery("#corpix-wrapper").offset().top;
-        var parent = jQuery("#corpix-wrapper").parent();
+        var ht = jQuery(window).height()-jQuery("#gallery-wrapper").offset().top;
+        var parent = jQuery("#gallery-wrapper").parent();
         var bot = this.cssValue(parent,"margin-bottom");
         var top = this.cssValue(parent,"margin-top");
         var wrHt = ht-(top+bot);
-        var lhsWd = jQuery("#corpix-lhs").outerWidth();
-        var wrWd = jQuery("#corpix-wrapper").outerWidth();
-        jQuery("#corpix-wrapper").height(wrHt);
-        jQuery("#corpix-lhs").outerWidth(jQuery("#corpix-lhs").width());
-        var tbHt = jQuery("#corpix-toolbar").height();
+        var lhsWd = jQuery("#gallery-lhs").outerWidth();
+        var wrWd = jQuery("#gallery-wrapper").outerWidth();
+        jQuery("#gallery-wrapper").height(wrHt);
+        jQuery("#gallery-lhs").outerWidth(jQuery("#gallery-lhs").width());
+        var tbHt = jQuery("#gallery-toolbar").height();
         jQuery("#filelist-wrapper").height(wrHt-tbHt);
-        jQuery("#corpix-rhs").innerHeight(wrHt+1);
-        jQuery("#corpix-rhs").outerWidth(wrWd-lhsWd);
-        jQuery("#corpix-toolbar").innerWidth(jQuery("#corpix-toolbar").width());
+        jQuery("#gallery-rhs").innerHeight(wrHt+1);
+        jQuery("#gallery-rhs").outerWidth(wrWd-lhsWd);
+        jQuery("#gallery-toolbar").innerWidth(jQuery("#gallery-toolbar").width());
     };
     /**
      * Build the HTML of this form and append it to the target div
@@ -329,21 +385,25 @@ function CorpixManager( target, udata )
     this.buildHtml = function() {
         if ( this.isEditor() )
         {
-            var html = '<form id="corpix-wrapper" enctype="multipart/form-data" ';
+            var html = '<form id="gallery-wrapper" enctype="multipart/form-data" ';
             html += 'method="POST" target="myiframe" action="/corpixmgr/add">';
-            html += '<div id="corpix-lhs"><table id="corpix-toolbar"><tr><td>';
+            html += '<div id="gallery-lhs"><table id="gallery-toolbar"><tr><td>';
             html += '<span class="prompt">Project:</span>';
             html += '<select name="docid" id="project"></select>';
             html += '<input type="button" id="add_button" value="add"></input>';
             html += '<input type="button" id="delete_button" disabled value="delete"></input>';
             html += '<input id="url_button" type="button" value="copy" disabled title="copy location">';
-            html += '</input><input type="file" style="display:none" name="fileupload" '
+            html += '</input><input type="button" disabled id="alias_button" value="alias"></input>';
+            html += '<input type="file" style="display:none" name="fileupload" '
             html += 'id="fileUpload"></input></tr></td></table>';
-            html += '<div id="filelist-wrapper"><div id="corpix-filelist"></div></div></div>';
-            html += '<div id="corpix-rhs"><div id="preview"></div></div>';
+            html += '<div id="filelist-wrapper"><div id="gallery-filelist"></div></div></div>';
+            html += '<div id="gallery-rhs"><div id="preview"></div></div>';
             html += '<input type="hidden" id="subpath" name="subpath"></input>';
+            // for user credentials verification
             html += '<input type="hidden" id="userdata" name="userdata"></input>';
-            html += '</form><iframe id="myiframe" name="myiframe"></iframe>';        
+            // hidden iframe to receive output of file upload
+            html += '</form><div id="big_preview"></div>';
+            html += '<iframe id="myiframe" name="myiframe"></iframe>';        
             jQuery("#"+this.target).empty();
             jQuery("#"+this.target).append(html);
             this.createButtonHandlers();
@@ -371,10 +431,10 @@ function CorpixManager( target, udata )
  * This reads the "arguments" to the javascript file
  * @param scrName the name of the script file minus ".js"
  */
-function getCorpixMgrArgs( scrName )
+function getgalleryArgs( scrName )
 {
     var params = new Object ();
-    var module_params = jQuery("#corpixmgr_params").val();
+    var module_params = jQuery("#gallery_params").val();
     if ( module_params != undefined && module_params.length>0 )
     {
         var parts = module_params.split("&");
@@ -417,7 +477,7 @@ function getCorpixMgrArgs( scrName )
     return params;
 }
 jQuery(document).ready(function(){
-    var params = getCorpixMgrArgs('corpixmgr');
-    var cm = new CorpixManager(params['target'],params['udata']);
+    var params = getgalleryArgs('gallery');
+    var cm = new Gallery(params['target'],params['udata']);
 });
 

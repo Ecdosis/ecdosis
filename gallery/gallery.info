@@ -1,6 +1,6 @@
-name = corpixmgr
+name = gallery
 description = Manage a Corpix collection of images
 core = 7.x
-configure = admin/config/content/corpixmgr
+configure = admin/config/content/gallery
 
 

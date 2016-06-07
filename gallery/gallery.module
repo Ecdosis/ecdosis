@@ -1,10 +1,10 @@
 <?php
-function corpixmgr_preprocess_page(&$vars)
+function gallery_preprocess_page(&$vars)
 {
-    if ( strpos(request_uri(),"corpixmgr") )
+    if ( strpos(request_uri(),"gallery") )
     {
-        drupal_add_css(drupal_get_path('module','corpixmgr').'/css/corpixmgr.css','file');
-        drupal_add_css(drupal_get_path('module','corpixmgr').'/css/font-awesome.min.css','file');
+        drupal_add_css(drupal_get_path('module','gallery').'/css/gallery.css','file');
+        drupal_add_css(drupal_get_path('module','gallery').'/css/font-awesome.min.css','file');
     }
 }
 /**
@@ -53,7 +53,7 @@ function corpix_scramble( $text )
         $deciphered .= $enciphered[$i] ^ $key[$i%$klen];*/
     return $b64;
 }
-function build_corpixmgr_args()
+function build_gallery_args()
 {
     $args = "";
     if ( array_key_exists ("target", $_GET) )
@@ -64,30 +64,30 @@ function build_corpixmgr_args()
     //print_r($args);
     return $args;
 }
-function corpixmgr_block_info() {
-  $blocks['corpixmgr'] = array(
+function gallery_block_info() {
+  $blocks['gallery'] = array(
     'info' => t('Manage a corpix collection of images'),
     'cache' => DRUPAL_CACHE_PER_ROLE,
   );
   return $blocks;
 }
-function corpixmgr_help($path, $arg) {
+function gallery_help($path, $arg) {
     switch ($path)
     {
-        case "admin/help#corpixmgr":
+        case "admin/help#gallery":
             return '<p>' .
                 t("Manage a corpix collection of images")
                 . '</p>';
             break;
     }
 }
-function corpixmgr_block_view($delta = '') {
+function gallery_block_view($delta = '') {
   switch ($delta) {
-    case 'corpixmgr':
-      $args = build_corpixmgr_args();
-      $mod_path = drupal_get_path('module', 'corpixmgr');
+    case 'gallery':
+      $args = build_gallery_args();
+      $mod_path = drupal_get_path('module', 'gallery');
       $block['content'] = '<script type="text/javascript" src="'.$mod_path
-          .'/js/corpixmgr.js?'.$args.'"></script>';
+          .'/js/gallery.js?'.$args.'"></script>';
       return $block;
   }
 }
