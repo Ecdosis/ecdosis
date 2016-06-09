@@ -29,3 +29,4 @@ iframe {display:none}
 #big_picture {width:100%}
 #big_picture:hover {cursor:pointer}
 #back_button {margin:0.3em}
+.secret {visibility:hidden}

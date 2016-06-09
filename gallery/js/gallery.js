@@ -213,11 +213,11 @@ function Gallery( target, udata )
      * Set up the event handlers
      */
     this.updateFileHandlers = function() {
-        jQuery("#gallery-files li").off("dblclick");
-        // double-click handler
-        jQuery("#gallery-files li").dblclick(function(){
-            var text = jQuery(this).text().trim();
-            if ( text.length>1&&text.substring(0,2) == ".." )
+        // single click handler (NB also fires on dblclick)
+        jQuery("#gallery-files li").off('click');
+        jQuery("#gallery-files li").click(function(){
+            var name = jQuery(this).text().trim();
+            if ( name.length>1&&name.substring(0,2) == ".." )
             {
                 var sp = jQuery("#subpath").val();
                 var parts = sp.split("/");
@@ -230,26 +230,22 @@ function Gallery( target, udata )
                     newPath = "/";
                 jQuery("#subpath").val(newPath);
                 jQuery("#preview").empty();
+                self.loadFileList();
             }
             else if ( self.isDirectory(jQuery(this)) )
             {
                 var old = jQuery("#subpath").val();
                 var parts = old.split("/");
-                if ( parts.length==0 || parts[parts.length-1] != text )
+                if ( parts.length==0 || parts[parts.length-1] != name )
                 {
                     if ( jQuery("#subpath").val() == "/" )
-                        jQuery("#subpath").val(old+text);
+                        jQuery("#subpath").val(old+name);
                     else
-                        jQuery("#subpath").val(old+"/"+text);
+                        jQuery("#subpath").val(old+"/"+name);
                 }
+                self.loadFileList();
             }
-            self.loadFileList();
-        });
-        // single click handler (NB also fires on dblclick)
-        jQuery("#gallery-files li").off('click');
-        jQuery("#gallery-files li").click(function(){
-            var name = jQuery(this).text().trim();
-            if ( self.isImage(name) || jQuery(this).find("i").hasClass("alias") )
+            else if ( self.isImage(name) || jQuery(this).find("i").hasClass("alias") )
             {
                 var width = Math.round((jQuery("#gallery-rhs").width()*9)/10);
                 var height = Math.round((jQuery("#gallery-rhs").height()*8)/10);
@@ -289,6 +285,26 @@ function Gallery( target, udata )
         });
     };
     /**
+     * Copy text to clipboard. Tricky this!
+     */
+    this.copyText = function( text ) {
+        var textField = document.createElement('input');
+        textField.setAttribute("type","text");
+        textField.value = text;
+        document.body.appendChild(textField);
+        textField.select();
+        try {
+            if ( !document.execCommand('copy') )
+            {
+                window.prompt("Auto copy failed. Please copy this manually",text);
+            }
+            textField.parentNode.removeChild(textField);
+        }
+        catch (err) {
+            alert(err+': copy not supported. Upgrade browser.');
+        }
+    };
+    /**
      * Create handlers for the buttons on the toolbar
      */
     this.createButtonHandlers = function(){
@@ -296,8 +312,7 @@ function Gallery( target, udata )
         jQuery("#url_button").click(function(e){
             var params = self.getPreviewImageParams();
             var copy = "/corpix/"+params['docid']+params['url'];
-            window.prompt("Copy link: Ctrl/Cmd + C, Enter", copy);
-            return false;
+            self.copyText(copy);
         });
         jQuery("#delete_button").click(function(){
             jQuery("#userdata").val(self.encrypted);
