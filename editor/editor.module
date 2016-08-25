@@ -1,0 +1,50 @@
+<?php
+function editor_preprocess_page(&$vars)
+{
+    if ( strpos(request_uri(),"editor") || strpos(request_uri(),"editing") )
+    {
+        drupal_add_css(drupal_get_path('module','editor').'/css/editor.css','file');
+        drupal_add_css(drupal_get_path('module','editor').'/css/font-awesome.min.css','file');  
+        drupal_add_js(drupal_get_path('module','editor').'/js/formatter.js','file');  
+    }
+}
+function build_editor_args()
+{
+    $args = "";
+    if ( array_key_exists ("docid", $_GET) )
+        $args .= '&docid='.$_GET["docid"];
+    if ( array_key_exists ("target", $_GET) )
+        $args .= '&target='.$_GET["target"];
+    if ( strpos($args,'&')==0 )
+        $args = substr($args,1);
+    return $args;
+}
+function editor_block_info() {
+    $blocks['editor'] = array(
+      'info' => t('Edit MML documents'),
+      'cache' => DRUPAL_CACHE_PER_ROLE,
+    );
+    return $blocks;
+}
+function editor_help($path, $arg) {
+    switch ($path)
+    {
+        case "admin/help#editor":
+            return '<p>' .
+                t("Edit MML documents")
+                . '</p>';
+            break;
+    }
+}
+function editor_block_view($delta = '') {
+  switch ($delta) {
+    case 'tree':
+      $args = build_editor_args();
+      $mod_path = drupal_get_path('module', 'editor');
+      $block['content'] = '<script type="text/javascript" src="'.$mod_path
+          .'/js/editor.js?'.$args.'"></script>';
+      return $block;
+  }
+}
+
+

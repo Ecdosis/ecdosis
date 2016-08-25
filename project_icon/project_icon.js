@@ -107,7 +107,7 @@ function project_icon(target,editor,owner)
         else
             html += window.location.hostname+'/project/view';
         html += '?docid='+jdoc.docid+'">\n'
-        +'<img src="http://'+window.location.hostname+'/mml/corpix/'+this.shorten(jdoc.docid)+'/project/icon"'
+        +'<img src="http://'+window.location.hostname+'/corpix/'+this.shorten(jdoc.docid)+'/project/icon"'
         +' title="'+jdoc.description+'"></a>\n<p>'+jdoc.description+'</p></div>';
         return html;
     };

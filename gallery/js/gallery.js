@@ -290,18 +290,19 @@ function Gallery( target, udata )
     this.copyText = function( text ) {
         var textField = document.createElement('input');
         textField.setAttribute("type","text");
+        textField.setAttribute("class","secret");
         textField.value = text;
         document.body.appendChild(textField);
         textField.select();
         try {
             if ( !document.execCommand('copy') )
             {
-                window.prompt("Auto copy failed. Please copy this manually",text);
+                window.prompt("Auto copy failed. Please copy the url manually",text);
             }
             textField.parentNode.removeChild(textField);
         }
         catch (err) {
-            alert(err+': copy not supported. Upgrade browser.');
+            window.prompt("Auto copy failed. Please copy the url manually",text);
         }
     };
     /**

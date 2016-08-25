@@ -1,0 +1,23 @@
+body {padding:0;margin:0}
+img {width:100%}
+body {overflow:hidden}
+#wrapper {width:100%;overflow:hidden;position:relative}
+#sides {height:100%;position:relative}
+#lhs {float:left;position:relative}
+#rhs {float:right;height:100%;}
+#sides {float:left;position:relative}
+#toolbar {padding:0;margin:0;border-right:1px solid black;list-style-type:none;height:100%;width:2em;right:0;position:absolute;top:0;background-color:white;z-index:1}
+#toolbar li {background-color: lightgrey;border-left:1px solid black;text-align:center;padding-top:0.2em;padding-bottom:0.2em;border-bottom:1px solid black}
+#toolbar li:hover {cursor:pointer}
+#toolbar li:first-child {border-top:1px solid black}
+.editbox-active,.editbox-inactive {margin:0;padding-left:1em;padding-right:0;width:100%;border:0;overflow:auto;position:relative}
+.editbox-active {display:block}
+.editbox-inactive {display:none}
+#tabs {height:2em}
+#tabs table {margin: 0;}
+.empty-tab {max-width:50%;border-right:1px solid black;border-bottom:1px solid black;opacity:0}
+.active-tab {background-color:white;max-width:50%;border-top:1px solid black;border-right:1px solid black}
+.inactive-tab, #plus-tab {max-width:50%;border-top:1px solid black;border-right:1px solid black;border-bottom:1px solid black;}
+#plus-tab {width:1em;text-align:center}
+#plus-tab:hover {cursor:pointer;background-color:lightblue}
+.inactive-tab:hover {cursor:pointer;background-color:lightblue}
