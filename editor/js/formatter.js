@@ -114,47 +114,27 @@ function Link(mml,html,text,next,prev)
             &&text.substr(0,str.length)== str;
     };
     /**
-     * Is this line already marked up as a milestone?
-     * @param mss the self of milestones from the dialect
-     * @return the milestone object or false
+     * Is this line marked up as a lineformat?
+     * @param lfs the self of lineformats from the dialect
+     * @return the lineformat object or false
      */
-    this.isMilestone = function(mss) {
-        // check if html is set fore and aft
-        if ( this.html.length>0 && this.next.html.length>0 )
+    this.isLineformat = function(lfs) {
+        var trimLR = this.text.trim();
+        // trim just trailing whitespace
+        var i = this.text.length-1;
+        var trimL = this.text;
+        while ( i>=0 && (trimL[i] == ' ' || trimL[i] == '\t') )
+            i--; 
+        trimL = trimL.substring(0,i+1);
+        for ( var i=0;i<lfs.length;i++ )
         {
-            var index = this.html.indexOf('class=');
-            if ( this.html.startsWith('<span ') 
-                && index!=-1
-                && this.next.html.startsWith("</span>") )
+            var lf = lfs[i];
+            if ( this.endsWith(trimLR,lf.rightTag) 
+                && (this.startsWith(trimL,lf.leftTag)  
+                || this.startsWith(trimLR,lf.leftTag)) )
             {
-                var tail = this.html.substr(index);
-                index = tail.indexOf('"');
-                if ( index!= -1 )
-                {
-                    var prop = tail.substr(index+1);
-                    index = prop.indexOf('"');
-                    if ( index != -1 )
-                    {
-                        prop = prop.substr(0,index);
-                        for ( var i=0;i<mss.length;i++ )
-                        {
-                            var ms = mss[i];
-                            if ( ms.prop==prop )
-                                return ms;
-                        }
-                    }
-                }
-            }
-        }
-        else
-        {
-            var text = this.text.trim();
-            for ( var i=0;i<mss.length;i++ )
-            {
-                var ms = mss[i];
-                if ( this.startsWith(text,ms.leftTag) 
-                    && this.endsWith(text,ms.rightTag) )
-                    return ms;
+                console.log("recognised "+lf.prop+" in "+trimLR);
+                return lf;
             }
         }
         return false;
@@ -176,12 +156,13 @@ function Formatter( dialect )
     this.ready = true;
     /** conversion table from mml offsets to html base text ones */
     this.mmlToHtml = undefined;
+    /** html tags defining blocks NB sorted!*/
+    this.blkTags = ["div","h1","h2","h3","h4","h5","h6","p"];
     /**
      * Build quick lookup arrays for making headings
      */
     this.buildHeadLookup = function() {
         this.heads = {};
-        this.tags = {};
         for ( var i=0;i<this.dialect.headings.length;i++ )
         {
             if ( this.dialect.headings[i].prop != undefined 
@@ -189,22 +170,8 @@ function Formatter( dialect )
             {
                 this.heads[this.dialect.headings[i].tag] 
                     = this.dialect.headings[i].prop;    
-                this.tags[this.dialect.headings[i].prop] = 'h'+(i+1);
             }
         } 
-    };
-    /**
-     * Build quick lookup arrays for dividers
-     */
-     this.buildDividerLookup = function() {
-        var divs = this.dialect.dividers;
-        this.dividers = {};
-        for ( var k=0;k<divs.length;k++ )
-        {
-            var div = divs[k];
-            if ( div.tag != undefined )
-                this.dividers[div.tag] = (div.prop!=undefined)?div.prop:div.tag;
-        }
     };
     /**
      * Build quick lookup for character formats
@@ -258,30 +225,6 @@ function Formatter( dialect )
         sb += "</td></tr>";
         sb += "</table>";
         return sb;
-    };
-    /**
-     * Process a paragraph for possible dividers
-     * @param para the paragraph to process
-     * @param end the next paragraph
-     */
-    this.processDividers = function(para,end)
-    {
-        if ( this.dialect.dividers!=undefined )
-        {
-            var line = para.next;
-            while ( line != end && line != null )
-            {
-                var tag = line.text.trim();
-                if ( tag in this.dividers )
-                {
-                    line.html = this.makeDivider( this.dividers[tag] );
-                    line.mml += line.text;
-                    line.text = "";
-                    this.formatted = true;
-                }
-                line = line.next;
-            }
-        }
     };
     /**
      * Get a curly close quote character 
@@ -447,7 +390,7 @@ function Formatter( dialect )
                 break;
         }
         var j = tag.length-1;
-        while ( j >= 0 )
+        while ( i>=0 && j >= 0 )
         {
             if ( tag[j] != text[i] )
                 break;
@@ -458,6 +401,26 @@ function Formatter( dialect )
             }
         }
         return (j==-1)?i+1:-1;
+    };
+    /**
+     * Is the given tag a HTML block tag?
+     * @param tag the html tag lowercased
+     * @return true is it is else false
+     */
+    this.isBlkTag = function( tag ) {
+        var top = 0;
+        var bot = this.blkTags.length-1;
+        while ( bot >= top )
+        {
+            var mid = Math.floor((top+bot)/2);
+            if ( tag < this.blkTags[mid] )
+                bot = mid-1;
+            else if ( tag > this.blkTags[mid] )
+                top = mid+1;
+            else
+                return true;
+        }
+        return false;
     };
     /**
      * Scan the start and end of the paragraph for defined para formats.
@@ -495,7 +458,8 @@ function Formatter( dialect )
                                 rpos = this.endPos(last.text,rtag);
                                 last.text = last.text.substr(0,rpos);
                                 last.next.prependHtml('</p>');
-                                this.formatted = true;
+                                if ( this.isBlkTag("p") )
+                                    this.formatted = true;
                                 break;
                             }
                             last = last.prev;
@@ -503,120 +467,6 @@ function Formatter( dialect )
                     }
                 }
             }
-        }
-    };
-    /**
-     * Get the quote depth of the current line
-     * @paramline the text of the line to test for leading >s
-     * @return the number of leading >s followed by spaces
-     */
-    this.quoteDepth = function( line )
-    {
-        var state = 0;
-        var depth = 0;
-        for ( var i=0;i<line.length;i++ )
-        {
-            var c = line.charAt(i);
-            switch ( state )
-            {
-                case 0: // looking for ">"
-                    if ( c=='>' )
-                    {
-                        depth++;
-                        state = 1;
-                    }
-                    else if ( c!=' '&&c!='\t' )
-                        state = -1;
-                    break;
-                case 1: // looking for obligatory space
-                    if ( c==' '||c=='\t' )
-                        state = 0;
-                    else
-                        state = -1;
-                    break;
-        
-            }
-            if ( state == -1 )
-                break;
-        }
-        return depth;
-    };
-    /**
-     * Strip the leading quotations from a link and put into mml
-     * @param line
-     */
-    this.stripQuotations = function( link )
-    {
-        var i = 0;
-        var line = link.text;
-        var c = (line.length>0)?line.charAt(0):undefined;
-        if ( this.startPos(line,">")==0 )
-        {
-            while ( i<line.length && (c=='>'||c=='\t'||c==' ') )
-            {
-                i++;
-                if ( i < line.length )
-                    c = line.charAt(i);
-            }
-        }
-        link.mml += line.substr(0,i);
-        link.text = line.slice(i);
-    };
-    /**
-     * Quotations are lines starting with "> "
-     * @param para the paragraph to scan for quotations and convert
-     * @param end the next paragraph link
-     */
-    this.processQuotations = function(para, end)
-    {
-        if ( this.dialect.quotations != undefined )
-        {
-            var old;
-            var res = "";
-            var attr = (this.dialect.quotations.prop!=undefined
-                &&this.dialect.quotations.prop.length>0)
-                ?' class="'+this.dialect.quotations.prop+'"':"";
-            var stack = new Array();
-            var line = para.next;
-            while ( line != end && line != null )
-            {
-                var depth = this.quoteDepth(line.text);
-                if ( depth > 0 )
-                {
-                    if ( this.peek(stack) != depth )
-                    {
-                        if ( stack.length==0||this.peek(stack)<depth )
-                        {
-                            for ( var j=stack.length;j<depth;j++ )
-                                line.html += "<blockquote"+attr+'>';
-                            stack.push(depth);
-                        }
-                        else if ( depth < this.peek(stack) )
-                        {
-                            old = stack.pop();
-                            while ( old != undefined && old>depth )
-                            {
-                                line.prependHtml("</blockquote>");
-                                depth = old;
-                            }
-                        }
-                    }
-                    this.stripQuotations(line);
-                    this.html += "\n";
-                }
-                line = line.next;
-            }
-            line = end.prev;
-            old = this.peek(stack);
-            while ( old != undefined && old > 0 )
-            {
-                old = stack.pop();
-                if ( old != undefined )
-                    line.prependHtml("</blockquote>");
-            }
-            if ( this.startPos(para.next.html,"<blockquote")==0 
-                && this.startPos(line.html,"</blockquote>")==0 )
-                this.formatted = true;
         }
     };
     /**
@@ -636,7 +486,7 @@ function Formatter( dialect )
         return j == line.length;
     };
     /**
-     * Process setext type headings (we don't do atx). Oh, and do milestones.
+     * Process setext type headings (we don't do atx). 
      * @param para the link whose content needs its headings processed
      * @param end the start of the next paragraph or link
      */
@@ -656,141 +506,23 @@ function Formatter( dialect )
                     // process headings
                     if ( c in this.heads && this.isHeading(line,c) )
                     {
+                        var tag = this.cssMap[this.heads[c]];
+                        if ( tag == undefined )
+                        {
+                            tag = "h1";
+                            console.log("couldn't find tag for "+this.heads[c]);
+                        }
                         var attr = ' class="'+this.heads[c]+'" title="'+this.heads[c]+'"';
-                        link.prev.html += '<'+this.tags[this.heads[c]]+attr+'>';
+                        link.prev.html += '<'+tag+attr+'>';
                         link.mml += link.text;
                         link.text = "";
-                        link.prependHtml('</'+this.tags[this.heads[c]]+'>\n');
-                        this.formatted = true; 
+                        link.prependHtml('</'+tag+'>\n');
+                        if ( this.isBlkTag(tag) )
+                            this.formatted = true;
                     }
                 }
                 link = link.next;
             }
-        }
-    };
-    /**
-     * Remove leading white space. If no such whitespace do nothing.
-     * @param link the link whose leading ws is to be removed
-     * @param level the level of the preformatting
-     * @return the leading white space
-     */
-    this.leadTrim = function(link,level)
-    {
-        var trimmed = "";
-        var line = link.text;
-        for ( var i=0;i<level;i++ )
-        {
-            if ( line.indexOf("    ")==0 )
-            {
-                line = line.substr(4);
-                trimmed += "    ";
-            }
-            else if ( line.indexOf("\t")==0)
-            {
-                line = line.substr(1);
-                trimmed += "\t";
-            }
-        }
-        link.text = line;
-        return trimmed;
-    };
-    /**
-     * Start a new level of preformatting
-     * @param level the depth of the level (greater than 0)
-     */
-    this.startPre = function( level )
-    {
-        var text = "<pre";
-        var prop = this.dialect.codeblocks[level-1].prop;
-        if ( prop != undefined && prop.length > 0 )
-            text += ' class="'+prop+'">';
-        else
-            text += '>';
-        this.formatted = true;
-        return text;
-    };
-    /**
-     * Get the indent level of this line
-     * @param line the line with some leading spaces
-     * @return the level (4 spaces or a tab == 1 level)
-     */
-    this.getLevel = function( line )
-    {
-        var level = 0;
-        var spaces = 0;
-        var j;
-        for ( j=0;j<line.length;j++ )
-        {
-            var token = line.charAt(j);
-            if ( token =='\t' )
-                level++;
-            else if ( token==' ' )
-            {
-                spaces++;
-                if ( spaces >= 4 )
-                {
-                    level++;
-                    spaces = 0;
-                }
-            }
-            else
-                break;
-        }
-        // completely blank lines are NOT indented
-        return (j==line.length)?0:level;
-    };
-    /**
-     * Look for four leading white spaces and format as pre
-     * @param para the paragraph to process
-     * @param end the next paragraph
-     */
-    this.processCodeBlocks = function( para, end )
-    {
-        if ( this.dialect.codeblocks!=undefined )
-        {
-            var level = 0;
-            var line = para.next;
-            while ( line != end && line != null )
-            {
-                var currLevel = this.getLevel(line.text);
-                if ( currLevel > level )
-                {
-                    if ( level > 0 )
-                        line.html = '</pre>';
-                    if ( currLevel <= this.dialect.codeblocks.length )
-                        line.html += this.startPre(currLevel);
-                    else // stay at current level
-                        currLevel = level;
-                }
-                else if ( currLevel < level )
-                {
-                    if ( !line.isMilestone(this.dialect.milestones) )
-                    {
-                        if ( currLevel > 0 )
-                            line.prependHtml('</pre>'+this.startPre(currLevel));
-                        else
-                            line.prependHtml('</pre>');
-                    }
-                    else    // stay where we are
-                        currLevel = level;
-                }
-                level = currLevel;
-                if ( level > 0 )
-                {
-                    if ( line.text.length>0 )
-                        line.mml += this.leadTrim(line,level);
-                    if ( !line.text.endsWith("\n") 
-                        && line.next.mml.startsWith("\n")
-                        && !line.isMilestone(this.dialect.milestones) )
-                    {
-                        line.next.mml = line.next.mml.substr(1);
-                        line.text += "\n";
-                    }
-                }
-                line = line.next;
-            }
-            if ( level > 0 )
-                end.prependHtml("</pre>\n");
         }
     };
     /**
@@ -822,27 +554,42 @@ function Formatter( dialect )
         }        
     };
     /**
-     * Process any milestones contained in the current line
-     * @param ms the milestone definition from the dialect
-     * @param link the link containing a milestone
+     * Process the line format contained in the current line
+     * @param lf the lineformat definition from the dialect
+     * @param link the link containing a lineformat
      */
-    this.processMilestones = function( ms, link ) {
+    this.processLineformat = function( lf, link ) {
         var line = link.text;
-        // trim leading whitespace
-        while ( line.length>0&&(line.charAt(0)==' '
-            ||line.charAt(0)=='\t') )
-        {
-            link.mml += line.charAt(0);
-            line = line.substr(1);
-        }
-        var endPos = this.endPos(line,ms.rightTag);
-        var startPos = this.startPos(line,ms.leftTag);
-        var ref = line.slice(ms.leftTag.length,endPos);
-        link.mml += line.slice(0,startPos+ms.leftTag.length);
-        link.next.prependMml(line.substr(endPos));
-        link.text = ref;
-        link.html += '<span class="'+ms.prop+'">';
-        link.next.prependHtml('</span>');
+        var start = this.startPos(line,lf.leftTag);
+        if ( start > 0 )
+            link.mml += line.substr(0,start+lf.leftTag.length);
+        var end = this.endPos(line,lf.rightTag);
+        link.text = line.slice(start+lf.leftTag.length,end);
+    };
+    /**
+     * Close a previously open tag
+     * @param line the line link object
+     * @param lf the line format
+     */
+    this.terminateTag = function( line, lf ) {
+        var tag = this.cssMap[lf.prop];
+        if ( this.isBlkTag(tag) )
+            this.formatted = true;
+        line.prependHtml('</'+tag+'>');
+        line.prependMml(lf.rightTag);
+    };
+    /**
+     * Close a previously open tag
+     * @param line the line link object
+     * @param lf the line format
+     */
+    this.commenceTag = function( line, lf ) {
+        var tag = this.cssMap[lf.prop];
+        if ( this.isBlkTag(tag) )
+            this.formatted = true;
+        attr = ' class="'+lf.prop+'"';
+        line.html += '<'+tag+attr+'>';
+        line.mml += lf.leftTag;
     };
     /**
      * Turn a paragraph into a linked list of lines
@@ -850,34 +597,36 @@ function Formatter( dialect )
      * @param end the next paragraph link
      */
     this.processLines = function( para, end ) {
-        var mss = this.dialect.milestones;
+        var lfs = this.dialect.lineformats;
         var lines = para.text.split("\n");
-        if ( lines.length > 0 )
+        if ( lines.length > 0 && lfs != undefined )
         {
-            var line = new Link("","",lines[0]+"\n",null,para);
-            //console.log(this.num_lines+" "+lines[0]);
-            para.next = line;
+            var prev = para;
+            var plf = null; // previous lf
             para.text = "";
-            for ( var i=1;i<lines.length;i++ )
+            for ( var i=0;i<lines.length;i++ )
             {
                 this.num_lines++;
-                var prev = line;
-                //console.log(this.num_lines+" "+lines[i]);
-                // restore removed LF
-                var text;
-                if ( i==lines.length-1 )
-                    text = lines[i];
-                else
-                    text = lines[i]+"\n";
-                line = new Link("","",text,null,prev);
+                var text=(i==lines.length-1)?lines[i]:lines[i]+"\n";
+                var line = new Link("","",text,null,prev);
+                var lf=line.isLineformat(lfs);
+                if ( plf != null )
+                {
+                    this.terminateTag(line,plf);
+                    plf = null;
+                }
+                if ( lf )
+                {
+                    this.processLineformat(lf,line);
+                    this.commenceTag(line,lf);
+                    plf = lf;
+                }
                 prev.next = line;
-                if ( mss != undefined && (ms=prev.isMilestone(mss)) )
-                    this.processMilestones(ms,prev); 
+                prev = line;
             }
+            if ( plf != null )
+                this.terminateTag(end,plf);
             line.next = end;
-            if ( mss != undefined && (ms=line.isMilestone(mss)) )
-                this.processMilestones(ms,line); 
-            end.prev = line;
         }
     };
     /**
@@ -890,19 +639,19 @@ function Formatter( dialect )
         this.formatted = false;
         this.processLines(para,end);
         this.processSmartQuotes(para,end);
-        this.processCodeBlocks(para,end);
         this.processHeadings(para,end);
-        this.processQuotations(para,end);
         this.processPfmts(para,end);
-        this.processDividers(para,end);
         this.processCfmts(para,end);
+        // see if we used a block-format above
         if ( !this.formatted )
         {
+            //console.log("para not formatted");
             var attr = (this.dialect.paragraph!=undefined
                 &&this.dialect.paragraph.prop!=undefined
                 &&this.dialect.paragraph.prop.length>0)
                 ?' class="'+this.dialect.paragraph.prop+'" title="'
                 +this.dialect.paragraph.prop+'"':"";
+            // recompute end in case it changed
             while ( para.text.length == 0 && para.next != end 
                 && para.next != null )
                 para = para.next;
@@ -914,7 +663,7 @@ function Formatter( dialect )
     /**
      * Process all the paras in a section
      * @param section the Link containing the section
-     * @param end 00the end-section or end-marker
+     * @param end the end-section or end-marker
      */
     this.processSection = function( section, end )
     {
@@ -1011,6 +760,9 @@ function Formatter( dialect )
         array[0] = this.offset.mml;
         array[1] = this.offset.html;
     };
+    /**
+     * Debug
+     */
     this.sequence = function(t,i) {
         var arr = new Array(13);
         arr[0] = t.charCodeAt(i-6);
@@ -1108,7 +860,7 @@ function Formatter( dialect )
      * @param value the offset in the from field
      * @param from the key for value
      * @param to the corresponding field to be output
-     * @return the corresponding offset in the the to field
+     * @return the corresponding offset in the to field
      */
     this.getOffset = function(value,from,to) {
         var top = 0;
@@ -1259,6 +1011,65 @@ function Formatter( dialect )
         }
     };
     /**
+     * Sort globals by decreasing length before applying them
+     */
+    this.sortGlobals = function() {
+        var a = this.dialect.globals;
+        for (var h = a.length; h = parseInt(h / 2);) {
+            for (var i = h; i < a.length; i++) {
+                var k = a[i];
+                for (var j=i;j>=h && k.seq.length>a[j-h].seq.length; j-=h)
+                    a[j] = a[j-h];
+                a[j] = k;
+            }
+        }
+        return a;
+    };
+    /**
+     * Build a map of properties to their html tag names
+     */
+    this.buildCssMap = function(){
+        this.cssMap = {};
+        for ( var i=0;i<document.styleSheets.length;i++ )
+        {
+            var rules;
+            if ( document.styleSheets[i].cssRules )
+                rules = document.styleSheets[i].cssRules;
+            else if ( document.styleSheets[i].rules )
+                rules = document.styleSheets[i].rules;
+            for ( var j=0;j<rules.length;j++ )
+            {
+                if ( "selectorText" in rules[j] && rules[j].selectorText != undefined  
+                    && rules[j].selectorText.match(/[a-z0-9]+\.[a-z\-0-9]+/) )
+                {
+                    var index = rules[j].selectorText.indexOf("\.");
+                    var tag = rules[j].selectorText.substr(0,index);
+                    var prop = rules[j].selectorText.substr(index+1);
+                    this.cssMap[prop] = tag;
+                }
+            }
+        }
+    };
+    /**
+     * preprocess the text by swapping all the global changes
+     * @param text the text to format
+     * @return the text transformed by any globals
+     */
+    this.applyGlobals = function( text ) {
+        var rexeps = Array();
+        for ( var i=0;i<dialect.globals.length;i++ )
+            rexeps.push( new RegExp(dialect.globals[i].seq, 'g') );
+        for ( var i=0;i<this.dialect.globals.length;i++ )
+        {
+            var rep = dialect.globals[i].rep;
+            if ( text.indexOf(dialect.globals[i].seq) != -1 )
+            {
+                text = text.replace(rexeps[i], rep);
+            }
+        }
+        return text;
+    };
+    /**
      * Convert the MML text into HTML
      * @param text the MML text to convert
      * @return HTML
@@ -1269,9 +1080,11 @@ function Formatter( dialect )
         var html = "";
         var first=null;
         this.num_lines = 0;
+        this.sortGlobals();
+        text = this.applyGlobals(text);
         this.buildHeadLookup();
         this.buildCfmtLookup();
-        this.buildDividerLookup();
+        this.buildCssMap();
         var sections = text.split("\n\n\n");
         if ( sections.length > 0 )
         {

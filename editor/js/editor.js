@@ -7,7 +7,7 @@ function editor( docid, version1, target )
     this.iOffset = 0;
     this.nInterp = 4;
     this.target = target;
-    /** version to edit */
+    /** default version to edit */
     this.version1 = version1;
     var self = this;
     /**
@@ -22,7 +22,6 @@ function editor( docid, version1, target )
         box.attr("rows","2");
         var height2 = box.height();
         this.lineHeight = height2-height1;
-        //console.log("lineHeight="+this.lineHeight);
         this.ebSlop = height2-(2*this.lineHeight);
         if ( oldNRows != undefined && oldNRows != null && oldNRows.length>0 )
             box.attr("rows",oldNRows);
@@ -88,8 +87,8 @@ function editor( docid, version1, target )
      */
     this.calcTbSlop = function()
     {
-        var slop = this.getCssParam('toolbar','border-left-width');
-        slop += this.getCssParam('toolbar','border-right-width');
+        var slop = this.getCssParam('etoolbar','border-left-width');
+        slop += this.getCssParam('etoolbar','border-right-width');
         slop += this.getCssParam(this.current,'padding-left');
         slop += this.getCssParam(this.current,'padding-right');
         return slop;
@@ -100,7 +99,7 @@ function editor( docid, version1, target )
     this.recalcPageCentres = function(){
         this.getPageCentres();  
         this.editbox().scrollTop(0);
-        jQuery("#lhs").css('top',"0px"); 
+        jQuery("#imglist").css('top',"0px"); 
     };
     /**
      * Set widths on lhs and rhs
@@ -134,14 +133,14 @@ function editor( docid, version1, target )
         ebWidth -= tbSlop;
         ebWidth = Math.round(ebWidth*3/4);
         var magnifiedSize = Math.floor(12*ebWidth/maxWidth);
-        console.log("ebWidth="+ebWidth+" maxWidth="+maxWidth);
+        if ( magnifiedSize < 12 )
+        {
+            ebWidth = Math.round(eb.width()*19/20);
+            magnifiedSize = Math.floor(12*ebWidth/maxWidth);
+        }
         var newSize = magnifiedSize+"px";
-        //jQuery("#measure-text").css("font-size",newSize);
-        //var newWidth = jQuery("#measure-text").width();
-        //console.log("newWidth="+newWidth);
         jQuery("#measure-text").remove();
         eb.css("font-size",newSize);
-        console.log("newSize="+newSize);
         this.getLineHeight(this.editbox());  // NB computes this.ebSlop
         var tbHt = jQuery("#tabs").height();
         var ht = jQuery("#wrapper").height()-(this.ebSlop+tbHt);
@@ -164,7 +163,9 @@ function editor( docid, version1, target )
             var lLast = this.lCentres[this.lCentres.length-1];
             for ( var i=1;i<this.rCentres.length-1;i++ )
             {
-                if ( this.rCentres[i] > this.rCentres[0]
+                if ( this.rCentres[i] > this.rCentres[i-1]
+                    && this.lCentres[i] > this.lCentres[i-1]
+                    && this.lCentres[i] < lLast
                     && this.rCentres[i] < rLast )
                 {
                     rCopy.push(this.rCentres[i]);
@@ -180,17 +181,18 @@ function editor( docid, version1, target )
                  this.lCentres = lCopy;
                  this.rCentres = rCopy;
             }
-            //this.printArray( this.lCentres);  
-            //this.printArray( this.rCentres);
+            //this.printArray( "lCentres:",this.lCentres);  
+            //this.printArray( "rCentres:",this.rCentres);
         }
     };
     /**
      * Debug: print an array of ints
+     * @param prompt the prompt before the array
      * @param arr the array to print
      */
-    this.printArray = function( arr )
+    this.printArray = function( prompt, arr )
     {
-        var str = "(";
+        var str = prompt+" (";
         for ( var i=0;i<arr.length;i++ )
         {
             str += arr[i];
@@ -205,16 +207,14 @@ function editor( docid, version1, target )
     this.getImageCentres = function()
     {
         var lTops = Array();
-        var imgs = jQuery("#lhs img");
+        var imgs = jQuery("#imglist img");
         var top = 0;
-        var lOff = jQuery("#lhs").offset().top;
         imgs.each(function(){
-            var v;
-            top = v = Math.round(jQuery(this).offset().top-lOff);
-            lTops.push(v);
+            top = Math.round(top);
+            lTops.push(top);
+            top += parseInt(jQuery(this).attr("height"));
         });
-        var v = top+imgs.last().height();
-        lTops.push(v);
+        lTops.push(top);
         this.lCentres = Array();
         for ( var i=1;i<lTops.length;i++ )
         {
@@ -222,11 +222,11 @@ function editor( docid, version1, target )
             this.lCentres.push( Math.round(lTops[i-1]+diff/2) );
         }
         this.imageEnd = lTops[lTops.length-1];
-        // fudge first and last pages which aren't centred
-        this.lCentres[0] = jQuery("#wrapper").height()/2;
-        this.lCentres[self.lCentres.length-1] = self.imageEnd - jQuery("#wrapper").height()/2;
-        //console.log("lCentres:");
-        //this.printArray(this.lCentres);
+        // add pseudo-page centres for start and end
+        var lPanelHt = jQuery("#lhspanel").height();
+        var wHalfHt = Math.round((jQuery("#wrapper").height()-lPanelHt)/2);
+        this.lCentres.unshift( wHalfHt );
+        this.lCentres.push( this.imageEnd - wHalfHt );
     };
     /**
      * Set the height of toolbar buttons to that of the tabs
@@ -244,91 +244,179 @@ function editor( docid, version1, target )
             var btnHt = btnHeight;
             var btnPadNewTop = (tabHt-btnHt)/2;
             var btnPadNewBot = (tabHt-btnHt)-btnPadNewTop;
-            console.log("btnPadNewTop="+btnPadNewTop+" btnPadNewBot="+btnPadNewBot+" tabHt="+tabHt+" btnHt="+btnHt);
-            jQuery("#toolbar li").css("padding-top",btnPadNewTop+"px");
-            jQuery("#toolbar li").css("padding-bottom",btnPadNewBot+"px");
+            jQuery("#etoolbar li").css("padding-top",btnPadNewTop+"px");
+            jQuery("#etoolbar li").css("padding-bottom",btnPadNewBot+"px");
         }
     };
     /**
-     * Fetch the images corresponding to the page numbers in the text
-     * @param docid the document identifier with the pages in it
+     * Correlate the returned list of pages with those required by the text
+     * @param list the list of pages returned by /pages/list
+     * @return an array of page-objects corresponding to those in the text
      */
-    this.getPageImages = function(docid)
+    this.filterPages = function( list ) {
+        this.rTops = Array();
+        this.findPages();
+        this.sort(this.rTops);
+        var found = Array();
+        for ( var i=0;i<this.rTops.length;i++ )
+        {
+            var j;
+            for ( j=0;j<list.length;j++ )
+            {
+                if ( this.rTops[i].name == list[j].n )
+                    break;
+            }
+            if ( j == list.length )
+            {
+                var page = {};
+                page.n = "blank";;
+                page.src = "/corpix/blank.jpg";
+                page.width = 2921;
+                page.height = 3796;
+                found.push(page);
+            }
+            else
+            {
+                found.push(list[j]);
+            }
+        }
+        return found;
+    };
+    /**
+     * Fetch the images corresponding to the page numbers in the text
+     */
+    this.getPageImages = function()
     {
-        var url = "http://"+window.location.hostname+"/pages/list?docid="+docid;
+        var version = jQuery("#versions").val();
+        var url = "http://"+window.location.hostname+"/pages/list?docid="+this.docid+"&version1="+version+"/"+this.current;
         jQuery.get(url,function(data) {
             var html = "";
             self.setWidths();
             var maxW = jQuery("#lhs").width();
-            for ( var i=0;i<data.length;i++ )
+            var pages = self.filterPages(data);
+            for ( var i=0;i<pages.length;i++ )
             {
-                var p = data[i];
+                var p = pages[i];
                 var ratio = maxW/p.width;
                 var w = Math.round(p.width*ratio);
                 var h = Math.round(p.height*ratio);
-                html += '<img src="'+p.src+'" width="'+w
-                    +'" height="'+h+'" title="'+p.n+'" data-n="'+p.n+'">\n';
+                html += '<a class="swinxyzoom swinxyzoom-window" '
+                    +'href="'+p.src+'"><img src="'
+                    +p.src+'" width="'+w+'" height="'+h+'" title="'
+                    +p.n+'" data-n="'+p.n+'"></a>\n';
             }
-            jQuery("#lhs").append(html);
+            jQuery("#imglist").append(html);
             self.fitText();
             self.getImageCentres();
-            self.recalcPageCentres();
             jQuery("#lhs").height(jQuery("#rhs").height());
-            self.setButtonHeight();
+            jQuery("#imglistcontainer").height(jQuery("#lhs").height()-jQuery("#lhspanel").height());
+            //self.fitText();
             jQuery("#"+self.target).css("visibility","visible");
+            self.recalcPageCentres();
+            self.setButtonHeight();
             setInterval(function(){
-                //console.log("calling interval function");
                 if ( self.dirty == undefined || self.dirty )
                 {
                     //self.printArray(self.rCentres);
-                    //console.log("recomputing page centres");
                     self.recalcText();
                     self.recalcPageCentres();
                     self.dirty = false;
-                    //self.printArray(self.rCentres);         
+                    //self.printArray(self.rCentres);
                 }
             },
             3000);
+            // install swinxy zoom
+            jQuery('a.swinxyzoom-window').swinxyzoom({mode:'window',size:'src',zoom:10});
+            jQuery('.sxy-zoom-slider a').click(function(e)
+            {
+                e.preventDefault();
+                  var
+                  $this = jQuery(this);
+                  // picId = parseInt($this.attr('href')),
+                  // path  = '../../../_assets/images/zoom/' + $this.attr('href');
+                  // jQuery('.swinxyzoom').swinxyzoom('load', path + '-small.jpg',  path + '-large.jpg');
+                  jQuery('.sxy-zoom-slider a.active').removeClass('active');
+                  jQuerythis.toggleClass('active');
+                  jQuery('.sxy-zoom-slider .viewer').animate({ left: ($this.offset().left - jQuery('.sxy-zoom-slider').offset().left) });
+            });
+            /* check if images are higher than screen and text is NOT */
+            var sidesHt = jQuery("#sides").height();
+            if ( self.textEnd < sidesHt && self.imageEnd > sidesHt )
+            {
+                var children = jQuery("#imglist").children().detach();
+                jQuery("#imglist").append('<div id="scrollframe-lhs"></div>');
+                jQuery("#scrollframe-lhs").append(children);
+            }
+        }).fail(function() {
+            console.log( "couldn't fetch "+url );
         });
+    };
+    /**
+     * Sort an array of ints in ascending order
+     * @param a the array to sort
+     */
+    this.sort = function(a) {
+        // shellsort
+        for (var h = a.length; h = Math.floor(h/2);) {
+            for (var i = h; i < a.length; i++) {
+                var k = a[i];
+                for (var j=i;j>=h && k.top<a[j-h].top; j-=h)
+                    a[j] = a[j-h];
+                a[j] = k;
+            }
+        }
+    };
+    /**
+     * Identify all the page numbers in the text box
+     */
+    this.findPages = function() {
+        this.rTops = Array();
+        var current = 0;
+        for ( var i=0;i<this.lines.length;i++ )
+        {
+            if ( this.lines[i].match("\[[0-9]+\]") )
+            {
+                var v = {};
+                var line = this.lines[i];
+                Math.round(current);
+                v.top = current;
+                var start = line.indexOf("[");
+                var end = line.indexOf("]");
+                v.name = line.substr(start+1,end-1);
+                this.rTops.push( v );
+            }
+            current += this.lineHeight;
+        }
     };
     /**
      * Get the centre points of the pages
      */
     this.getPageCentres = function()
     {
-        var rTops = Array();
-        var current = 0;
-        for ( var i=0;i<this.lines.length;i++ )
-        {
-            if ( this.lines[i].match("\[[0-9]+\]") )
-            {
-                var v = Math.round(current);
-                rTops.push( v );
-            }
-            current += this.lineHeight;
-        }
-        if ( rTops.length > 0 && rTops[rTops.length-1] < current )
-        {
-            var v = Math.round(current);
-            rTops.push( v );
-        }
         this.rCentres = Array();
-        for ( var i=1;i<rTops.length;i++ )
+        this.findPages();
+        var eb = this.editbox();
+        var current = eb[0].scrollHeight;
+        // add extra page-break at end
+        if ( this.rTops.length > 0 && this.rTops[this.rTops.length-1].top < current )
         {
-            var diff = rTops[i]-rTops[i-1];
-            this.rCentres.push( Math.round(rTops[i-1]+diff/2) );
+            var v = {};
+            v.top = current;
+            v.name = "final";
+            this.rTops.push( v );
         }
-        this.textEnd = rTops[rTops.length-1];
+        this.sort(this.rTops);
+        for ( var i=1;i<this.rTops.length;i++ )
+        {
+            var diff = this.rTops[i].top-this.rTops[i-1].top;
+            this.rCentres.push( Math.round(this.rTops[i-1].top+diff/2) );
+        }
+        this.textEnd = Math.round(this.rTops[this.rTops.length-1].top);
         // fudge first and last pages which aren't centred
-        this.rCentres[0] = this.editbox().height()/2;
-        this.rCentres[this.rCentres.length-1] = this.textEnd 
-            - this.editbox().height()/2;
-        //printArray( this.lCentres);
-        //printArray(this.rCentres);
+        var wHalfHt = Math.round(this.editbox().height()/2);
+        this.rCentres.unshift(wHalfHt);
+        this.rCentres.push(this.textEnd-wHalfHt); 
         this.checkCentres();
-        //console.log("nlines ="+this.lines.length);
-        //console.log("rCentres:");
-        //this.printArray(this.rCentres);
     };
     /**
      * Get the index of the closest value in a list
@@ -347,16 +435,20 @@ function editor( docid, version1, target )
             if ( value < list[mid] )
             {
                 if ( mid == 0 )
+                {
                     // value < than first item
                     return -1;  
+                }
                 else
                     bot = mid-1;
             }
             else    // value >= list[mid]
             {
                 if ( mid == list.length-1 )
+                {
                     // value is >= last item
                     break;
+                }
                 else if ( value >= list[mid+1] )
                     top = mid+1;
                 else // list[mid] must be biggest <= value
@@ -373,13 +465,17 @@ function editor( docid, version1, target )
     this.interpolate = function( rVal )
     {
         var index = this.getIndex( this.rCentres, rVal );
-        //console.log("index="+index+"("+this.rCentres.length+")");
-        var prev = this.rCentres[index];
-        var next = this.rCentres[index+1];
-        var fromPrev = (rVal-prev)/(next-prev);
-        var lPrev = this.lCentres[index];
-        var lNext = this.lCentres[index+1];
-        return Math.round(lPrev+(lNext-lPrev)*fromPrev);
+        if ( index < this.rCentres.length )
+        {
+            var prev = this.rCentres[index];
+            var next = this.rCentres[index+1];
+            var fromPrev = (rVal-prev)/(next-prev);
+            var lPrev = this.lCentres[index];
+            var lNext = this.lCentres[index+1];
+            return Math.round(lPrev+(lNext-lPrev)*fromPrev);
+        }
+        else
+            return this.lCentres[this.lCentres.length-1];
     };
     /**
      * Get the value of the tab
@@ -468,7 +564,8 @@ function editor( docid, version1, target )
         this.fitText();
         this.recalcPageCentres();
         this.editbox().scrollTop(0);
-        jQuery("#lhs").css('top',"0px");
+        jQuery("#imglist").css('top',"0px");
+        this.addEditboxHandlers();
     };
     /**
      * Subtract the current active layer
@@ -521,6 +618,26 @@ function editor( docid, version1, target )
         }
     };
     /**
+     * Add handlers to the current editbox; remove any already present
+     */
+    this.addEditboxHandlers = function() {
+        self.editbox().off("scroll");
+        self.editbox().off("keydown");
+        self.editbox().scroll(function(e){
+            var eb = e.target;
+            var top = jQuery(eb).scrollTop();
+            var bot = top+self.editbox().height();
+            var lCentre = self.interpolate( Math.round((top+bot)/2) );
+            var lPanelHt = jQuery("#lhspanel").height();
+            lCentre -= (jQuery("#wrapper").height()-lPanelHt)/2;
+            jQuery("#imglist").css('top',-Math.round(lCentre)+"px");
+        });
+        self.editbox().keydown(function(){
+            self.dirty = true;
+            self.saved = false;
+        });
+    };
+    /**
      * Add a new layer by copying the first layer
      */
     this.newLayer = function() {
@@ -550,25 +667,45 @@ function editor( docid, version1, target )
         jQuery("#plus-tab").after(html);
         self.fitText();
         self.recalcPageCentres();
-        self.editbox().scroll(function(e){
-            var eb = e.target;
-            var top = jQuery(eb).scrollTop();
-            // console.log("top="+top);
-            var bot = top+self.editbox().height();
-            var lCentre = self.interpolate( (top+bot)/2 );
-            // console.log("top="+top+" bot="+bot+" lCentre="+lCentre+" rVal="+(top+bot)/2);
-            lCentre -= jQuery("#sides").height()/2;
-            jQuery("#lhs").css('top',-Math.round(lCentre)+"px");
+        self.addEditboxHandlers();
+    };
+    /**
+     * Remove all objects defined by a particular selector
+     * @param selector the selector the choose objects
+     * @param exception except this one
+     * @param byid if supplied select by id
+     */
+    this.removeObjects = function(selector,exception,byid) {
+        var delenda = Array();
+        jQuery(selector).each(function(){
+            var value;
+            if ( byid )
+                value = jQuery(this).attr("id");
+            else
+                value = jQuery(this).text();
+            if ( value != exception )
+                delenda.push(jQuery(this));
         });
-        self.editbox().keydown(function(){
-            self.dirty = true;
-            //console.log("Set dirty to true");
-        });
+        for ( var i=0;i<delenda.length;i++ )
+            delenda[i].remove();
+    };
+    /**
+     * Add a new option to the versions menu
+     * @param shortName the short name such as base
+     * @param longName the longer description to appear as the option text
+     */
+    this.addVersionOption = function(shortName,longName) {
+        var option = '<option value="/'+shortName+'">'+longName+'</option>';
+        var versions = jQuery("#versions");
+        versions.append(option);
+        var numOpts = versions.children("option").length;
+        jQuery("#versions")[0].selectedIndex = numOpts-1;
+        this.version1 = "/"+shortName;
     };
     /**
      * Save the version to the server scratch database
      */
-    this.save = function(){
+    this.save = function(newversion){
         var url = "http://"+window.location.hostname+"/mml/dialect?docid="+this.docid;
         jQuery.get(url,function(data){
             var formatter = new Formatter(data);
@@ -588,16 +725,37 @@ function editor( docid, version1, target )
             obj.data = JSON.stringify(packet);
             jQuery.post("http://"+window.location.hostname+"/mml/version",
                  obj, function(data){
-                     console.log(data)
+                     if ( data = "OK" )
+                     {
+                         if ( newversion != undefined && newversion.text.length > 0 )
+                         {
+                             self.removeObjects("#tabs td","layer-final");
+                             self.removeObjects("textarea","layer-final",true);
+                             self.current = "layer-final";
+                             jQuery("#imglist").empty();
+                             self.editbox().val(newversion.text);
+                             self.editbox().attr("class","editbox-active");
+                             self.editbox().scrollTop(0);
+                             self.addEditboxHandlers();
+                             self.addVersionOption(data.shortName,data.longName);
+                             self.getPageImages();
+                         }
+                         self.saved = true;
+                         console.log("saved");
+                     }
+                     else
+                         alert("save failed!");
                  });
+        }).fail(function() {
+            console.log( "couldn't fetch "+url );
         });
     };
     /**
      * Fetch the text from the server via its docid
      */
-    this.getText = function(docid)
+    this.getText = function()
     {
-        var url = "http://"+window.location.hostname+"/mml/mml?docid="+docid;
+        var url = "http://"+window.location.hostname+"/mml/mml?docid="+this.docid+"&version1="+this.version1;
         jQuery.get(url,function(data) {
             var html = '<table><tr><td class="empty-tab">empty</td>';
             html += '<td id="plus-tab">+</td>';
@@ -611,6 +769,7 @@ function editor( docid, version1, target )
                 html += '<td class="inactive-tab">'+tabName+'</td>';
             }
             html += '</tr></table>';
+            var tabs = jQuery("#tabs");
             jQuery("#tabs").append(html);
             jQuery("#tabs td").last().removeClass("inactive-tab");
             jQuery("#tabs td").last().addClass("active-tab");
@@ -624,43 +783,139 @@ function editor( docid, version1, target )
                 self.switchLayer(jQuery(this).text());
             });
             self.recalcText();
-            self.getPageImages(docid);
-            self.editbox().scroll(function(e){
-                var eb = e.target;
-                var top = jQuery(eb).scrollTop();
-                // console.log("top="+top);
-                var bot = top+self.editbox().height();
-                var lCentre = self.interpolate( (top+bot)/2 );
-                // console.log("top="+top+" bot="+bot+" lCentre="+lCentre+" rVal="+(top+bot)/2);
-                lCentre -= jQuery("#sides").height()/2;
-                jQuery("#lhs").css('top',-Math.round(lCentre)+"px");
-            });
+            self.getPageImages();
+            self.addEditboxHandlers();
             jQuery("#plus-tab").click(function(){
                 self.newLayer();
             });
-            self.editbox().keydown(function(){
-                self.dirty = true;
-                console.log("Set dirty to true");
-            });
+        }).fail(function() {
+            console.log( "couldn't fetch "+url );
         });
     };
-    var html = '<div id="wrapper"><div id="sides"><div id="lhs"></div>'
+    /**
+     * Fill out the version menu
+     * @param docid the docid whose versions are needed
+     */
+    this.getVersions = function(docid) {
+        var url = "http://"+window.location.hostname+"/mml/versions?docid="+docid;
+        jQuery.get(url,function(data){
+            self.versions = data;
+            var select = jQuery("#versions");
+            for ( var i=0;i<data.length;i++ )
+            {
+                var jObj = data[i];
+                select.append('<option value="'+jObj.vid+'">'+jObj.desc+'</option>');
+            }
+            select.append('<option value="new-version">New version...</option>');
+            select.change(function(){
+                if (jQuery(this).val()=="new-version" )
+                {
+                    jQuery("#newversion").css("visibility","visible");
+                }
+                else
+                    self.version1 = jQuery(this).val();
+            });
+            var version;
+            if ( this.version1 != undefined && this.version1.length>0 )
+                this.version1 = data[0].vid;
+            self.getText();
+        }).fail(function() {
+            console.log( "couldn't fetch "+url );
+        });
+    }
+    /**
+     * Build the new version dialog - not yet visible
+     */
+    this.buildNewVersionDialog = function(template) {
+        this.vtemplate = template.template;
+        jQuery("#newversion div").append(
+        '<div id="newversion-textboxes">'
+        +'<p><span class="text-prompt">Short name:</span>'
+        +'<input type="text" id="version-shortname" placeholder="'
+        +template.example+'></input></p>'
+        +'<p><span class="text-prompt">Long name:</span>'
+        +'<input type="text" id="version-longname"></input></p>'
+        +'</div><div id="newversion-buttons">'
+        +'<input type="button" id="version-cancel" value="Cancel"></input>'
+        +'<input type="button" id="version-ok" value="OK"></input></div>');
+        jQuery("#newversion").css("padding-top",Math.round(jQuery(window).height()/4)+"px");
+        jQuery("#version-cancel").click(function(){
+            jQuery("#newversion").css("visibility","hidden");
+            jQuery("#versions")[0].selectedIndex = 0;
+        });
+        jQuery("#newversion-ok").click(function(){
+            // verify shortname
+            var regex = new RegExp(template.template);
+            if ( !regex.test(jQuery("#version-shortname").val()) )
+            {
+                alert("short name must be like "+template.example);
+            }
+            else
+            {
+                var vtext = this.editbox().val();
+                var sName = jQuery("#version-shortname").val();
+                var lName = jQuery("#version-longname").val();
+                var newversion = {text:vtext,shortName:sName,longName:lName};
+                jQuery("#newversion").css("visibility","hidden");
+            }
+        });
+    }
+    /**
+     * Append the document's stylesheet to the header
+     */
+    this.getStylesheet = function(docid){
+        var url = "http://"+window.location.hostname+"/mml/corform?docid="+docid;
+        jQuery.get(url,function(data){
+            jQuery("head").append('<style type="text/css">'+data+'</style>');
+            self.getVersions(docid);
+        }).fail(function() {
+            console.log( "couldn't fetch "+url );
+        });
+    };
+    var html = '<div id="wrapper"><div id="sides"><div id="lhs"><div id="lhspanel">';
+    html += '<select id="versions"></select></div><div id="imglistcontainer">';
+    html += '<div id="imglist"></div></div></div>';
     html += '<div id="rhs"><div id="tabs"></div></div></div>';
-    html += '<ul id="toolbar"><li id="delete-layer"><i title="delete current layer" '
+    html += '<ul id="etoolbar"><li id="delete-layer"><i title="delete current layer" '
     html += 'class="fa fa-minus fa-1x"></i></li><li id="save"><i title="save" '
-    html += 'class="fa fa-save fa-1x"></i></li></ul></div>';
+    html += 'class="fa fa-save fa-1x"></i></li><li id="openfile"><i title="Open file" '
+    html += 'class="fa fa-folder-open-o fa-1x"></i></li><li id="newfile">'
+    html += '<i title="New file" class="fa fa-file-o fa-1x"></i></li></ul></div>';
+    html += '<div id="newversion"><div><p>Create a new version</p></div></div>';
     jQuery("#"+this.target).empty();
     jQuery("#"+this.target).append( html );
     jQuery("#delete-layer").click(function(){
         self.subtractLayer();
     });
     jQuery("#save").click(function(){
-        self.save();
+        var oldColor = jQuery(this).css("background-color");
+        if ( !self.saved )
+        {
+            jQuery(this).css("background-color","lightgreen");
+            self.save();
+        }
+        else
+            jQuery(this).css("background-color","pink");
+        setTimeout( function(){
+            jQuery("#save").css("background-color",oldColor);
+        },600 );
     });
-    var tWidth = jQuery("#toolbar").width();
+    var tWidth = jQuery("#etoolbar").width();
     var wWidth = jQuery(window).width();
+    var parent = jQuery("#"+this.target);
     jQuery("#sides").width(wWidth-tWidth);
-    this.getText(this.docid);
+    jQuery("#newversion").width(parent.width());
+    jQuery("#newversion").height(jQuery(document).height());
+    jQuery("#newversion div").width(Math.round(parent.width()/2));
+    var url = "http://"+window.location.hostname+"/project/vtemplate?docid="+this.docid;
+    jQuery.get(url,function(data){
+        self.buildNewVersionDialog(data);
+    }).fail(function() {
+        var template = {template:".*",example:"anything"};
+        self.buildNewVersionDialog(template);
+        console.log("couldn't get version template");
+    });
+    this.getStylesheet(this.docid);
 }
 function get_one_param( params, name )
 {
@@ -724,7 +979,7 @@ function getEditorArgs( scrName )
             params['docid'] = get_one_param(tabs_params,'docid');
     }
     if ( !('version1' in params) )
-        params['version1'] = "base";
+        params['version1'] = "/base";
     return params;
 }
 /* main entry point - gets executed when the page is loaded */
@@ -732,5 +987,7 @@ jQuery(function(){
     var params = getEditorArgs('editor');
     jQuery("#"+params['mod-target']).css("visibility","hidden");
     var viewer = new editor(params['docid'],params['version1'],params['mod-target']);
-}); 
+});
+
+
 

@@ -6,14 +6,17 @@ body {overflow:hidden}
 #lhs {float:left;position:relative}
 #rhs {float:right;height:100%;}
 #sides {float:left;position:relative}
-#toolbar {padding:0;margin:0;border-right:1px solid black;list-style-type:none;height:100%;width:2em;right:0;position:absolute;top:0;background-color:white;z-index:1}
-#toolbar li {background-color: lightgrey;border-left:1px solid black;text-align:center;padding-top:0.2em;padding-bottom:0.2em;border-bottom:1px solid black}
-#toolbar li:hover {cursor:pointer}
-#toolbar li:first-child {border-top:1px solid black}
+#etoolbar {padding:0;margin:0;border-right:1px solid black;list-style-type:none;height:100%;width:2em;right:0;position:absolute;top:0;background-color:white;z-index:1}
+#etoolbar li {background-color: lightgrey;border-left:1px solid black;text-align:center;padding-top:0.2em;padding-bottom:0.2em;border-bottom:1px solid black}
+#etoolbar li:hover {cursor:pointer}
+#etoolbar li:first-child {border-top:1px solid black}
 .editbox-active,.editbox-inactive {margin:0;padding-left:1em;padding-right:0;width:100%;border:0;overflow:auto;position:relative}
 .editbox-active {display:block}
 .editbox-inactive {display:none}
 #tabs {height:2em}
+#imglist {position:relative;}
+#imglistcontainer {position:relative;overflow:hidden}
+#lhspanel {position:relative;height:2em;background-color: rgba(0, 0, 0, 0.063)}
 #tabs table {margin: 0;}
 .empty-tab {max-width:50%;border-right:1px solid black;border-bottom:1px solid black;opacity:0}
 .active-tab {background-color:white;max-width:50%;border-top:1px solid black;border-right:1px solid black}
@@ -21,3 +24,12 @@ body {overflow:hidden}
 #plus-tab {width:1em;text-align:center}
 #plus-tab:hover {cursor:pointer;background-color:lightblue}
 .inactive-tab:hover {cursor:pointer;background-color:lightblue}
+#newversion {visibility:hidden;position:absolute;left:0px;top:0px;width:100%;height:100%;text-align:center;z-index: 1000;}
+#newversion div {font-size: large;font-family: sans-serif;width:300px;padding: 1em 0;border:1px solid black;background-color: #fff;display:inline-block}
+div #newversion-buttons {text-align:center;border:0px;margin:0;padding:0}
+div #newversion-textboxes {text-align:center;border:0px;margin:0;padding:0}
+#newversion-buttons input {margin:0 2em}
+.text-prompt {margin-right:1em;word-wrap:normal;overflow-wrap:normal;white-space:normal;font-size:medium}
+#newversion-textboxes input {display:inline;overflow-wrap:normal;width:50%}
+#newversion-textboxes {margin-bottom: 1em !important}
+#newversion-textboxes p {margin:0;padding:0}
