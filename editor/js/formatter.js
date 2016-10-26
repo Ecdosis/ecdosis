@@ -119,25 +119,26 @@ function Link(mml,html,text,next,prev)
      * @return the lineformat object or false
      */
     this.isLineformat = function(lfs) {
+        var best = false;
         var trimLR = this.text.trim();
-        // trim just trailing whitespace
-        var i = this.text.length-1;
-        var trimL = this.text;
-        while ( i>=0 && (trimL[i] == ' ' || trimL[i] == '\t') )
-            i--; 
-        trimL = trimL.substring(0,i+1);
         for ( var i=0;i<lfs.length;i++ )
         {
             var lf = lfs[i];
             if ( this.endsWith(trimLR,lf.rightTag) 
-                && (this.startsWith(trimL,lf.leftTag)  
-                || this.startsWith(trimLR,lf.leftTag)) )
+                && this.startsWith(this.text,lf.leftTag) )
             {
-                console.log("recognised "+lf.prop+" in "+trimLR);
-                return lf;
+                if ( !best )
+                    best = lf;
+                else
+                {
+                    var lDiff = lf.leftTag.length - best.leftTag.length;
+                    var rDiff = lf.rightTag.length - best.rightTag.length;
+                    if ( lDiff+rDiff > 0 )
+                        best = lf;
+                }
             }
         }
-        return false;
+        return best;
     };
 }
 /**
@@ -358,7 +359,7 @@ function Formatter( dialect )
         }
     };
     /**
-     * Find start of tag after leading white space
+     * Find start of tag
      * @param text the text to search
      * @param tag the tag to find at the end
      * @return -1 on failure else index of tag-start at end of text
@@ -560,11 +561,8 @@ function Formatter( dialect )
      */
     this.processLineformat = function( lf, link ) {
         var line = link.text;
-        var start = this.startPos(line,lf.leftTag);
-        if ( start > 0 )
-            link.mml += line.substr(0,start+lf.leftTag.length);
         var end = this.endPos(line,lf.rightTag);
-        link.text = line.slice(start+lf.leftTag.length,end);
+        link.text = line.slice(lf.leftTag.length,end);
     };
     /**
      * Close a previously open tag
@@ -637,8 +635,8 @@ function Formatter( dialect )
     this.processPara = function( para, end )
     {
         this.formatted = false;
-        this.processLines(para,end);
         this.processSmartQuotes(para,end);
+        this.processLines(para,end);
         this.processHeadings(para,end);
         this.processPfmts(para,end);
         this.processCfmts(para,end);
@@ -656,8 +654,8 @@ function Formatter( dialect )
                 && para.next != null )
                 para = para.next;
             para.prependHtml('<p'+attr+'>');
-            //end.html += '</p>';
-            end.prependHtml('</p>');
+            end.html += '</p>';
+            //end.prependHtml('</p>');
         }
     };
     /**
@@ -1107,9 +1105,10 @@ function Formatter( dialect )
                     prev.next = link;
             }
             // balance HTML
-            link.next = new Link("",ret[ret.length-1].divEnd,"",null,link);
+            link.next = new Link("","","",null,link);
             // now process the list
             var temp = first;
+            var last = null;
             while ( temp != null )
             {
                 var next = temp.next;
@@ -1121,8 +1120,11 @@ function Formatter( dialect )
                         this.num_lines += this.countLines(temp.text);
                     this.num_lines+=3;
                 }
+                last = temp;
                 temp = next;
             }
+            if ( last != null )
+                last.html += ret[ret.length-1].divEnd;
         }
         this.computeCorrespondences(first);
         var endTime = new Date().getMilliseconds();

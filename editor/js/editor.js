@@ -97,8 +97,9 @@ function editor( docid, version1, target )
      * Re-calculate the page-centres after the initiation
      */
     this.recalcPageCentres = function(){
-        this.getPageCentres();  
-        this.editbox().scrollTop(0);
+        this.getPageCentres(); 
+        //console.log("recalcing page centres"); 
+        //this.editbox().scrollTop(0);
         jQuery("#imglist").css('top',"0px"); 
     };
     /**
@@ -305,6 +306,7 @@ function editor( docid, version1, target )
                     +p.src+'" width="'+w+'" height="'+h+'" title="'
                     +p.n+'" data-n="'+p.n+'"></a>\n';
             }
+            jQuery("#imglist").empty();
             jQuery("#imglist").append(html);
             self.fitText();
             self.getImageCentres();
@@ -755,10 +757,14 @@ function editor( docid, version1, target )
      */
     this.getText = function()
     {
-        var url = "http://"+window.location.hostname+"/mml/mml?docid="+this.docid+"&version1="+this.version1;
+        var url = "http://"+window.location.hostname+"/mml/mml?docid="+this.docid;
+        if ( this.version1 != null )
+            url += "&version1="+this.version1;
         jQuery.get(url,function(data) {
             var html = '<table><tr><td class="empty-tab">empty</td>';
             html += '<td id="plus-tab">+</td>';
+            // clear pre-existing layers
+            jQuery("#rhs textarea").remove();
             for ( var i=0;i<data.layers.length;i++ )
             {
                 jQuery("#rhs").append('<textarea class="editbox-inactive" id="layer-'
@@ -770,6 +776,8 @@ function editor( docid, version1, target )
             }
             html += '</tr></table>';
             var tabs = jQuery("#tabs");
+            // destroy existing tabs
+            tabs.empty();
             jQuery("#tabs").append(html);
             jQuery("#tabs td").last().removeClass("inactive-tab");
             jQuery("#tabs td").last().addClass("active-tab");
@@ -816,26 +824,26 @@ function editor( docid, version1, target )
                     self.version1 = jQuery(this).val();
             });
             var version;
-            if ( this.version1 != undefined && this.version1.length>0 )
-                this.version1 = data[0].vid;
+            if ( self.version1 != undefined && self.version1.length>0 )
+                self.version1 = data[0].vid;
             self.getText();
         }).fail(function() {
             console.log( "couldn't fetch "+url );
         });
-    }
+    };
     /**
      * Build the new version dialog - not yet visible
      */
     this.buildNewVersionDialog = function(template) {
         this.vtemplate = template.template;
         jQuery("#newversion div").append(
-        '<div id="newversion-textboxes">'
+        '<div class="textboxes">'
         +'<p><span class="text-prompt">Short name:</span>'
         +'<input type="text" id="version-shortname" placeholder="'
-        +template.example+'></input></p>'
+        +template.example+'"></input></p>'
         +'<p><span class="text-prompt">Long name:</span>'
         +'<input type="text" id="version-longname"></input></p>'
-        +'</div><div id="newversion-buttons">'
+        +'</div><div class="buttons">'
         +'<input type="button" id="version-cancel" value="Cancel"></input>'
         +'<input type="button" id="version-ok" value="OK"></input></div>');
         jQuery("#newversion").css("padding-top",Math.round(jQuery(window).height()/4)+"px");
@@ -843,7 +851,7 @@ function editor( docid, version1, target )
             jQuery("#newversion").css("visibility","hidden");
             jQuery("#versions")[0].selectedIndex = 0;
         });
-        jQuery("#newversion-ok").click(function(){
+        jQuery("#version-ok").click(function(){
             // verify shortname
             var regex = new RegExp(template.template);
             if ( !regex.test(jQuery("#version-shortname").val()) )
@@ -858,6 +866,113 @@ function editor( docid, version1, target )
                 var newversion = {text:vtext,shortName:sName,longName:lName};
                 jQuery("#newversion").css("visibility","hidden");
             }
+        });
+    };
+    /**
+     * Replace a http url parameter
+     * @param url the original url
+     * @param key the parameter key
+     * @param value the new parameter value
+     * @return the new url
+     */
+    this.replaceUrlParam = function(url,key,value) {
+        var qPos = url.indexOf("?");
+        var newUrl = "";
+        if ( qPos != -1 )
+        {
+            var rest = url.substring(qPos+1);
+            var parts = rest.split("&");
+            newUrl = url.substring(0,qPos+1);
+            for ( var i=0;i<parts.length;i++ )
+            {
+                var halves = parts[i].split("=");
+                if ( halves.length==2 )
+                {
+                    if ( halves[0] == key )
+                    {
+                        newUrl += "&"+key+"="+value;
+                        continue;
+                    }
+                }
+                newUrl += "&"+parts[i];
+            }
+        }
+        return newUrl;
+    };
+    /**
+     * Build the new version dialog - not yet visible
+     */
+    this.buildOpenDialog = function() {
+        jQuery("#opendialog div").append(
+        '<select id="opendialog-select"><option>Select...</option></select>'
+        +'<div class="buttons">'
+        +'<input type="button" id="opendialog-cancel" value="Cancel"></input>'
+        +'<input type="button" id="opendialog-open" value="Open"></input></div>');
+        jQuery("#opendialog").css("padding-top",
+            Math.round(jQuery(window).height()/4)+"px");
+        jQuery("#opendialog-cancel").click(function(){
+            jQuery("#opendialog").css("visibility","hidden");
+        });
+        jQuery("#opendialog-open").click(function(){
+            self.version1 = null;   // load default version
+            self.docid = jQuery("#opendialog-select").val();
+            var newUrl = self.replaceUrlParam(window.location.href,"docid",self.docid);
+            jQuery("#opendialog").css("visibility","hidden");
+            window.location.assign(newUrl);
+        });
+        jQuery("#opendialog-select").change(function(){
+            var info = jQuery("#fileinfo");
+            if ( info.length == 0 )
+            {
+                jQuery("#opendialog-select").after('<div id="fileinfo"></div>');
+                info = jQuery("#fileinfo");
+            }
+            info.empty();
+            var value = jQuery("#opendialog-select").val();
+            var url2 = "http://"+window.location.hostname+"/mml/metadata?docid="+value;
+            jQuery.get(url2,function(data) {
+                info.append('<p class="title">'+data.title+'</p>');
+            });
+        });
+        var url = "http://"+window.location.hostname+"/project/projid?docid="+docid;
+        jQuery.get(url,function(pdata){
+            if ( "projid" in pdata )
+            {
+                var url = "http://"+window.location.hostname
+                    +"/project/documents?docid="+pdata.projid;
+                jQuery.get(url,function(data) {
+                    var docs = data.documents;
+                    if ( docs != undefined )
+                    {
+                        var options ="";
+                        var select = jQuery("#opendialog-select");
+                        for ( var i=0;i<docs.length;i++ )
+                        {
+                            var docId = docs[i].docid;
+                            var pos = docId.indexOf(pdata.projid);
+                            if ( pos == 0 )
+                            {
+                                var tail = docId.substring(pdata.projid.length+1);
+                                options += '<option value="'+docId+'">'
+                                    +tail+'</option>';
+                            }
+                        }
+                        select.append(options);
+                        var sWidth = select.width();
+                        var dWidth = jQuery("#opendialog div").width();
+                        console.log("sWidth="+sWidth+" dWidth="+dWidth);
+                        if ( dWidth < sWidth+sWidth/5 )
+                        {
+                            dWidth = sWidth+sWidth/5;
+                            jQuery("#opendialog div").width(dWidth);
+                        }
+                    }
+                });
+            }
+            else
+                console.log("project did not return valid projid");
+        }).fail(function(){
+            console.log("failed to get project id");
         });
     }
     /**
@@ -881,7 +996,8 @@ function editor( docid, version1, target )
     html += 'class="fa fa-save fa-1x"></i></li><li id="openfile"><i title="Open file" '
     html += 'class="fa fa-folder-open-o fa-1x"></i></li><li id="newfile">'
     html += '<i title="New file" class="fa fa-file-o fa-1x"></i></li></ul></div>';
-    html += '<div id="newversion"><div><p>Create a new version</p></div></div>';
+    html += '<div id="newversion" class="dialog"><div><p>Create a new version</p></div></div>';
+    html += '<div id="opendialog" class="dialog"><div><p>Open an existing file</p></div></div>';
     jQuery("#"+this.target).empty();
     jQuery("#"+this.target).append( html );
     jQuery("#delete-layer").click(function(){
@@ -900,13 +1016,24 @@ function editor( docid, version1, target )
             jQuery("#save").css("background-color",oldColor);
         },600 );
     });
+    /**
+     * Open file button 
+     */
+    jQuery("#openfile").click(function(){
+        var oldColor = jQuery(this).css("background-color");
+        jQuery(this).css("background-color","pink");
+        setTimeout( function(){
+            jQuery("#openfile").css("background-color",oldColor);
+        },400 );
+        jQuery("#opendialog").css("visibility","visible");
+    });
     var tWidth = jQuery("#etoolbar").width();
     var wWidth = jQuery(window).width();
     var parent = jQuery("#"+this.target);
     jQuery("#sides").width(wWidth-tWidth);
-    jQuery("#newversion").width(parent.width());
-    jQuery("#newversion").height(jQuery(document).height());
-    jQuery("#newversion div").width(Math.round(parent.width()/2));
+    jQuery(".dialog").width(parent.width());
+    jQuery(".dialog").height(jQuery(document).height());
+    jQuery(".dialog div").width(Math.round(parent.width()/2));
     var url = "http://"+window.location.hostname+"/project/vtemplate?docid="+this.docid;
     jQuery.get(url,function(data){
         self.buildNewVersionDialog(data);
@@ -915,6 +1042,7 @@ function editor( docid, version1, target )
         self.buildNewVersionDialog(template);
         console.log("couldn't get version template");
     });
+    this.buildOpenDialog();
     this.getStylesheet(this.docid);
 }
 function get_one_param( params, name )
