@@ -746,6 +746,7 @@ function editor( docid, version1, target )
                     var longName = jQuery("#templongname").val();
                     li.empty();
                     li.append('<a href="#">'+longName+'</a>');
+                    self.versionMenu.resizeForOption(longName);
                     e.preventDefault();
                     self.saved = false;
                 });
@@ -753,8 +754,6 @@ function editor( docid, version1, target )
             });
             return false;
         }
-        else
-            console.log("event type="+e.which);
     };
     /**
      * Save the version to the server scratch database
@@ -767,8 +766,9 @@ function editor( docid, version1, target )
             var packet = {};
             packet.layers = [];
             packet.docid = self.docid;
-            packet.longname = self.versionMenu.text();
+            packet.longname = self.versionMenu.getLongName(self.version1);
             packet.version1 = self.version1;
+            console.log("saving "+packet.version1+" with "+packet.longname);
             jQuery("textarea").each(function(){
                 var text = jQuery(this).val();
                 var html = formatter.toHTML(text);
@@ -856,7 +856,7 @@ function editor( docid, version1, target )
         var current = self.versionMenu.getValue();
         var onsave = function(){
             self.version1 = self.versionMenu.getValue();
-            //console.log("setting version1 to "+self.version1);
+            console.log("setting version1 to "+self.version1);
             self.clearTabs();
             //console.log("cleared tabs");
             self.getVersionText();

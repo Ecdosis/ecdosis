@@ -18,6 +18,29 @@ function DropDown(target,prompt,handler) {
     this.placeholder = this.dd.children('span');
 	
     /**
+     * Ensure that the new option fits the menu header
+     * @param text the text of the item
+     */
+    this.resizeForOption = function(text) {
+        var select = jQuery("#"+this.target);
+        var prompt = jQuery("#"+this.target+" span").first();
+        var selectWidth = select.width();
+        var promptWidth = prompt.width();
+        // test if select can take the new option text
+        jQuery('body').append('<span id="li-test">'+self.prompt+text+'</span>');
+        var test = jQuery("#li-test");
+        var font = prompt.css("font");
+        var fontSize = prompt.css("font-size");
+        var fontWeight = prompt.css("font-weight");
+        test.css("font",font);
+        test.css("font-size",fontSize);
+        test.css("font-weight",fontWeight);
+        var testWidth = test.width();
+        test.remove();
+        if ( testWidth+60 > selectWidth )
+            select.width(testWidth+60);
+    };
+    /**
      * Add an option to the pseudo-select
      * @param val the "value" of the item
      * @param text the text it displays (option content)
@@ -36,12 +59,9 @@ function DropDown(target,prompt,handler) {
         opt.mouseup(function(e){
             if ( e.which==3 )
             {
-                console.log("right mouse up");
                 e.preventDefault();
                 return false;
             }
-            else
-                console.log("no right mouse up");
         });
         opt.click(function(e){
 		    var li = jQuery(this);
@@ -49,25 +69,8 @@ function DropDown(target,prompt,handler) {
 	        self.index = li.index();
 	        self.placeholder.text(self.prompt+li.text());
             self.handler(e.target);
-            console.log("click");
 	    });
-        var select = jQuery("#"+self.target);
-        var prompt = jQuery("#"+self.target+" span").first();
-        var selectWidth = select.width();
-        var promptWidth = prompt.width();
-        // test if select can take the new option text
-        jQuery('body').append('<span id="li-test">'+self.prompt+text+'</span>');
-        var test = jQuery("#li-test");
-        var font = prompt.css("font");
-        var fontSize = prompt.css("font-size");
-        var fontWeight = prompt.css("font-weight");
-        test.css("font",font);
-        test.css("font-size",fontSize);
-        test.css("font-weight",fontWeight);
-        var testWidth = test.width();
-        test.remove();
-        if ( testWidth > selectWidth )
-            select.width(testWidth+60);
+        this.resizeForOption(text);
     };
     /**
      * Get the current value of the dropdown
@@ -81,7 +84,9 @@ function DropDown(target,prompt,handler) {
      * @return a text value
      */
     this.text = function() {
-        return jQuery("#"+self.target+" li").eq(this.index).text();
+        var text = jQuery("#"+self.target+" li").eq(this.index).text();
+        console.log("text="+text+" index="+this.index);
+        return text;
     };
     /**
      * Set the select menu to the given value
@@ -96,6 +101,21 @@ function DropDown(target,prompt,handler) {
             }
         });
     };
+    /**
+     * Get the long name corresponding to a version value
+     */
+    this.getLongName = function(value) {
+        var text;
+        jQuery("#"+self.target+" li").each(function(){
+            var li = jQuery(this);
+            if ( li.attr("data-value") == value )
+            {
+                text = li.text();
+            }
+        });
+        return text;
+    };
+    
     /**
      * Insert new option before the last one
      * @param value the value of the option
