@@ -24,7 +24,7 @@ body {overflow:hidden}
 #plus-tab {width:1em;text-align:center}
 #plus-tab:hover {cursor:pointer;background-color:lightblue}
 .inactive-tab:hover {cursor:pointer;background-color:lightblue}
-.dialog {visibility:hidden;position:absolute;left:0px;top:0px;width:100%;height:100%;text-align:center;z-index: 1000;}
+.dialog {visibility:hidden;position:absolute;left:0px;top:0px;width:100%;height:100%;text-align:center;z-index: 2000;}
 .dialog div {font-size: large;font-family: sans-serif;width:300px;padding: 1em 0;border:1px solid black;background-color: #fff;display:inline-block;border-radius:5px}
 div .buttons {text-align:center;border:0px;margin:0;padding:0}
 div .textboxes {text-align:center;border:0px;margin:0;padding:0}
@@ -37,3 +37,9 @@ div .textboxes {text-align:center;border:0px;margin:0;padding:0}
 #fileinfo {width:80%;border:0px;margin-bottom:2em;margin-top:0;padding:0}
 #fileinfo p {margin:0}
 #version-shortname {font-size:medium}
+#editoption {display:block;z-index:2000;background-color:white;padding:.3em;border:1px solid black}
+#editoption:hover {background:#b0b0b0;cursor:pointer}
+#templongname {width:80%}
+#tempok {width:20%}
+#versions {z-index: 2000}
+#longnamecancel {margin-right:2em}

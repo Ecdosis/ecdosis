@@ -197,37 +197,6 @@ function Formatter( dialect )
         return (stack.length==0)?undefined:stack[stack.length-1];
     };
     /**
-     * Make a generic divider. It is a table with four cells.
-     * @param prop the class name of the table and cell properties
-     * @return the HTML table with class names suitable for CSS
-     */
-    this.makeDivider = function( prop )
-    {
-        var sb = "";
-        sb += '<table class="';
-        sb += prop;
-        sb += '" title="';
-        sb += prop;
-        sb += '"><tr><td class="';
-        sb += prop;
-        sb += '-lefttop">';
-        sb += "</td>";
-        sb += '<td class="';
-        sb += prop;
-        sb += '-righttop">';
-        sb += "</td></tr>";
-        sb += '<tr><td class="';
-        sb += prop;
-        sb += '-leftbot">';
-        sb += "</td>";
-        sb += '<td class="';
-        sb += prop;
-        sb += '-rightbot">';
-        sb += "</td></tr>";
-        sb += "</table>";
-        return sb;
-    };
-    /**
      * Get a curly close quote character 
      * @param quote the quote to convert
      * @return the Unicode curly variant
@@ -650,10 +619,10 @@ function Formatter( dialect )
                 ?' class="'+this.dialect.paragraph.prop+'" title="'
                 +this.dialect.paragraph.prop+'"':"";
             // recompute end in case it changed
-            while ( para.text.length == 0 && para.next != end 
-                && para.next != null )
-                para = para.next;
-            para.prependHtml('<p'+attr+'>');
+            //while ( para.text.length == 0 && para.next != end 
+            //    && para.next != null )
+            //    para = para.next;
+            para.html += '<p'+attr+'>';
             end.html += '</p>';
             //end.prependHtml('</p>');
         }
@@ -1050,22 +1019,27 @@ function Formatter( dialect )
     };
     /**
      * preprocess the text by swapping all the global changes
-     * @param text the text to format
-     * @return the text transformed by any globals
+     * @param first the first link
+     * @param last the last link
      */
-    this.applyGlobals = function( text ) {
+    this.applyGlobals = function( first, last ) {
         var rexeps = Array();
         for ( var i=0;i<dialect.globals.length;i++ )
             rexeps.push( new RegExp(dialect.globals[i].seq, 'g') );
-        for ( var i=0;i<this.dialect.globals.length;i++ )
+        var temp = first;
+        while ( temp != null && temp != last )
         {
-            var rep = dialect.globals[i].rep;
-            if ( text.indexOf(dialect.globals[i].seq) != -1 )
+            for ( var i=0;i<this.dialect.globals.length;i++ )
             {
-                text = text.replace(rexeps[i], rep);
+                var rep = dialect.globals[i].rep;
+                if ( temp.text != null 
+                    && temp.text.indexOf(dialect.globals[i].seq) != -1 )
+                {
+                    temp.text = temp.text.replace(rexeps[i], rep);
+                }
             }
+            temp = temp.next;
         }
-        return text;
     };
     /**
      * Convert the MML text into HTML
@@ -1079,7 +1053,6 @@ function Formatter( dialect )
         var first=null;
         this.num_lines = 0;
         this.sortGlobals();
-        text = this.applyGlobals(text);
         this.buildHeadLookup();
         this.buildCfmtLookup();
         this.buildCssMap();
@@ -1125,6 +1098,7 @@ function Formatter( dialect )
             }
             if ( last != null )
                 last.html += ret[ret.length-1].divEnd;
+            this.applyGlobals(first,last);
         }
         this.computeCorrespondences(first);
         var endTime = new Date().getMilliseconds();

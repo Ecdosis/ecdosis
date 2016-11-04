@@ -7,6 +7,10 @@ function editor( docid, version1, target )
     this.iOffset = 0;
     this.nInterp = 4;
     this.target = target;
+    /** flag to reflect if it has been saved */
+    this.saved = true;
+    /** flag to test if it just needs reflowing, NOT saving */
+    this.dirty = false;
     /** default version to edit */
     this.version1 = version1;
     var self = this;
@@ -101,6 +105,7 @@ function editor( docid, version1, target )
         //console.log("recalcing page centres"); 
         //this.editbox().scrollTop(0);
         jQuery("#imglist").css('top',"0px"); 
+        this.dirty = false;
     };
     /**
      * Set widths on lhs and rhs
@@ -258,6 +263,7 @@ function editor( docid, version1, target )
         this.rTops = Array();
         this.findPages();
         this.sort(this.rTops);
+        //console.log("rTops.length="+this.rTops.length);
         var found = Array();
         for ( var i=0;i<this.rTops.length;i++ )
         {
@@ -284,17 +290,39 @@ function editor( docid, version1, target )
         return found;
     };
     /**
+     * Switch scrolling sides if lhs is higher than the screen and rhs is NOT 
+     */
+    this.checkScrolling = function() {
+        var sidesHt = jQuery("#sides").height();
+        if ( self.textEnd < sidesHt && self.imageEnd > sidesHt )
+        {
+            // if not already installed, add LHS scrollframe
+            if ( jQuery("#scrollframe-lhs").length==0 )
+            {
+                var children = jQuery("#imglist").children().detach();
+                jQuery("#imglist").append('<div id="scrollframe-lhs"></div>');
+                jQuery("#scrollframe-lhs").append(children);
+            }
+            // turn on LHS scrolling
+            jQuery("#imglistcontainer").css("overflow","scroll");
+        }
+        else    // turn off LHS scrolling
+            jQuery("#imglistcontainer").css("overflow","hidden");
+    };
+    /**
      * Fetch the images corresponding to the page numbers in the text
      */
     this.getPageImages = function()
     {
-        var version = jQuery("#versions").val();
-        var url = "http://"+window.location.hostname+"/pages/list?docid="+this.docid+"&version1="+version+"/"+this.current;
+        var url = "http://"+window.location.hostname
+            +"/pages/list?docid="+this.docid+"&version1="
+            +this.version1+"/"+this.current;
         jQuery.get(url,function(data) {
             var html = "";
             self.setWidths();
             var maxW = jQuery("#lhs").width();
             var pages = self.filterPages(data);
+            //console.log("length of pages ="+pages.length);
             for ( var i=0;i<pages.length;i++ )
             {
                 var p = pages[i];
@@ -311,7 +339,8 @@ function editor( docid, version1, target )
             self.fitText();
             self.getImageCentres();
             jQuery("#lhs").height(jQuery("#rhs").height());
-            jQuery("#imglistcontainer").height(jQuery("#lhs").height()-jQuery("#lhspanel").height());
+            jQuery("#imglistcontainer").height(
+                jQuery("#lhs").height()-jQuery("#lhspanel").height());
             //self.fitText();
             jQuery("#"+self.target).css("visibility","visible");
             self.recalcPageCentres();
@@ -322,6 +351,7 @@ function editor( docid, version1, target )
                     //self.printArray(self.rCentres);
                     self.recalcText();
                     self.recalcPageCentres();
+                    self.checkScrolling();
                     self.dirty = false;
                     //self.printArray(self.rCentres);
                 }
@@ -339,16 +369,9 @@ function editor( docid, version1, target )
                   // jQuery('.swinxyzoom').swinxyzoom('load', path + '-small.jpg',  path + '-large.jpg');
                   jQuery('.sxy-zoom-slider a.active').removeClass('active');
                   jQuerythis.toggleClass('active');
-                  jQuery('.sxy-zoom-slider .viewer').animate({ left: ($this.offset().left - jQuery('.sxy-zoom-slider').offset().left) });
+                  jQuery('.sxy-zoom-slider .viewer').animate({ left: ($this.offset().left-jQuery('.sxy-zoom-slider').offset().left) });
             });
-            /* check if images are higher than screen and text is NOT */
-            var sidesHt = jQuery("#sides").height();
-            if ( self.textEnd < sidesHt && self.imageEnd > sidesHt )
-            {
-                var children = jQuery("#imglist").children().detach();
-                jQuery("#imglist").append('<div id="scrollframe-lhs"></div>');
-                jQuery("#scrollframe-lhs").append(children);
-            }
+            self.checkScrolling();
         }).fail(function() {
             console.log( "couldn't fetch "+url );
         });
@@ -376,7 +399,7 @@ function editor( docid, version1, target )
         var current = 0;
         for ( var i=0;i<this.lines.length;i++ )
         {
-            if ( this.lines[i].match("\[[0-9]+\]") )
+            if ( this.lines[i].match("\[[0-9]+[A-Z]?\]") )
             {
                 var v = {};
                 var line = this.lines[i];
@@ -635,8 +658,8 @@ function editor( docid, version1, target )
             jQuery("#imglist").css('top',-Math.round(lCentre)+"px");
         });
         self.editbox().keydown(function(){
-            self.dirty = true;
             self.saved = false;
+            self.dirty = true;
         });
     };
     /**
@@ -646,7 +669,7 @@ function editor( docid, version1, target )
         // add click-handler to previous tab
         this.addClickToActiveTab();
         var contents = this.editbox().val();
-        this.dirty = false;
+        this.saved = true;
         // increment existing layers
         jQuery("textarea").each(function(){
             var id = jQuery(this).attr("id");
@@ -692,28 +715,59 @@ function editor( docid, version1, target )
             delenda[i].remove();
     };
     /**
-     * Add a new option to the versions menu
-     * @param shortName the short name such as base
-     * @param longName the longer description to appear as the option text
+     * Handle right-mouse clicks for version menu options
      */
-    this.addVersionOption = function(shortName,longName) {
-        var option = '<option value="/'+shortName+'">'+longName+'</option>';
-        var versions = jQuery("#versions");
-        versions.append(option);
-        var numOpts = versions.children("option").length;
-        jQuery("#versions")[0].selectedIndex = numOpts-1;
-        this.version1 = "/"+shortName;
+    this.editOptionHandler = function(e) {
+        if ( e.which == 3 )
+        {
+            e.preventDefault();
+            var li = jQuery(e.target);
+            var eBox = jQuery("#editoption");
+            eBox.css("visibility","visible");
+            eBox.width(jQuery("#editoption span").width());
+            eBox.height(li.height());
+            var pos = jQuery(e.target).offset();
+            var lpos = pos.left+jQuery(e.target).outerWidth(true);
+            eBox.offset({left:lpos,top:pos.top});
+            eBox.mouseup(function(){
+                e.preventDefault();
+                var liText = li.text();
+                var parent = li.parent();
+                li.replaceWith('<input type="text" id="templongname" value="'
+                    +liText+'"><input type="button" value="OK" id="tempok">');
+                var liField = parent.children('input[type="text"]');
+                liField.click(function(e){
+                    e.preventDefault();
+                    return false;
+                });
+                var okButton = jQuery("#tempok");
+                okButton.click(function(e){
+                    var li = jQuery(this).parent();
+                    var longName = jQuery("#templongname").val();
+                    li.empty();
+                    li.append('<a href="#">'+longName+'</a>');
+                    e.preventDefault();
+                    self.saved = false;
+                });
+                eBox.css("visibility","hidden");
+            });
+            return false;
+        }
+        else
+            console.log("event type="+e.which);
     };
     /**
      * Save the version to the server scratch database
+     * @param onsave call this function on successful save
      */
-    this.save = function(newversion){
+    this.save = function(onsave){
         var url = "http://"+window.location.hostname+"/mml/dialect?docid="+this.docid;
         jQuery.get(url,function(data){
             var formatter = new Formatter(data);
             var packet = {};
             packet.layers = [];
             packet.docid = self.docid;
+            packet.longname = self.versionMenu.text();
             packet.version1 = self.version1;
             jQuery("textarea").each(function(){
                 var text = jQuery(this).val();
@@ -725,28 +779,22 @@ function editor( docid, version1, target )
             });
             var obj = {};
             obj.data = JSON.stringify(packet);
+            console.log("posting to mml/version");
             jQuery.post("http://"+window.location.hostname+"/mml/version",
-                 obj, function(data){
-                     if ( data = "OK" )
-                     {
-                         if ( newversion != undefined && newversion.text.length > 0 )
-                         {
-                             self.removeObjects("#tabs td","layer-final");
-                             self.removeObjects("textarea","layer-final",true);
-                             self.current = "layer-final";
-                             jQuery("#imglist").empty();
-                             self.editbox().val(newversion.text);
-                             self.editbox().attr("class","editbox-active");
-                             self.editbox().scrollTop(0);
-                             self.addEditboxHandlers();
-                             self.addVersionOption(data.shortName,data.longName);
-                             self.getPageImages();
-                         }
-                         self.saved = true;
-                         console.log("saved");
-                     }
-                     else
-                         alert("save failed!");
+                obj, function(data){
+                    console.log("posted to mml/version");
+                    if ( data == "OK" )
+                    {
+                        if ( onsave != undefined )
+                            onsave();
+                        self.saved = false;
+                    }
+                    else
+                    {
+                        alert("save failed! (message: "+data+")");
+                    }
+                 }).fail(function(){
+                     console.log("save failed");
                  });
         }).fail(function() {
             console.log( "couldn't fetch "+url );
@@ -755,7 +803,7 @@ function editor( docid, version1, target )
     /**
      * Fetch the text from the server via its docid
      */
-    this.getText = function()
+    this.getVersionText = function()
     {
         var url = "http://"+window.location.hostname+"/mml/mml?docid="+this.docid;
         if ( this.version1 != null )
@@ -770,6 +818,7 @@ function editor( docid, version1, target )
                 jQuery("#rhs").append('<textarea class="editbox-inactive" id="layer-'
                     +data.layers[i].name+'"></textarea>');
                 jQuery("#layer-"+data.layers[i].name).val(data.layers[i].body);
+                //console.log("Setting text area to:"+data.layers[i].body);
                 var tabName = data.layers[i].name=="final"
                     ?"layer-final":"layer-"+data.layers[i].name;
                 html += '<td class="inactive-tab">'+tabName+'</td>';
@@ -801,6 +850,31 @@ function editor( docid, version1, target )
         });
     };
     /**
+     * Handle the selection of a new version
+     */
+    this.versionSelector = function() {
+        var current = self.versionMenu.getValue();
+        var onsave = function(){
+            self.version1 = self.versionMenu.getValue();
+            //console.log("setting version1 to "+self.version1);
+            self.clearTabs();
+            //console.log("cleared tabs");
+            self.getVersionText();
+        };
+        if ( current == "new-version" )
+        {
+            jQuery("#newversion").css("visibility","visible");
+        }
+        else if ( !self.saved )
+        {
+            self.save(onsave);
+        }
+        else
+        {
+            onsave();
+        }
+    };
+    /**
      * Fill out the version menu
      * @param docid the docid whose versions are needed
      */
@@ -809,27 +883,29 @@ function editor( docid, version1, target )
         jQuery.get(url,function(data){
             self.versions = data;
             var select = jQuery("#versions");
+            select.empty();
+            self.versionMenu = new DropDown('versions','Version: ',self.versionSelector);
             for ( var i=0;i<data.length;i++ )
             {
                 var jObj = data[i];
-                select.append('<option value="'+jObj.vid+'">'+jObj.desc+'</option>');
+                self.versionMenu.addOption(jObj.vid,jObj.desc,self.editOptionHandler);
             }
-            select.append('<option value="new-version">New version...</option>');
-            select.change(function(){
-                if (jQuery(this).val()=="new-version" )
-                {
-                    jQuery("#newversion").css("visibility","visible");
-                }
-                else
-                    self.version1 = jQuery(this).val();
-            });
             var version;
             if ( self.version1 != undefined && self.version1.length>0 )
                 self.version1 = data[0].vid;
-            self.getText();
+            self.getVersionText();
         }).fail(function() {
             console.log( "couldn't fetch "+url );
         });
+    };
+    /**
+     * Remove tabs and associated textareas. Leave "layer-final"
+     * Version should be saved first!
+     */
+    this.clearTabs = function() {
+        self.switchLayer("layer-final");
+        jQuery(".inactive-tab").remove();
+        jQuery(".editbox-inactve").remove();
     };
     /**
      * Build the new version dialog - not yet visible
@@ -839,8 +915,7 @@ function editor( docid, version1, target )
         jQuery("#newversion div").append(
         '<div class="textboxes">'
         +'<p><span class="text-prompt">Short name:</span>'
-        +'<input type="text" id="version-shortname" placeholder="'
-        +template.example+'"></input></p>'
+        +'<input type="text" id="version-shortname" placeholder="'+template.example+'"></input></p>'
         +'<p><span class="text-prompt">Long name:</span>'
         +'<input type="text" id="version-longname"></input></p>'
         +'</div><div class="buttons">'
@@ -849,7 +924,6 @@ function editor( docid, version1, target )
         jQuery("#newversion").css("padding-top",Math.round(jQuery(window).height()/4)+"px");
         jQuery("#version-cancel").click(function(){
             jQuery("#newversion").css("visibility","hidden");
-            jQuery("#versions")[0].selectedIndex = 0;
         });
         jQuery("#version-ok").click(function(){
             // verify shortname
@@ -858,13 +932,27 @@ function editor( docid, version1, target )
             {
                 alert("short name must be like "+template.example);
             }
-            else
+            else 
             {
-                var vtext = this.editbox().val();
-                var sName = jQuery("#version-shortname").val();
-                var lName = jQuery("#version-longname").val();
-                var newversion = {text:vtext,shortName:sName,longName:lName};
-                jQuery("#newversion").css("visibility","hidden");
+                var onsave = function(){
+                    var vtext = self.editbox().val();
+                    var sName = jQuery("#version-shortname").val();
+                    var lName = jQuery("#version-longname").val();
+                    var newVid = "/"+sName;
+                    self.clearTabs();
+                    self.editbox().val(vtext);
+                    self.versionMenu.beforeLast(newVid,lName,self.editOptionHandler);
+                    self.versionMenu.selectByVal(newVid);
+                    self.version1 = newVid;
+                    jQuery("#newversion").css("visibility","hidden");
+                    self.recalcText();
+                    self.getPageImages();
+                    self.addEditboxHandlers();
+                };
+                if ( !self.saved )
+                    self.save(onsave);
+                else
+                    onsave();
             }
         });
     };
@@ -960,7 +1048,7 @@ function editor( docid, version1, target )
                         select.append(options);
                         var sWidth = select.width();
                         var dWidth = jQuery("#opendialog div").width();
-                        console.log("sWidth="+sWidth+" dWidth="+dWidth);
+                        //console.log("sWidth="+sWidth+" dWidth="+dWidth);
                         if ( dWidth < sWidth+sWidth/5 )
                         {
                             dWidth = sWidth+sWidth/5;
@@ -988,7 +1076,7 @@ function editor( docid, version1, target )
         });
     };
     var html = '<div id="wrapper"><div id="sides"><div id="lhs"><div id="lhspanel">';
-    html += '<select id="versions"></select></div><div id="imglistcontainer">';
+    html += '<div id="versions"></div></div><div id="imglistcontainer">';
     html += '<div id="imglist"></div></div></div>';
     html += '<div id="rhs"><div id="tabs"></div></div></div>';
     html += '<ul id="etoolbar"><li id="delete-layer"><i title="delete current layer" '
@@ -998,6 +1086,7 @@ function editor( docid, version1, target )
     html += '<i title="New file" class="fa fa-file-o fa-1x"></i></li></ul></div>';
     html += '<div id="newversion" class="dialog"><div><p>Create a new version</p></div></div>';
     html += '<div id="opendialog" class="dialog"><div><p>Open an existing file</p></div></div>';
+    html += '<div id="editoption"><span>Edit...</span></div>';
     jQuery("#"+this.target).empty();
     jQuery("#"+this.target).append( html );
     jQuery("#delete-layer").click(function(){
@@ -1033,7 +1122,7 @@ function editor( docid, version1, target )
     jQuery("#sides").width(wWidth-tWidth);
     jQuery(".dialog").width(parent.width());
     jQuery(".dialog").height(jQuery(document).height());
-    jQuery(".dialog div").width(Math.round(parent.width()/2));
+    jQuery(".dialog > div").width(Math.round(parent.width()/2));
     var url = "http://"+window.location.hostname+"/project/vtemplate?docid="+this.docid;
     jQuery.get(url,function(data){
         self.buildNewVersionDialog(data);
