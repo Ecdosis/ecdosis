@@ -33,13 +33,14 @@ div .textboxes {text-align:center;border:0px;margin:0;padding:0}
 .textboxes input {display:inline;overflow-wrap:normal;width:50%}
 .textboxes {margin-bottom: 1em !important}
 .textboxes p {margin:0;padding:0}
-#opendialog-select {display:block;margin-left:auto;margin-right:auto;margin-bottom:2em}
-#fileinfo {width:80%;border:0px;margin-bottom:2em;margin-top:0;padding:0}
-#fileinfo p {margin:0}
+[id$="-select"] {display:block;margin-left:auto;margin-right:auto;margin-bottom:2em}
+.dialog div [id$="-fileinfo"] {width:80%;border:0px;margin-bottom:2em;margin-top:0;padding:0}
+.dialog div [id$="-fileinfo"] p {margin:0}
 #version-shortname {font-size:medium}
 #editoption {display:block;z-index:2000;background-color:white;padding:.3em;border:1px solid black}
 #editoption:hover {background:#b0b0b0;cursor:pointer}
 #templongname {width:80%}
 #tempok {width:20%}
-#versions {z-index: 2000}
+#versions {z-index: 2000;font-family:arial,sans-serif}
 #longnamecancel {margin-right:2em}
+.title {white-space:normal}

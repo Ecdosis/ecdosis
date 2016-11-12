@@ -12,6 +12,8 @@ function DropDown(target,prompt,handler) {
 	var self = this;
     var html = '<span>'+self.prompt+'</span><ul class="dropdown" tabindex="1"></ul>';
     this.dd = jQuery('#'+target);
+	this.dd.empty();
+	this.dd.off("click");
 	this.dd.append(html);
     this.dd.attr("class","dropdowns");
     this.dd.attr("tabindex","1");
@@ -55,29 +57,53 @@ function DropDown(target,prompt,handler) {
         else
             jQuery("#"+self.target+" li").eq(before).before(html);
         var opt = jQuery("#"+self.target+' li[data-value="'+val+'"]');
-        opt.mousedown(edithandler);
-        opt.mouseup(function(e){
-            if ( e.which==3 )
-            {
-                e.preventDefault();
-                return false;
-            }
-        });
+        if ( edithandler != null )
+        {
+            opt.mousedown(edithandler);
+            opt.mouseup(function(e){
+                if ( e.which==3 )
+                {
+                    e.preventDefault();
+                    return false;
+                }
+            });
+        }
         opt.click(function(e){
 		    var li = jQuery(this);
-	        self.val = li.attr("data-value");
-	        self.index = li.index();
-	        self.placeholder.text(self.prompt+li.text());
+	        var liVal = li.attr("data-value");
+            if ( liVal != "new-version" )
+            {
+                self.val = liVal;
+	            self.index = li.index();
+	            self.placeholder.text(self.prompt+li.text());
+            }
+            else
+                self.newVersion = true;
             self.handler(e.target);
 	    });
         this.resizeForOption(text);
+        if ( this.val == undefined || this.val.length==0 )
+        {
+            this.val = val;
+            this.index = 0;
+            this.placeholder.text(this.prompt+text);
+        }
     };
     /**
      * Get the current value of the dropdown
-     * @return a text value
+     * @return a text value (new-version means "New Version is selected")
      */
     this.getValue = function() {
-        return this.val;
+        if ( this.newVersion )
+            return "new-version";
+        else
+            return this.val;
+    };
+    /**
+     * Call this when you are finished with the new version dialog
+     */
+    this.cancelNewVersion = function(){
+        this.newVersion = false;
     };
 	/**
      * Get the current text of the dropdown
