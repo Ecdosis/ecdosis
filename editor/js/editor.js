@@ -847,6 +847,8 @@ function editor( docid, version1, target )
             jQuery("#plus-tab").click(function(){
                 self.newLayer();
             });
+			// check that the text fits in the box as it is being edited
+			window.setInterval( function(){ self.fitText() }, 10000);
         }).fail(function() {
             console.log( "couldn't fetch "+url );
         });
