@@ -716,6 +716,14 @@ function editor( docid, version1, target )
         for ( var i=0;i<delenda.length;i++ )
             delenda[i].remove();
     };
+	/**
+	 * Make sure the edit option button is hidden
+     */
+	this.hideEditOption = function() {
+		var eBox = jQuery("#editoption");
+		if ( eBox.css("visibility") == "visible" )
+			eBox.css("visibility","hidden");
+	};
     /**
      * Handle right-mouse clicks for version menu options
      */
@@ -726,7 +734,7 @@ function editor( docid, version1, target )
             var li = jQuery(e.target);
             var eBox = jQuery("#editoption");
             eBox.css("visibility","visible");
-            eBox.width(jQuery("#editoption span").width());
+			eBox.width(jQuery("#editoption span").width());
             eBox.height(li.height());
             var pos = jQuery(e.target).offset();
             var lpos = pos.left+jQuery(e.target).outerWidth(true);
@@ -751,6 +759,7 @@ function editor( docid, version1, target )
                     self.versionMenu.resizeForOption(longName);
                     e.preventDefault();
                     self.saved = false;
+					self.hideEditOption();
                 });
                 eBox.css("visibility","hidden");
             });
@@ -789,7 +798,7 @@ function editor( docid, version1, target )
                     {
                         if ( onsave != undefined )
                             onsave();
-                        self.saved = false;
+                        self.saved = true;
                     }
                     else
                     {
@@ -880,6 +889,8 @@ function editor( docid, version1, target )
 		        onsave();
 		    }
 		}
+		// can have been selected and not dismissed
+		self.hideEditOption();
     };
     /**
      * Fill out the version menu
@@ -889,7 +900,8 @@ function editor( docid, version1, target )
         var url = "http://"+window.location.hostname+"/mml/versions?docid="+docid;
         jQuery.get(url,function(data){
             self.versions = data;
-            self.versionMenu = new DropDown('versions','Version: ',self.versionSelector);
+            self.versionMenu = new DropDown('versions','Version: ',
+				self.versionSelector, self.hideEditOption);
             for ( var i=0;i<data.length;i++ )
             {
                 var jObj = data[i];

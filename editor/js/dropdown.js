@@ -2,13 +2,18 @@
  * A pseudo drop-down menu for selecting and editing versions
  * This is required because regular select doesn't handle events
  * in options in Safari and Chrome and probably IE.
+ * @param target id of the element to attach to
+ * @param prompt prompt to precede version name
+ * @param selectHandler function to handle option selections
+ * @param menuHandler function to handle menu clicks or null
  */
-function DropDown(target,prompt,handler) {
+function DropDown(target,prompt,selectHandler,menuHandler) {
     this.prompt = prompt;
     this.target = target;
 	this.val = '';
 	this.index = -1;
-    this.handler = handler; // takes li element as single argument
+    this.selectHandler = selectHandler; // takes li element as single argument
+    this.menuHandler = menuHandler; 
 	var self = this;
     var html = '<span>'+self.prompt+'</span><ul class="dropdown" tabindex="1"></ul>';
     this.dd = jQuery('#'+target);
@@ -79,7 +84,7 @@ function DropDown(target,prompt,handler) {
             }
             else
                 self.newVersion = true;
-            self.handler(e.target);
+            self.selectHandler(e.target);
 	    });
         this.resizeForOption(text);
         if ( this.val == undefined || this.val.length==0 )
@@ -152,8 +157,13 @@ function DropDown(target,prompt,handler) {
         var before = jQuery("#"+self.target+" li").length-1;
         this.addOption(value,text,edithandler,before);
     };
-    self.dd.click(function(event){
+	/**
+	 * User clicked on the menu to activate it
+     */
+    this.dd.click(function(event){
         jQuery(this).toggleClass('active');
+		if ( self.menuHandler != null )
+			self.menuHandler();
 	});
     jQuery(document).contextmenu(function(e){
         e.preventDefault();
