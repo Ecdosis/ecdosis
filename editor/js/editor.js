@@ -6,6 +6,8 @@ function editor( docid, version1, target )
     this.docid = docid;
     this.iOffset = 0;
     this.nInterp = 4;
+	this.trimTop = 0;
+	this.trimBot = 0;
     this.target = target;
     /** flag to reflect if it has been saved */
     this.saved = true;
@@ -47,6 +49,7 @@ function editor( docid, version1, target )
         this.lines = text.split("\n");
         this.longest = 0;
         this.longestLen = 0;
+	    this.fitLineLength = 0;
         for ( var i=0;i<this.lines.length;i++ )
         {
             if ( this.lines[i].length > this.longestLen )
@@ -70,6 +73,21 @@ function editor( docid, version1, target )
         return l;
     };
     /**
+     * Get the value of a css int param
+     * @param obj the jQuery object
+     * @param param the css property
+     * @return the value of the css property
+     */
+    this.getCssValue = function(obj,param) {
+        var value = obj.css(param);
+        if ( value.lastIndexOf('px') != -1 )
+            value = value.substring(0,value.length-2);
+        if ( value.length== 0 )
+            return 0;
+        else
+            return parseInt(value);
+    };
+    /**
      * Extract the numerical value of a css property terminated by "px"
      * @param id the element to get the property off
      * @param param the name of the css property
@@ -77,13 +95,8 @@ function editor( docid, version1, target )
      */
     this.getCssParam = function(id,param)
     {
-        var value = jQuery("#"+id).css(param);
-        if ( value.lastIndexOf('px') != -1 )
-            value = value.substring(0,value.length-2);
-        if ( value.length== 0 )
-            return 0;
-        else
-            return parseInt(value);
+        var obj = jQuery("#"+id);
+        return this.getCssValue(obj,param);
     };
     /**
      * Compute space of horizontal borders and padding by the toolbar
@@ -104,7 +117,7 @@ function editor( docid, version1, target )
         this.getPageCentres(); 
         //console.log("recalcing page centres"); 
         //this.editbox().scrollTop(0);
-        jQuery("#imglist").css('top',"0px"); 
+        jQuery("#imglist").css('top',-this.imageStart+"px"); 
         this.dirty = false;
     };
     /**
@@ -123,39 +136,44 @@ function editor( docid, version1, target )
      */
     this.fitText = function()
     {
-        var eb = this.editbox();
-        // set wrapper height
-        var wHeight = jQuery(window).height()-jQuery("#wrapper").offset().top;
-        jQuery("#wrapper").height(wHeight);
-        // compute text size
-        jQuery("#sides").append('<span id="measure-text">'
-            +this.lines[this.longest]+'</span>');
-        var font = this.editbox().css("font-family");
-        jQuery("#measure-text").css("font-family",font);
-        jQuery("#measure-text").css("font-size","12px");
-        var maxWidth = jQuery("#measure-text").width();
-        var ebWidth = eb.width();
-        var tbSlop = this.calcTbSlop();
-        ebWidth -= tbSlop;
-        ebWidth = Math.round(ebWidth*3/4);
-        var magnifiedSize = Math.floor(12*ebWidth/maxWidth);
-        if ( magnifiedSize < 12 )
-        {
-            ebWidth = Math.round(eb.width()*19/20);
-            magnifiedSize = Math.floor(12*ebWidth/maxWidth);
-        }
-		if ( magnifiedSize > 24 )
-			magnifiedSize = 24;
-        var newSize = magnifiedSize+"px";
-        jQuery("#measure-text").remove();
-        eb.css("font-size",newSize);
-        this.getLineHeight(this.editbox());  // NB computes this.ebSlop
-        var tbHt = jQuery("#tabs").height();
-        var ht = jQuery("#wrapper").height()-(this.ebSlop+tbHt);
-        var nrows = Math.floor(ht/this.lineHeight);
-        eb.attr("rows",nrows);
-        var newEbWidth = jQuery("#rhs").width()-this.calcTbSlop();
-        eb.width(newEbWidth);
+        if ( this.fitLineLength != this.lines[this.longest] )
+		{
+			var eb = this.editbox();
+		    // set wrapper height
+		    var wHeight = jQuery(window).height()-jQuery("#wrapper").offset().top;
+		    jQuery("#wrapper").height(wHeight);
+		    // compute text size
+		    jQuery("#sides").append('<span id="measure-text">'
+		        +this.lines[this.longest]+'</span>');
+		    var font = this.editbox().css("font-family");
+		    jQuery("#measure-text").css("font-family",font);
+		    jQuery("#measure-text").css("font-size","12px");
+		    var maxWidth = jQuery("#measure-text").width();
+		    var ebWidth = eb.width();
+		    var tbSlop = this.calcTbSlop();
+		    ebWidth -= tbSlop;
+		    ebWidth = Math.round(ebWidth*4/5);
+		    var magnifiedSize = Math.floor(12*ebWidth/maxWidth);
+		    if ( magnifiedSize < 12 )
+		    {
+		        ebWidth = Math.round(eb.width()*19/20);
+		        magnifiedSize = Math.floor(12*ebWidth/maxWidth);
+		    }
+			if ( magnifiedSize > 24 )
+				magnifiedSize = 24;
+			var oldSize = eb.css("font-size");
+		    var newSize = magnifiedSize+"px";
+			jQuery("#measure-text").remove();
+		    eb.css("font-size",newSize);
+		    this.getLineHeight(this.editbox());  // NB computes this.ebSlop
+		    var tbHt = jQuery("#tabs").height();
+		    var ht = jQuery("#wrapper").height()-(this.ebSlop+tbHt);
+		    var nrows = Math.floor(ht/this.lineHeight);
+		    eb.attr("rows",nrows);
+			var newEbWidth = jQuery("#rhs").width()-this.calcTbSlop();
+		    eb.width(newEbWidth);
+			this.fitLineLength = this.lines[this.longest];
+		}
     };
     /**
      * Ensure page centres on each side are increasing. Drop overlapping ones.
@@ -217,12 +235,15 @@ function editor( docid, version1, target )
         var lTops = Array();
         var imgs = jQuery("#imglist img");
         var top = 0;
+		var offset = this.trimTop;
         imgs.each(function(){
+			var ht = parseInt(jQuery(this).attr("height"));
             top = Math.round(top);
-            lTops.push(top);
-            top += parseInt(jQuery(this).attr("height"));
+            lTops.push(top+offset);
+			offset =0;
+            top += ht;
         });
-        lTops.push(top);
+        lTops.push(top-this.trimBot);
         this.lCentres = Array();
         for ( var i=1;i<lTops.length;i++ )
         {
@@ -230,6 +251,7 @@ function editor( docid, version1, target )
             this.lCentres.push( Math.round(lTops[i-1]+diff/2) );
         }
         this.imageEnd = lTops[lTops.length-1];
+		this.imageStart = lTops[0];
         // add pseudo-page centres for start and end
         var lPanelHt = jQuery("#lhspanel").height();
         var wHalfHt = Math.round((jQuery("#wrapper").height()-lPanelHt)/2);
@@ -296,7 +318,7 @@ function editor( docid, version1, target )
      */
     this.checkScrolling = function() {
         var sidesHt = jQuery("#sides").height();
-        if ( self.textEnd < sidesHt && self.imageEnd > sidesHt )
+        if ( this.textEnd < sidesHt && this.imageEnd-this.imageStart > sidesHt )
         {
             // if not already installed, add LHS scrollframe
             if ( jQuery("#scrollframe-lhs").length==0 )
@@ -331,6 +353,12 @@ function editor( docid, version1, target )
                 var ratio = maxW/p.width;
                 var w = Math.round(p.width*ratio);
                 var h = Math.round(p.height*ratio);
+				if ( i==0 && "start" in p )
+					self.trimTop = Math.round((p.height*p.start*ratio)/100);
+				else if ( i==pages.length-1 && "end" in p )
+					self.trimBot = Math.round(p.height-(p.height*p.end*ratio)/100);
+				else
+					self.trimTop = self.trimBot = 0;
                 html += '<a class="swinxyzoom swinxyzoom-window" '
                     +'href="'+p.src+'"><img src="'
                     +p.src+'" width="'+w+'" height="'+h+'" title="'
@@ -588,10 +616,13 @@ function editor( docid, version1, target )
         this.current = tab;
         jQuery(".editbox-active").attr("class","editbox-inactive");
         this.editbox().attr("class","editbox-active");
+		// recompute the text
+		this.recalcText();
+		this.fitLineLength = 0;
         this.fitText();
         this.recalcPageCentres();
         this.editbox().scrollTop(0);
-        jQuery("#imglist").css('top',"0px");
+        jQuery("#imglist").css('top',-this.trimTop+"px");
         this.addEditboxHandlers();
     };
     /**
@@ -682,7 +713,7 @@ function editor( docid, version1, target )
         jQuery("#tabs").after(html);
         this.current = "layer-1";
         jQuery("#layer-1").val(contents);
-        jQuery(".editbox-active").attr("class","editbox-inactive");
+		jQuery(".editbox-active").attr("class","editbox-inactive");
         this.editbox().attr("class","editbox-active");
         // add new tab and make it active also
         jQuery("#tabs td").each(function(){
@@ -692,6 +723,7 @@ function editor( docid, version1, target )
         html = '<td class="active-tab">layer-1</td>';
         jQuery(".active-tab").attr("class","inactive-tab");
         jQuery("#plus-tab").after(html);
+		this.fitLineLength = 0;
         self.fitText();
         self.recalcPageCentres();
         self.addEditboxHandlers();
@@ -716,14 +748,14 @@ function editor( docid, version1, target )
         for ( var i=0;i<delenda.length;i++ )
             delenda[i].remove();
     };
-	/**
-	 * Make sure the edit option button is hidden
+    /**
+     * Make sure the edit option button is hidden
      */
-	this.hideEditOption = function() {
-		var eBox = jQuery("#editoption");
-		if ( eBox.css("visibility") == "visible" )
-			eBox.css("visibility","hidden");
-	};
+    this.hideEditOption = function() {
+        var eBox = jQuery("#editoption");
+        if ( eBox.css("visibility") == "visible" )
+            eBox.css("visibility","hidden");
+    };
     /**
      * Handle right-mouse clicks for version menu options
      */
@@ -811,6 +843,75 @@ function editor( docid, version1, target )
             console.log( "couldn't fetch "+url );
         });
     };
+	/**
+     * Encode a string as hex
+     * @param str the string to encode
+     * @return a hex string representing str
+     */
+	this.encodeHex = function(str){
+		var hex = "";
+		for ( var i=0;i<str.length;i++ )
+		{
+			var hc = str.charCodeAt(i).toString(16);
+			for ( var j=hc.length;j<4;j++ )
+				hex += '0';
+			hex += hc;
+		}
+		return hex;
+	};
+	/**
+	 * Decode a hex string back to its literal representation
+     * @param hex the hex string
+     * @return a valid text string the hex represented
+     */
+	this.decodeHex = function( hex ) {
+		var str = "";
+		for ( var i=0;i<hex.length;i+=4 )
+		{
+			var chunk = hex.slice(i,i+4);
+			var cc = parseInt(chunk,16);
+			str += String.fromCharCode(cc);
+		}
+		return str;
+	};
+    /**
+     * Populate a formatting menu with values from the dialect
+     * @param id the id of the select menu
+     * @param arr thje array of formats from the dialect
+     */
+    this.populateMenu = function(id,arr) {
+        var menu = jQuery("#"+id);
+        menu.empty();
+		// first option is select - will default to this
+		menu.append('<option value="choose">--Choose--</option>');
+        if ( arr != undefined )
+        {
+            if ( arr.length==0 )
+                menu.parent().remove();
+            else
+            {
+                for ( var i=0;i<arr.length;i++ )
+                {
+                    var fmt = arr[i];
+				    var json = JSON.stringify(fmt);
+                    var cleaned = this.encodeHex(json);
+				    menu.append('<option value="'+cleaned+'">'+fmt.prop+'</option>');
+                }
+            }
+        }
+    };
+    /**
+     * Read the dialect and populate the formatting menus
+     */
+    this.readDialect = function() {
+        var url = "http://"+window.location.hostname+"/mml/dialect?docid="+this.docid;
+        jQuery.get(url,function(dialect){
+            self.populateMenu("charformats",dialect.charformats);
+            self.populateMenu("lineformats",dialect.lineformats);
+            self.populateMenu("paraformats",dialect.paraformats);
+            self.dialect = dialect;
+        });
+    };
     /**
      * Fetch the text from the server via its docid
      */
@@ -856,8 +957,9 @@ function editor( docid, version1, target )
             jQuery("#plus-tab").click(function(){
                 self.newLayer();
             });
-			// check that the text fits in the box as it is being edited
-			window.setInterval( function(){ self.fitText() }, 10000);
+            self.readDialect();
+            // check that the text fits in the box as it is being edited
+            window.setInterval( function(){ self.fitText() }, 10000);
         }).fail(function() {
             console.log( "couldn't fetch "+url );
         });
@@ -1037,7 +1139,6 @@ function editor( docid, version1, target )
                     // disable docid in opendialog-select
                     if ( service=="documents")
                         self.setDocidAndVersion(self.docid,self.version1);
-                    console.log("loaded "+service);
                 });
             }
             else
@@ -1080,7 +1181,7 @@ function editor( docid, version1, target )
                     dWidth = sWidth+sWidth/5;
                     jQuery("#"+dialogid+" div").width(dWidth);
                 }
-                console.log("loaded new versions");
+                //console.log("loaded new versions");
             });
         }
     };
@@ -1150,8 +1251,8 @@ function editor( docid, version1, target )
             console.log("no dialect for "+self.docid);
         });
     };
-	/**
-	 * Remove the layer- designation from the version name
+    /**
+     * Remove the layer- designation from the version name
      * @param version a version possibly with a layer name at the end
      * @return the bare version name
      */
@@ -1162,6 +1263,67 @@ function editor( docid, version1, target )
 		else
 			return version;
 	};
+    /**
+     * Create an empty version of a new document
+     * @param pages the pages list returned from the server
+     */
+    this.createVersionCopy = function(pages) {
+        var select = jQuery("#newversion-select");
+        var value = select.val();
+        if ( value != "select-option" )
+        	self.version1 = value;
+		self.versionMenu.cancelNewVersion();
+        self.versionMenu.beforeLast(value,"Version "+value,self.editOptionHandler);
+		self.versionMenu.selectByVal(value);
+        var url = "http://"+window.location.hostname+"/mml/dialect?docid="+this.docid;
+        jQuery.get(url,function(data){
+            var lineFmts = data.lineformats;
+            for ( var i=0;i<lineFmts.length;i++ )
+            {
+                if ( lineFmts[i].prop == "page" )
+                {
+                    leftTag = lineFmts[i].leftTag;
+                    rightTag = lineFmts[i].rightTag;
+                }
+            }
+			var currText = self.editbox().val();
+			var copyText = "";
+			var lines = currText.split("\n");
+			var j = 0;
+            for( var i=0;i<lines.length;i++ )
+			{
+				var line = lines[i].trim();
+				if ( line.indexOf(leftTag)==0 
+					&& line.lastIndexOf(rightTag) == line.length-rightTag.length)
+				{
+					if ( j < pages.length )
+					{
+						copyText += leftTag + pages[j].n+rightTag+"\n";
+						j++;
+					}
+				}
+				else
+					copyText += lines[i]+"\n";
+			}
+			for ( var i=j;i<pages.length;i++ )
+            {
+                copyText += leftTag+pages[i].n+rightTag+"\n";
+                if ( i < pages.length )
+                    copyText += "\n\n\n\n\n\n\n\n\n";
+            }
+            // create empty textarea layer-final
+            self.clearTabs();
+            // fill edit box with copied text plus new page-refs
+            self.editbox().val(copyText);
+			self.save();
+			// fetch corresponding images
+			self.recalcText();
+            self.getPageImages();
+            self.addEditboxHandlers();
+        }).fail(function(){
+            console.log("no dialect for "+self.docid);
+        });
+    };
     /**
      * Create an empty version of a new document
      */
@@ -1203,11 +1365,19 @@ function editor( docid, version1, target )
     this.createNewVersion = function() {
         var onsave = function() {
             self.clearTabs();
-            self.getVersionText();
+		var select = jQuery("#newversion-select");
+        var value = select.val();
+        var url = "http://"+window.location.hostname+"/pages/list?docid="
+                +self.docid+"&version1="+value;
+            jQuery.get(url,function(data){
+                self.createVersionCopy(data);
+            });
         };
         // yes self, not this
         if ( !self.saved )
             self.save(onsave);
+		else
+			onsave();
         jQuery("#newversion").css("visibility","hidden");
     };
     /**
@@ -1243,6 +1413,222 @@ function editor( docid, version1, target )
             console.log( "couldn't fetch "+url );
         });
     };
+    /**
+     * Clear any menus that are still lying around
+     * @param id the id of the menu to clear
+     */
+    this.clearMenu = function(id){
+        var cmenu = jQuery("#"+id);
+		if ( cmenu.css("display")=="block" )
+            cmenu.css("display","none");
+    };
+    /**
+     * Clear all menus
+     */
+    this.clearMenus = function(){
+        this.clearMenu("charformats");
+        this.clearMenu("paraformats");
+        this.clearMenu("lineformats");
+    };
+    /**
+     * Examine a text token to see if it marks a boundary of a paragraph or section
+     * @param token the token to examine
+     * @param state the start state
+     * @return 1 if boundary was a line, 2=para or 3=section
+     */
+    this.examineBoundary = function( token, state ) {
+        switch ( state )
+        {
+            case 0: // looking for first '\n'
+                if ( token == '\n' )
+                    state = 1;
+                else if ( token != '\t' && token != ' ' )
+                    state = 0;
+                break;
+            case 1: // seen '\n'
+                if ( token == '\n' )
+                    state = 2;
+                else if ( token != '\t' && token != ' ' )
+                    state = 0;
+                break;
+            case 2: // seen \n\n
+                if ( token == '\n' )
+                    state = 3;
+                else if ( token != '\t' && token != ' ' )
+                    state = 0;
+                break;
+        }
+        return state;
+    };
+    /**
+     * Is the current position the edge of a boundary?
+     * @param text the text to look in
+     * @param pos the position to test
+     * @param target the target state to reach
+     * @param backwards true if we look backwards, else forwards
+     * @return true if it was a boundary to the left or right
+     */
+    this.isBoundary = function(text,pos,target,backwards) {
+        var limit = text.length-1;
+        var state = 0;
+        if ( backwards )
+        {
+            do
+            {
+                var token = text[--pos];
+                state = this.examineBoundary(token,state,limit,true);
+            }
+            while ( pos > 0 && state < target && state != 0 );
+            return (state <= target && state > 0) || pos == 0;
+        }
+        else
+        {
+            do
+            {
+                var token = text[pos++];
+                state = this.examineBoundary(token,state,limit,false);
+            }
+            while ( pos < limit && state < target && state != 0 );            
+            return (state <= target && state > 0) || pos == limit;
+        }
+    };
+    /**
+     * Get the special right tag or general tag
+     * @param fmt the dialect format to get it from
+     * @return the leftTag
+     */
+    this.rightTag = function( fmt ) {
+        return ("rightTag" in fmt)?fmt.rightTag:fmt.tag;
+    };
+    /**
+     * Get the special left tag or general tag
+     * @param fmt the dialect format to get it from
+     * @return the leftTag
+     */
+    this.leftTag = function( fmt ) {
+        return ("leftTag" in fmt)?fmt.leftTag:fmt.tag;
+    };
+    /**
+     * Get the overall length of the left and right tags
+     * @param fmt the dialect format to get them from
+     * @return the total length of the two tags
+     */
+    this.tagLen =function(fmt) {
+        return this.leftTag(fmt).length+this.rightTag(fmt).length;
+    };
+    /**
+     * Remove existing para or line formats
+     * @param eb the textarea editbox
+     * @param start the line-start position
+     * selEnd the end of the current selection
+     * @param array of formats it belongs to 
+     * @return the length of the new selection
+     */
+    this.removeFormats = function( eb, start, end, arr ) {
+        var rStart = end;
+        var rEnd = end;
+        var lStart = start;
+        var lEnd = start;
+        var text = eb.val();
+        var seg = text.substring(start,end);
+        var best = -1;
+        var bestLen = 0;
+        for ( var i=0;i<arr.length;i++)
+        {
+            var fmt = arr[i];
+            var lTag = self.leftTag(fmt);
+            var rTag = self.rightTag(fmt);
+            var fmtLen = this.tagLen(fmt);
+            if ( seg.indexOf(lTag)==0 && seg.lastIndexOf(rTag)==seg.length-rTag.length )
+            {
+                if ( best == -1 || fmtLen > bestLen )
+                {
+                    best = i;
+                    bestLen = this.tagLen(arr[best]);
+                }
+            }
+        }
+        if ( best != -1 )
+        {
+            lStart = start;
+            lEnd = lStart + this.leftTag(arr[best]).length;
+            rStart = end - this.rightTag(arr[best]).length;
+            rEnd = end;
+        }
+        if ( rEnd > rStart )
+        {
+            eb.setSelection( rStart, rEnd );
+            eb.deleteSelectedText();
+        }
+        if ( lEnd > lStart )
+        {
+            eb.setSelection( lStart, lEnd );
+            eb.deleteSelectedText();
+        }
+        return rStart-lEnd;
+    };
+    /**
+     * Extend the selection IF it is surrounded by a charformat
+     * @param text the text
+     * @param sel the current selection
+     * @param arr an array of charformats from the dialect
+     * @return the updated selectionobject
+     */
+    this.extendSelection = function( text, sel, arr ) {
+        var pre = text.substring(0,sel.start);
+        var post = text.substring(sel.end);
+        var best = -1;
+        var bestLen = 0;
+        for ( var i=0;i<arr.length;i++ )
+        {
+            var fmt = arr[i];
+            var lTag = this.leftTag(fmt);
+            var rTag = this.rightTag(fmt);
+            if ( pre.substring(pre.length-lTag.length) == lTag 
+                && post.substring(0,rTag.length)== rTag )
+            {
+                if ( best == -1 || this.tagLen(fmt) > bestLen )
+                {
+                    best = i;
+                    bestLen = this.tagLen(fmt);
+                }
+            }
+        }
+        if ( best != -1 )
+        {
+            sel.start -= this.leftTag(arr[best]).length;
+            sel.end += this.rightTag(arr[best]).length;
+        }
+        return sel;        
+    };
+    /**
+     * Split a selection into segments if it contains line-breaks
+     * @param sel the selection
+     * @param id the id of the select dialog
+     * @param text the text of the editbox
+     * @return an array of selections
+     */
+    this.splitSelection = function(sel,id,text) {
+        var arr = Array();
+        if ( id == "paraformats" )
+            arr.push(sel);
+        else
+        {
+            var str = text.substring(sel.start,sel.end);
+            var lines = str.split("\n");
+            var start = sel.start;
+            for ( var i=0;i<lines.length;i++ )
+            {
+                var s = {};
+                s.start = start;
+                start += lines[i].length+1;
+                s.end = start;
+                arr.push(s);
+            }
+        }
+        return arr;
+    };
+    // enable editing commands
     var html = '<div id="wrapper"><div id="sides"><div id="lhs"><div id="lhspanel">';
     html += '<div id="versions"></div></div><div id="imglistcontainer">';
     html += '<div id="imglist"></div></div></div>';
@@ -1251,7 +1637,12 @@ function editor( docid, version1, target )
     html += 'class="fa fa-minus fa-1x"></i></li><li id="save"><i title="save" '
     html += 'class="fa fa-save fa-1x"></i></li><li id="openfile"><i title="Open file" '
     html += 'class="fa fa-folder-open-o fa-1x"></i></li><li id="newfile">'
-    html += '<i title="New document" class="fa fa-file-o fa-1x"></i></li></ul></div>';
+    html += '<i title="New document" class="fa fa-file-o fa-1x"></i></li>'
+    html += '<li id="preview"><img title="Preview" src="/main/sites/all/modules/editor/css/fa-preview.png" style="height:15px;padding-right:4px;padding-left:4px"></li>'
+    html += '<li id="character-formats"><i title="Character formats" class="fa fa-font fa-1x"></i><select class="popup" id="charformats"></select></li>'
+    html += '<li id="line-formats"><i title="Line formats" class="fa fa-align-justify fa-1x"></i><select class="popup" id="lineformats"></select></li>'
+    html += '<li id="paragraph-formats"><i title="Paragraph formats" class="fa fa-paragraph fa-1x"></i><select class="popup" id="paraformats"></select></li>'
+    html += '</ul></div>';
     html += '<div id="newversion" class="dialog"><div><p>Create a new version</p></div></div>';
     html += '<div id="opendialog" class="dialog"><div><p>Open an existing file</p></div></div>';
     html += '<div id="newdialog" class="dialog"><div><p>Make a new transcription</p></div></div>';
@@ -1285,6 +1676,9 @@ function editor( docid, version1, target )
         },400 );
         jQuery("#opendialog").css("visibility","visible");
     });
+    /**
+     * New file button 
+     */
     jQuery("#newfile").click(function(){
         var oldColor = jQuery(this).css("background-color");
         jQuery(this).css("background-color","pink");
@@ -1292,6 +1686,129 @@ function editor( docid, version1, target )
             jQuery("#newfile").css("background-color",oldColor);
         },400 );
         jQuery("#newdialog").css("visibility","visible");
+    });
+    /**
+     * Preview button 
+     */
+    jQuery("#preview").click(function(){
+        alert("preview");
+    });
+	/**
+     * Character formats button 
+     */
+    jQuery("#character-formats").click(function(e){
+        if (e.target.tagName == "I" )
+		{
+			self.clearMenus();
+			var select = jQuery(e.target).siblings("select");
+            if ( select.length == 1 )
+				select[0].selectedIndex = 0;
+			var cfmts = jQuery("#charformats");
+			cfmts.css("display","block");
+			cfmts.css("right","0px");
+		}
+    });
+    /**
+     * Line formats button 
+     */
+    jQuery("#line-formats").click(function(e){
+        if (e.target.tagName == "I" )
+		{
+		    self.clearMenus();
+		    var select = jQuery(e.target).siblings("select");
+            if ( select.length == 1 )
+				select[0].selectedIndex = 0;
+			var lfmts = jQuery("#lineformats");
+		    jQuery("#lineformats").css("display","block");
+		    lfmts.css("right","0px");
+		}
+    });
+    /**
+     * Paragraph formats button 
+     */
+    jQuery("#paragraph-formats").click(function(e){
+        if (e.target.tagName == "I" )
+		{
+			self.clearMenus();
+		    var select = jQuery(e.target).siblings("select");
+            if ( select.length == 1 )
+				select[0].selectedIndex = 0;
+			var pfmts = jQuery("#paraformats");
+		    jQuery("#paraformats").css("display","block");
+		    pfmts.css("right","0px");
+		}
+    });
+    /* hide popup menus when moving away or change */
+    jQuery(".popup").change(function(e){
+		var str = self.decodeHex(jQuery(this).val());
+		var fmt = JSON.parse(str);
+        var select = jQuery(this);
+		var id = select.attr("id");
+		var eb = self.editbox();
+        eb.attr('contenteditable','true');
+        var sel = eb.getSelection();
+        // surround text with chosen tag
+        var text = eb.val();
+        if ( select.attr("id") == "charformats")
+        {
+            sel = self.extendSelection(text,sel,self.dialect.charformats);
+        }
+        else if ( id == "lineformats" )
+		{
+            while ( !self.isBoundary(text,sel.start,1,true) )
+                sel.start--;
+			while ( !self.isBoundary(text,sel.end,1,false) )
+                sel.end++;
+		}
+		else if ( id == "paraformats" )
+		{
+			while ( !self.isBoundary(text,sel.start,2,true) )
+                sel.start--;
+			while ( !self.isBoundary(text,sel.end,2,false) )
+                sel.end++;
+		}
+	    if ( sel.start != sel.end )
+        {
+            var lTag = self.leftTag(fmt)
+	        var rTag = self.rightTag(fmt);
+            var arr;
+            if ( id == "charformats" )
+                arr = self.dialect.charformats;
+            else if ( select.attr("id") == "lineformats" )
+                arr = self.dialect.lineformats;
+            else if ( id =="paraformats")
+                arr = self.dialect.paraformats;
+            // split selection into lines here
+            // then process each line separately
+            var sels = self.splitSelection(sel,id,text);
+            var offset = 0;
+            for ( var i=0;i<sels.length;i++ )
+            {
+                var old = sels[i].end-sels[i].start;
+                var len = self.removeFormats(eb,sels[i].start-offset,sels[i].end-offset,arr); 
+                // adjust selection after previous reformatting
+                sels[i].start -= offset;
+                sels[i].end = sels[i].start + len;
+                eb.setSelection(sels[i].start,sels[i].end);
+                eb.surroundSelectedText(lTag,rTag);
+                eb.collapseSelection(true);
+                offset += old-(len+lTag.length+rTag.length);
+            }
+        }
+		jQuery(this).toggle();
+    });
+	jQuery(".popup").click(function(e){
+		if ( jQuery(this).attr("data-expanded") == "true" )
+		{
+			jQuery(this).attr("data-expanded","false");
+			jQuery(this).css("display","none");
+			//console.log("hiding, data-expanded is false");
+		}
+		else
+		{
+			jQuery(this).attr("data-expanded","true");
+			//console.log("NOT hiding, data-expanded is true");
+		}
     });
     var tWidth = jQuery("#etoolbar").width();
     var wWidth = jQuery(window).width();

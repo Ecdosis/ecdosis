@@ -27,6 +27,7 @@ function index(target,admin)
                     +'</option>\n';
                 }
                 html += '</select>';
+                jQuery("#projects").empty();
                 jQuery("#projects").append(html);
             }
         })

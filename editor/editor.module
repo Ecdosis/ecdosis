@@ -8,6 +8,7 @@ function editor_preprocess_page(&$vars)
         drupal_add_css(drupal_get_path('module','editor').'/css/dropdown.css','file');  
         drupal_add_css(drupal_get_path('module','editor').'/css/swinxy.css','file');  
         drupal_add_js(drupal_get_path('module','editor').'/js/formatter.js','file');  
+        drupal_add_js(drupal_get_path('module','editor').'/js/rangyinputs-jquery-src.js','file');  
         drupal_add_js(drupal_get_path('module','editor').'/js/dropdown.js','file');  
         drupal_add_js(drupal_get_path('module','editor').'/js/swinxy.js','file');  
     }

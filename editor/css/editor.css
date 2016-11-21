@@ -7,7 +7,7 @@ body {overflow:hidden}
 #rhs {float:right;height:100%;}
 #sides {float:left;position:relative}
 #etoolbar {padding:0;margin:0;border-right:1px solid black;list-style-type:none;height:100%;width:2em;right:0;position:absolute;top:0;background-color:white;z-index:1}
-#etoolbar li {background-color: lightgrey;border-left:1px solid black;text-align:center;padding-top:0.2em;padding-bottom:0.2em;border-bottom:1px solid black}
+#etoolbar li {background-color: lightgrey;border-left:1px solid black;text-align:center;padding-top:0.2em;padding-bottom:0.2em;border-bottom:1px solid black;position:relative}
 #etoolbar li:hover {cursor:pointer}
 #etoolbar li:first-child {border-top:1px solid black}
 .editbox-active,.editbox-inactive {margin:0;padding-left:1em;padding-right:0;width:100%;border:0;overflow:auto;position:relative}
@@ -44,3 +44,4 @@ div .textboxes {text-align:center;border:0px;margin:0;padding:0}
 #versions {z-index: 2000;font-family:arial,sans-serif}
 #longnamecancel {margin-right:2em}
 .title {white-space:normal}
+.popup {display:none;position:absolute;z-index:100}
