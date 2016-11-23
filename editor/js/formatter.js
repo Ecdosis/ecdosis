@@ -4,16 +4,16 @@
  * it diverges. This is to speed up conversion and also to allow 
  * correspondences between the MML and HTML to be used during editing.
  */
-function Link(mml,html,text,next,prev)
+function Link(mml,html,text,next,prev,isline)
 {
     this.mml = mml;
     this.html = html;
     this.text = text;
     this.next = next;
     this.prev = prev;
+    this.isline = isline;
     /**
      * Convert this link and all its subsequent ones into HTML
-     * @return a valid HTML document
      */
     this.toHtml = function() {
         var temp = this;
@@ -43,6 +43,13 @@ function Link(mml,html,text,next,prev)
         return mml;
     };
     /**
+     * Set the link'stext to a new value
+     * @param text the new text
+     */
+    this.setText = function(text){
+        this.text = text;
+    };
+    /**
      * Does this link contain no actual text until the next node?
      * @param end the final node of the sequence    
      * @return true if it was empty
@@ -61,9 +68,17 @@ function Link(mml,html,text,next,prev)
         }
         return true;
     };
+    /**
+     * Add someHTML to the very start of the link
+     * @param html the HTML tag to add
+     */
     this.prependHtml= function( html ) {
         this.html = html + this.html;
     };
+    /**
+     * Add some MML to the very start of the link
+     * @param mml the mml tag
+     */
     this.prependMml = function( mml ) {
         this.mml = mml + this.mml;
     };
@@ -103,11 +118,23 @@ function Link(mml,html,text,next,prev)
             temp = temp.next;
         }
     };
+    /**
+     * Static function: does a piece of text end with a string?
+     * @param text the text to test
+     * @param str the string it may end with
+     * @return true if it does
+     */
     this.endsWith = function(text,str) 
     {
         return text.length>=str.length
             &&text.substr(text.length-str.length)==str;
     };
+    /**
+     * Static function: does a piece of text start with a string?
+     * @param text the text to test
+     * @param str the string it may start with
+     * @return true if it does
+     */
     this.startsWith = function(text,str)
     {
         return text.length>=str.length
@@ -120,7 +147,8 @@ function Link(mml,html,text,next,prev)
      */
     this.isLineformat = function(lfs) {
         var best = false;
-        var trimLR = this.text.trim();
+        var trimLR = this.text;
+        trimLR = trimLR.trim();
         for ( var i=0;i<lfs.length;i++ )
         {
             var lf = lfs[i];
@@ -313,7 +341,7 @@ function Formatter( dialect )
                         var hyphen = new Link("",'<span class="soft-hyphen">',
                             "-",link,line);
                         line.next = hyphen;
-                        link.text = "";
+                        link.setText("");
                         link.mml = "\n";
                         link.prev = hyphen;
                         link.html = '</span>';
@@ -421,12 +449,12 @@ function Formatter( dialect )
                             {
                                 line.prependHtml( '<p class="'+pfmt.prop+'"'
                                     +' title="'+pfmt.prop+'">' );
-                                line.text = line.text.substr(lpos+ltag.length);
+                                line.setText(line.text.substr(lpos+ltag.length));
                                 line.mml += para.next.text.substr(0,lpos+ltag.length);
                                 last.prependMml(last.text.substr(rpos));
                                 // recompute
                                 rpos = this.endPos(last.text,rtag);
-                                last.text = last.text.substr(0,rpos);
+                                last.setText(last.text.substr(0,rpos));
                                 last.next.prependHtml('</p>');
                                 if ( this.isBlkTag("p") )
                                     this.formatted = true;
@@ -485,7 +513,7 @@ function Formatter( dialect )
                         var attr = ' class="'+this.heads[c]+'" title="'+this.heads[c]+'"';
                         link.prev.html += '<'+tag+attr+'>';
                         link.mml += link.text;
-                        link.text = "";
+                        link.setText("");
                         link.prependHtml('</'+tag+'>\n');
                         if ( this.isBlkTag(tag) )
                             this.formatted = true;
@@ -502,6 +530,7 @@ function Formatter( dialect )
      */
     this.processSmartQuotes = function( para, end )
     {
+        var hasLF = false;
         if ( this.dialect.smartquotes )
         {
             var link = para;
@@ -520,7 +549,7 @@ function Formatter( dialect )
                         text = text.slice(0,i)+this.closeQuote(c)+text.slice(i+1);
                 }
             }
-            link.text = text;
+            link.setText(text);
         }        
     };
     /**
@@ -529,9 +558,19 @@ function Formatter( dialect )
      * @param link the link containing a lineformat
      */
     this.processLineformat = function( lf, link ) {
+        var hasLF = false;
         var line = link.text;
-        var end = this.endPos(line,lf.rightTag);
-        link.text = line.slice(lf.leftTag.length,end);
+        if ( line.length>0&&line[line.length-1]=='\n')
+            hasLF= true;
+        if ( lf.prop == 'page' )
+        {
+            var end = this.endPos(line,lf.rightTag);
+            link.setText(line.slice(lf.leftTag.length,end));
+        }
+        else
+            link.setText(line.slice(lf.leftTag.length));
+        if ( hasLF && line.length>0&&line[line.length-1]!='\n')
+            console.log("LF lost!");        
     };
     /**
      * Close a previously open tag
@@ -570,12 +609,12 @@ function Formatter( dialect )
         {
             var prev = para;
             var plf = null; // previous lf
-            para.text = "";
+            para.setText("");
             for ( var i=0;i<lines.length;i++ )
             {
                 this.num_lines++;
                 var text=(i==lines.length-1)?lines[i]:lines[i]+"\n";
-                var line = new Link("","",text,null,prev);
+                var line = new Link("","",text,null,prev,true);
                 var lf=line.isLineformat(lfs);
                 if ( plf != null )
                 {
@@ -608,6 +647,7 @@ function Formatter( dialect )
         this.processLines(para,end);
         this.processHeadings(para,end);
         this.processPfmts(para,end);
+        this.applyGlobals(para,end);
         this.processCfmts(para,end);
         // see if we used a block-format above
         if ( !this.formatted )
@@ -637,14 +677,14 @@ function Formatter( dialect )
         // strip leading new lines
         while ( section.text.length > 0 && section.text.indexOf("\n")==0 )
         {
-            section.text = section.text.substr("\n".length);
+            section.setText(section.text.substr("\n".length));
             section.mml += "\n"; // preserve for length calculation
             this.num_lines++;
         }
         var text = section.text;
         var state = 0;
         var savedText = section.text;
-        section.text = "";
+        section.setText( "" );
         var prev = new Link("","","",null,section);
         section.next = prev;
         var breakText = ""; 
@@ -668,7 +708,7 @@ function Formatter( dialect )
                     if ( c == '\n' )
                     {
                         var endPos = i-breakText.length;
-                        prev.text = text.substr(lastPos,endPos-lastPos);
+                        prev.setText( text.substr(lastPos,endPos-lastPos) );
                         breakText += c;
                         var link = new Link(breakText,"","",null,prev);
                         prev.next = link;
@@ -683,7 +723,7 @@ function Formatter( dialect )
                     break;               
             }
         }
-        prev.text = text.substr(lastPos);
+        prev.setText( text.substr(lastPos) );
         prev.next = end;
         end.prev = prev;
         /*var mmlText = section.toMml(end);
@@ -1035,7 +1075,7 @@ function Formatter( dialect )
                 if ( temp.text != null 
                     && temp.text.indexOf(dialect.globals[i].seq) != -1 )
                 {
-                    temp.text = temp.text.replace(rexeps[i], rep);
+                    temp.setText( temp.text.replace(rexeps[i], rep) );
                 }
             }
             temp = temp.next;
@@ -1098,7 +1138,6 @@ function Formatter( dialect )
             }
             if ( last != null )
                 last.html += ret[ret.length-1].divEnd;
-            this.applyGlobals(first,last);
         }
         this.computeCorrespondences(first);
         var endTime = new Date().getMilliseconds();

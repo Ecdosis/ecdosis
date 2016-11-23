@@ -92,7 +92,7 @@ function DropDown(target,prompt,selectHandler,menuHandler) {
             this.val = val;
             this.index = 0;
             this.placeholder.text(this.prompt+text);
-        }
+        }    
     };
     /**
      * Get the current value of the dropdown
@@ -110,7 +110,7 @@ function DropDown(target,prompt,selectHandler,menuHandler) {
     this.cancelNewVersion = function(){
         this.newVersion = false;
     };
-	/**
+    /**
      * Get the current text of the dropdown
      * @return a text value
      */
@@ -146,7 +146,6 @@ function DropDown(target,prompt,selectHandler,menuHandler) {
         });
         return text;
     };
-    
     /**
      * Insert new option before the last one
      * @param value the value of the option
@@ -157,8 +156,8 @@ function DropDown(target,prompt,selectHandler,menuHandler) {
         var before = jQuery("#"+self.target+" li").length-1;
         this.addOption(value,text,edithandler,before);
     };
-	/**
-	 * User clicked on the menu to activate it
+    /**
+     * User clicked on the menu to activate it
      */
     this.dd.click(function(event){
         jQuery(this).toggleClass('active');
