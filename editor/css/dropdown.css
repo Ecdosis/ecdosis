@@ -1,8 +1,8 @@
 /* GLOBALS */
 
-*,
-*:after,
-*:before {
+.dropdowns,
+.dropdowns:after,
+.dropdowns:before {
     -webkit-box-sizing: border-box;
     -moz-box-sizing: border-box;
     box-sizing: border-box;

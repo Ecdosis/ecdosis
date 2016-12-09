@@ -94,6 +94,7 @@ function events(target,docid,modpath)
             description: self.strs.empty_description,
             references: self.strs.empty_references,
             title: "",
+            link:"",
             date: {
                 qualifier: prev.date.qualifier,
                 month: prev.date.month,
@@ -115,6 +116,7 @@ function events(target,docid,modpath)
             description: self.strs.empty_description,
             references: self.strs.empty_references,
             title: "",
+            link:"",
             date: {
                 qualifier: "",
                 month: 0,
@@ -134,6 +136,7 @@ function events(target,docid,modpath)
      */
     this.set_event = function( event ) {
         jQuery("#title").val(event.title); 
+        jQuery("#title-link").val(event.link);
         var qualifier = event.date.qualifier;
         if ( qualifier == "" )
             qualifier = "none";
@@ -152,6 +155,7 @@ function events(target,docid,modpath)
     this.save_event = function() {
         var event = this.pDoc.events[this.index];
         event.title = jQuery("#title").val(); 
+        event.link = jQuery("#title-link").val();
         event.date.qualifier = jQuery("#qualifier").val();
         event.date.day = jQuery("#day").val();
         event.date.month = this.month_to_int(jQuery("#month").val());
@@ -237,6 +241,21 @@ function events(target,docid,modpath)
      */
     this.init_title = function( obj ) {
         obj.attr("placeholder",self.strs.empty_title);
+        obj.click( function() {
+            if ( jQuery("#tinyeditor").length>0 )
+                self.restore_div();
+        });
+        obj.change( function(e) {
+            if ( self.pDoc.events[self.index].status != 'added' )
+                self.pDoc.events[self.index].status = 'changed';
+        });
+    };
+    /**
+     * Set handlers for the title link input field
+     * @param obj the link jQuery object
+     */
+    this.init_link = function( obj ) {
+        obj.attr("placeholder",self.strs.empty_link);
         obj.click( function() {
             if ( jQuery("#tinyeditor").length>0 )
                 self.restore_div();
@@ -361,6 +380,7 @@ function events(target,docid,modpath)
      */
     this.update_event = function( event ) {
         var title = jQuery("#title");
+        var link = jQuery("#title-link").val();
         var qualifier = jQuery("#qualifier");
         var day = jQuery("#day");
         var month = jQuery("#month");
@@ -371,6 +391,7 @@ function events(target,docid,modpath)
             self.restore_div();                
         event.title = title.val();
         event.type = type[0].selectedIndex;
+        event.link = link;
         var date = {};
         date.qualifier = qualifier.val();
         if ( date.qualifier==""||date.qualifier==null )
@@ -428,6 +449,7 @@ function events(target,docid,modpath)
      * @param str the string to search
      * @param m the starting index
      * @param inc the amount to increment it
+     * @return the next position in str that points to text or string end if none
      */
     this.inc_m = function(str,m,inc) {
         var count = 0;
@@ -452,8 +474,13 @@ function events(target,docid,modpath)
                         i++;
                         state = 0;
                     }
-                    else
+                    else if ( i <str.length )
                         i++;
+                    else
+                    {
+                        state = 0;
+                        count = inc;
+                    }
                     break;
             }
         }
@@ -509,6 +536,7 @@ function events(target,docid,modpath)
             for ( i=0;i<lim;i++ )
             {
                 var res = 0;
+                var old_index = expr.index;
                 if ( expr.field=='title' && event.hasOwnProperty("title") )
                 {
                     res = event.title.substr(expr.pos).search(pat);
@@ -555,6 +583,8 @@ function events(target,docid,modpath)
                         expr.pos = 0;
                     }
                 }
+                if ( expr.index == old_index )
+                    expr.index = (expr.index+1)%self.pDoc.events.length;
                 event = self.pDoc.events[expr.index];
             }
             if ( i==lim )
@@ -675,6 +705,8 @@ function events(target,docid,modpath)
                     var obj = {
                          event: jsonStr
                     };
+                    console.log("index="+self.index);
+                    //console.log("event str:"+jsonStr);
                     var success = function(data, textStatus, jqXHR) {
                         if ( data.docid != undefined )
                             event.docid = data.docid;
@@ -715,6 +747,7 @@ function events(target,docid,modpath)
         this.init_editables(jQuery("div.edit-region"));
         this.init_type_select(jQuery("#type"));
         this.init_title(jQuery("#title"));
+        this.init_link(jQuery("#title-link"));
         this.init_date();
     };
     /**
@@ -820,22 +853,21 @@ function events(target,docid,modpath)
                 return i-1;
        return 0;
     }
-    /**
-     * Make a single row in the table containing input elements
-     * @param type the type of row content
-     * @param value different types of value for the input elements
-     * @param id for text input rows
-     */
-    this.compose_row = function( type, value, id )
+    this.compose_row = function( type, value, id, value2 )
     {
         var html = "";
         switch ( type )
         {
-            case 'text':
-                html = '<tr><td colspan="2"><input ';
+            case 'title':
+                html = '<tr><td><input ';
                 if ( id != undefined )
                     html += 'id="'+id+'" ';
-                html += 'type="text" value="'+value+'"></input></td></tr>';
+                html += 'type="text" value="'+value+'"></input></td>'
+                html += '<td><input type="text" id="title-link"';
+                if ( value2 != undefined )
+                    html += ' value="'+value2+'"';
+                html += ' placeholder="optional title url"></input></td>';
+                html += '</tr>';
                 break;
             case 'date':
                 html += '<tr><td>'+this.make_dropdown(this.strs.qualifiers,(value.qualifier=='none')?'':value.qualifier,'qualifier');
@@ -881,7 +913,7 @@ function events(target,docid,modpath)
     this.create_box = function( event ) {
         var html = '<div class="box">';
         html += '<table>';
-        html += self.compose_row('text',event.title,'title'); 
+        html += self.compose_row('title',event.title,'title',event.link); 
         html += self.compose_row('date',event.date,event.type);
         html += self.compose_row('textarea',event.description,'description');
         html += self.compose_row('textarea',event.references,'references');
@@ -908,7 +940,8 @@ function events(target,docid,modpath)
     };
     /* Download all the events in compact form for this project */
     this.downloadEvents = function() {
-        jQuery.get( "http://"+window.location.hostname+"/project/events/"+docid, function(data)
+        var url = "http://"+window.location.hostname+"/project/events/"+docid;
+        jQuery.get( url, function(data)
         {
             self.pDoc = data;//JSON.parse(data);
             var html = '<div class="events">';

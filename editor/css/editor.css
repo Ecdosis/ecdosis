@@ -1,6 +1,14 @@
 body {padding:0;margin:0}
 img {width:100%}
+#etoolbar li img {width:15px;height:15px;}
 body {overflow:hidden}
+div.section {margin-left:auto;margin-right:auto}
+pre + p.p {text-indent:0px}
+p.addressee + p.p {text-indent:0px}
+#previewpane {position:relative;overflow:auto}
+#previewcontents {position:relative;margin-right:}
+.unicode-icon::after{content:"§"}
+.help-icon::after{content:"?"}
 #wrapper {width:100%;overflow:hidden;position:relative}
 #sides {height:100%;position:relative}
 #lhs {float:left;position:relative}
@@ -45,3 +53,11 @@ div .textboxes {text-align:center;border:0px;margin:0;padding:0}
 #longnamecancel {margin-right:2em}
 .title {white-space:normal}
 .popup {display:none;position:absolute;z-index:100}
+/* help pane */
+.icon {width: 1.5em;height:1.5em;position:relative;top:.7em;}
+#helppane {line-height:140%}
+#helppane li {padding-bottom:.4em;list-style:none;padding-left:1.8em;text-indent:-1.8em}
+#helppane ul {padding-left:1em;white-space:normal;margin-right:2em;margin-left:0.5em;position:relative;}
+#helppane h3 {margin-bottom:.2em;margin-left:0.5em;text-align:left}
+#helppane p {margin-top:0;margin-bottom:1em;white-space:normal;margin-right:2em;margin-left:0.5em}
+#helpframe {overflow:auto;postiion:relative}

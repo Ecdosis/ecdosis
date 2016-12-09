@@ -3,15 +3,22 @@
  * linked list, where common text is preserved at the points where 
  * it diverges. This is to speed up conversion and also to allow 
  * correspondences between the MML and HTML to be used during editing.
+ * @param text the text of the link
+ * @param next the next link
+ * @param prev the previous link
  */
-function Link(mml,html,text,next,prev,isline)
+function Link(text,next,prev)
 {
-    this.mml = mml;
-    this.html = html;
     this.text = text;
     this.next = next;
     this.prev = prev;
-    this.isline = isline;
+    this.preHtml = "";
+    this.postHtml = "";
+    this.preMml = "";
+    this.postMml = "";
+    /* may be true = 'open blk tag, false = 'close blk tag, undefined = not a block format */
+    this.isBlkStart = undefined; 
+    this.isBlkEnd = undefined; 
     /**
      * Convert this link and all its subsequent ones into HTML
      */
@@ -20,8 +27,9 @@ function Link(mml,html,text,next,prev,isline)
         var html = "";
         while ( temp != null )
         {
-            html += temp.html;
+            html += temp.preHtml;
             html += temp.text;
+            html += temp.postHtml;
             temp = temp.next;
         }
         return html;
@@ -36,8 +44,9 @@ function Link(mml,html,text,next,prev,isline)
         var mml = "";
         while ( temp != until && temp != null )
         {
-            mml += temp.mml;
+            mml += temp.preMml;
             mml += temp.text;
+            mml += temp.postMml;
             temp = temp.next;
         }
         return mml;
@@ -72,15 +81,36 @@ function Link(mml,html,text,next,prev,isline)
      * Add someHTML to the very start of the link
      * @param html the HTML tag to add
      */
-    this.prependHtml= function( html ) {
-        this.html = html + this.html;
+    this.prependHtml = function( html ) {
+        this.preHtml = html + this.preHtml;
     };
     /**
      * Add some MML to the very start of the link
      * @param mml the mml tag
      */
     this.prependMml = function( mml ) {
-        this.mml = mml + this.mml;
+        this.preMml = mml + this.preMml;
+    };
+    /**
+     * Add some HTML to the end of the link
+     * @param html the HTML tag to add
+     */
+    this.appendHtml = function( html ) {
+        this.postHtml += html;
+    };
+    /**
+     * Add some MML to the end of the link
+     * @param mml the mml tag
+     */
+    this.appendMml = function( mml ) {
+        this.postMml += mml;
+    };
+    /**
+     * Trim the leas=ding LF off the leading html if present
+     */
+    this.trimLF = function() {
+        if ( this.preHtml.length>0 && this.preHtml[0]=='\n' )
+            this.preHtml = this.preHtml.substr(1);
     };
     /**
      * Split a link at a known place
@@ -91,7 +121,14 @@ function Link(mml,html,text,next,prev,isline)
     this.split = function(pos,numDel) {
         var left = this.text.substr(0,pos);
         var right = this.text.substr(pos+numDel);
-        var link = new Link("","",right,this.next,this);
+        var link = new Link(right,this.next,this);
+        // moved right hand features to link
+        link.postHtml = this.postHtml;
+        this.postHtml = "";
+        link.postMml = this.postMml;
+        this.postMml = "";
+        link.isBlkEnd = this.isBlkEnd;
+        this.isBlkEnd = undefined; 
         this.text = left;
         this.next.prev = link;
         this.next = link;
@@ -114,7 +151,8 @@ function Link(mml,html,text,next,prev,isline)
         var temp = this;
         while ( temp != null )
         {
-            console.log("\""+temp.html+"\"|\""+temp.mml+"\""+this.abbrev(temp.text)+"->");
+            console.log("\""+temp.preHtml+"\"|\""+temp.preMml
+                +"\""+this.abbrev(temp.text)+this.postHtml+this.postMml+"->");
             temp = temp.next;
         }
     };
@@ -168,6 +206,34 @@ function Link(mml,html,text,next,prev,isline)
         }
         return best;
     };
+    /**
+     * This link is the start of a block
+     * @param value true if this is a block link else false
+     */ 
+    this.setBlkStart = function( value ) {
+        this.isBlkStart = value;
+    };
+    /**
+     * Get the block start status
+     * @return value true if this is a block link else false
+     */ 
+    this.getBlkStart = function() {
+        return (this.isBlkStart==undefined)?false:this.isBlkStart;
+    };
+    /**
+     * This link is the end of a block
+     * @param value true if this is an end of block
+     */ 
+    this.setBlkEnd = function( value ) {
+        this.isBlkEnd = value;
+    };
+    /**
+     * Get the link end block status
+     * @return value true if this is an end of block
+     */ 
+    this.getBlkEnd = function() {
+        return (this.isBlkEnd==undefined)?false:this.isBlkEnd;
+    };
 }
 /**
  * Format an MML text into HTML using a dialect
@@ -186,7 +252,7 @@ function Formatter( dialect )
     /** conversion table from mml offsets to html base text ones */
     this.mmlToHtml = undefined;
     /** html tags defining blocks NB sorted!*/
-    this.blkTags = ["div","h1","h2","h3","h4","h5","h6","p"];
+    this.blkTags = ["div","h1","h2","h3","h4","h5","h6","p","pre"];
     /**
      * Build quick lookup arrays for making headings
      */
@@ -306,9 +372,8 @@ function Formatter( dialect )
                 // trim leading LF after hyphen
                 if ( trimNextLF )
                 {
-                    if ( line.html.length>0&&line.html[0]=='\n' )
-                        line.html = line.html.substr(1);
-                    trimNextLF = false;
+                    if ( line.trimLF() )
+                        trimNextLF = false;
                 }
                 var i = 0;
                 while ( i<text.length )
@@ -320,16 +385,16 @@ function Formatter( dialect )
                         if ( this.peek(stack)==c )
                         {
                             stack.pop();
-                            link.html = '</span>';
-                            link.mml = c;
+                            line.appendHtml('</span>');
+                            link.prependMml(c);
                         }
                         else
                         {
                             stack.push(c);
-                            link.html = '<span class="'
+                            link.prependHtml('<span class="'
                                 +this.cfmts[c]
-                                +'" title="'+this.cfmts[c]+'">'
-                            link.mml = c;
+                                +'" title="'+this.cfmts[c]+'">');
+                            link.prependMml(c);
                         }
                         line = link;
                         text = line.text;
@@ -338,13 +403,13 @@ function Formatter( dialect )
                     else if ( c == '-' && text.substr(i)=="\n" )
                     {
                         var link = line.split(i-1,1);
-                        var hyphen = new Link("",'<span class="soft-hyphen">',
-                            "-",link,line);
+                        var hyphen = new Link("-",link,line);
+                        hyphen.prependHtml('<span class="soft-hyphen">');
                         line.next = hyphen;
                         link.setText("");
                         link.mml = "\n";
                         link.prev = hyphen;
-                        link.html = '</span>';
+                        link.appendHtml('</span>');
                         line = link;    // needed for loop termination
                         text = line.text;
                         trimNextLF = true;
@@ -424,16 +489,18 @@ function Formatter( dialect )
      * Scan the start and end of the paragraph for defined para formats.
      * @param para the link leading into the paragraph 
      * @param end the link of the next paragraph
+     * @return the name of the paragraph property or the empty string if none
      */
     this.processPfmts = function( para, end )
     {
-        if ( this.dialect.paraformats !=undefined )
+        var pfmt;
+        if ( this.dialect.paraformats != undefined )
         {
             var pfmts = this.dialect.paraformats;
             var line = para.next;
             for ( var i=0;i<pfmts.length;i++ )
             {
-                var pfmt = pfmts[i];
+                pfmt = pfmts[i];
                 if ( pfmt.leftTag != undefined && pfmt.rightTag != undefined )
                 {
                     var ltag = pfmt.leftTag;
@@ -447,25 +514,28 @@ function Formatter( dialect )
                             var rpos = this.endPos(last.text,rtag);
                             if ( rpos != -1 )
                             {
-                                line.prependHtml( '<p class="'+pfmt.prop+'"'
-                                    +' title="'+pfmt.prop+'">' );
                                 line.setText(line.text.substr(lpos+ltag.length));
                                 line.mml += para.next.text.substr(0,lpos+ltag.length);
                                 last.prependMml(last.text.substr(rpos));
                                 // recompute
                                 rpos = this.endPos(last.text,rtag);
                                 last.setText(last.text.substr(0,rpos));
-                                last.next.prependHtml('</p>');
                                 if ( this.isBlkTag("p") )
-                                    this.formatted = true;
+                                {
+                                    line.setBlk(true);
+                                    last.setBlk(false);
+                                }
                                 break;
                             }
                             last = last.prev;
                         }
                     }
+                    else
+                        pfmt = undefined;
                 }
             }
         }
+        return (pfmt==undefined)?"":pfmt.prop;
     };
     /**
      * Does the given line define a heading for the line above?
@@ -511,12 +581,15 @@ function Formatter( dialect )
                             console.log("couldn't find tag for "+this.heads[c]);
                         }
                         var attr = ' class="'+this.heads[c]+'" title="'+this.heads[c]+'"';
-                        link.prev.html += '<'+tag+attr+'>';
-                        link.mml += link.text;
+                        link.prev.prependHtml('<'+tag+attr+'>');
+                        link.prependMml( link.text );
                         link.setText("");
-                        link.prependHtml('</'+tag+'>\n');
+                        link.prev.appendHtml('</'+tag+'>\n');
                         if ( this.isBlkTag(tag) )
-                            this.formatted = true;
+                        {
+                            link.prev.setBlkStart(true);
+                            link.prev.setBlkEnd(true);
+                        }
                     }
                 }
                 link = link.next;
@@ -562,15 +635,12 @@ function Formatter( dialect )
         var line = link.text;
         if ( line.length>0&&line[line.length-1]=='\n')
             hasLF= true;
-        if ( lf.prop == 'page' )
-        {
-            var end = this.endPos(line,lf.rightTag);
-            link.setText(line.slice(lf.leftTag.length,end));
-        }
-        else
-            link.setText(line.slice(lf.leftTag.length));
-        if ( hasLF && line.length>0&&line[line.length-1]!='\n')
-            console.log("LF lost!");        
+        var end = line.length;
+        if ( lf.rightTag.length > 0 )
+            end = this.endPos(line,lf.rightTag);
+        link.setText(line.slice(lf.leftTag.length,end));
+        if ( hasLF )
+            line += '\n';        
     };
     /**
      * Close a previously open tag
@@ -580,9 +650,9 @@ function Formatter( dialect )
     this.terminateTag = function( line, lf ) {
         var tag = this.cssMap[lf.prop];
         if ( this.isBlkTag(tag) )
-            this.formatted = true;
-        line.prependHtml('</'+tag+'>');
-        line.prependMml(lf.rightTag);
+            line.setBlkEnd(true);
+        line.appendHtml('</'+tag+'>');
+        line.appendMml(lf.rightTag);
     };
     /**
      * Close a previously open tag
@@ -592,10 +662,10 @@ function Formatter( dialect )
     this.commenceTag = function( line, lf ) {
         var tag = this.cssMap[lf.prop];
         if ( this.isBlkTag(tag) )
-            this.formatted = true;
+            line.setBlkStart(true);
         attr = ' class="'+lf.prop+'"';
-        line.html += '<'+tag+attr+'>';
-        line.mml += lf.leftTag;
+        line.prependHtml ('<'+tag+attr+'>');
+        line.prependMml( lf.leftTag );
     };
     /**
      * Turn a paragraph into a linked list of lines
@@ -608,30 +678,23 @@ function Formatter( dialect )
         if ( lines.length > 0 && lfs != undefined )
         {
             var prev = para;
-            var plf = null; // previous lf
             para.setText("");
             for ( var i=0;i<lines.length;i++ )
             {
                 this.num_lines++;
                 var text=(i==lines.length-1)?lines[i]:lines[i]+"\n";
-                var line = new Link("","",text,null,prev,true);
+                var line = new Link(text,null,prev);
                 var lf=line.isLineformat(lfs);
-                if ( plf != null )
-                {
-                    this.terminateTag(line,plf);
-                    plf = null;
-                }
                 if ( lf )
                 {
                     this.processLineformat(lf,line);
                     this.commenceTag(line,lf);
-                    plf = lf;
+                    this.terminateTag(line,lf);
                 }
                 prev.next = line;
                 prev = line;
             }
-            if ( plf != null )
-                this.terminateTag(end,plf);
+            end.prev = line;
             line.next = end;
         }
     };
@@ -642,30 +705,59 @@ function Formatter( dialect )
      */
     this.processPara = function( para, end )
     {
-        this.formatted = false;
         this.processSmartQuotes(para,end);
         this.processLines(para,end);
         this.processHeadings(para,end);
-        this.processPfmts(para,end);
+        var name = this.processPfmts(para,end);
         this.applyGlobals(para,end);
         this.processCfmts(para,end);
         // see if we used a block-format above
-        if ( !this.formatted )
+        if ( name.length == 0 )
         {
-            //console.log("para not formatted");
-            var attr = (this.dialect.paragraph!=undefined
-                &&this.dialect.paragraph.prop!=undefined
-                &&this.dialect.paragraph.prop.length>0)
-                ?' class="'+this.dialect.paragraph.prop+'" title="'
-                +this.dialect.paragraph.prop+'"':"";
-            // recompute end in case it changed
-            //while ( para.text.length == 0 && para.next != end 
-            //    && para.next != null )
-            //    para = para.next;
-            para.html += '<p'+attr+'>';
-            end.html += '</p>';
-            //end.prependHtml('</p>');
+            if ( this.dialect.paragraph != undefined 
+                && this.dialect.paragraph.prop != undefined )
+                name = this.dialect.paragraph.prop;
+            else
+                name = "p";
         }
+        return name;
+    };
+    /**
+     * Wrap a paragraph divided into lines/spans etc in a para tag
+     * @param para the first link of the para
+     * @param next the next tag
+     * @param name the ame of the tag
+     */
+    this.wrapParagraph = function( para, next, name ) {
+        var temp = para;
+        var state = 0;
+        while ( temp != next && temp != null )
+        {
+            switch ( state )
+            {
+                case 0: // looking for start pfmt
+                    if ( temp.text.length > 0 )
+                    {
+                        if ( !temp.getBlkStart() )
+                            temp.prependHtml('<p class="'+name+'" title="'+name+'">');
+                        if ( !temp.getBlkEnd() )
+                            state = 1;
+                        // else shouldn't happen, but if it does, stay in state 0
+                    }
+                    break;
+                case 1: //looking for end block
+                    if ( temp.getBlkStart() )
+                        temp.prev.appendHtml('</p>');
+                    // if isBlkStart it has already got a start tag
+                    // if isBlkEnd already has an end tag
+                    if ( temp.getBlkEnd() ) // NB can be same link
+                        state = 0;
+                    break;
+            }
+            temp = temp.next;
+        }
+        if ( state == 1 )
+            next.prev.appendHtml('</p>');
     };
     /**
      * Process all the paras in a section
@@ -685,7 +777,7 @@ function Formatter( dialect )
         var state = 0;
         var savedText = section.text;
         section.setText( "" );
-        var prev = new Link("","","",null,section);
+        var prev = new Link("",null,section);
         section.next = prev;
         var breakText = ""; 
         var lastPos = 0;
@@ -710,7 +802,8 @@ function Formatter( dialect )
                         var endPos = i-breakText.length;
                         prev.setText( text.substr(lastPos,endPos-lastPos) );
                         breakText += c;
-                        var link = new Link(breakText,"","",null,prev);
+                        var link = new Link("",null,prev);
+                        //link.prependHtml(breakText);
                         prev.next = link;
                         lastPos = endPos+breakText.length;
                         prev = link;
@@ -735,7 +828,8 @@ function Formatter( dialect )
         while ( temp != end )
         {
             var next = temp.next;
-            this.processPara(temp,next);
+            var name = this.processPara(temp,next);
+            this.wrapParagraph(temp,next,name);
             if ( next != end )
                 this.num_lines += 2;
             temp = next;
@@ -848,6 +942,7 @@ function Formatter( dialect )
         var htmlPos = 0;
         var mmlPos = 0;
         this.mmlToHtml = new Array();
+        var i = 0;
         while ( link != null )
         {
             var entry = {};
@@ -855,10 +950,11 @@ function Formatter( dialect )
             entry.html = htmlPos;
             entry.text = textPos;
             this.mmlToHtml.push(entry);
-            mmlPos += link.mml.length + link.text.length;
+            mmlPos += link.preMml.length + link.text.length + link.postMml.length;
             textPos += link.text.length;
-            htmlPos += link.html.length + link.text.length;
+            htmlPos += link.preHtml.length + link.text.length + link.postHtml.length;
             link = link.next;
+            i++;
         }
     };
     /**
@@ -896,12 +992,21 @@ function Formatter( dialect )
         return value-this.mmlToHtml[mid][from]+this.mmlToHtml[mid][to];
     };
     /**
-     * Is this a whitespace character?
-     * @param c the character to test
+     * Is this a string consisting only of whitespace?
+     * @param str the string to test
      * @return true if it is else false
      */
-    this.isWhitespace = function( c ) {
-        return c==' '||c=='\n'||c=='\t'||c=='\r';
+    this.isWhitespaceString = function( str ) {
+        var res = true;
+        for ( var i=0;i<str.length;i++ )
+        {
+            if ( !/\s/.test(str[i]) )
+            {
+                res = false;
+                break;
+            }
+        }
+        return res;
     };
     /**
      * Is this an alphanumeric character?
@@ -915,7 +1020,7 @@ function Formatter( dialect )
             ||c=='_';
     };
     /**
-     * Read a section name at the start
+     * Read an optional section name at the start of a section
      * @param section the text of the section
      * @return an object containing the name read and the consumed MML text
      */
@@ -926,20 +1031,16 @@ function Formatter( dialect )
         ret.mml = "";
         for ( var i=0;i<section.length;i++ )
         {
-            ret.mml += section[i];
             var c = section[i];
             switch ( state )
             {
                 case 0: // looking for "{"
-                    if ( !this.isWhitespace(c))
+                    if ( !/\s/.test(c) )
                     {
                         if ( section[i]=='{' )
                             state = 1;
-                    }
-                    else
-                    {
-                        state = -1;
-                        ret.mml = "";
+                        else
+                            state = -1;
                     }
                     break;
                 case 1: // seen '{'
@@ -949,7 +1050,7 @@ function Formatter( dialect )
                         ret.tag += c;
                     else
                     {
-                        ret.tag="";
+                        ret.tag = "";
                         ret.mml = "";
                         state = -1;
                     }
@@ -960,7 +1061,7 @@ function Formatter( dialect )
                         if ( c=='\n'|| c=='\r' )
                             state = -1;
                         // DOS line-endings
-                        else if (i<section.length-1&&c=='\n'&&section[i+1]=='\r')
+                        else if (i<section.length-1&&c=='\r'&&section[i+1]=='\n')
                         {
                             ret.mml += '\r';
                             state = -1;
@@ -990,30 +1091,43 @@ function Formatter( dialect )
             var stack = new Array();
             for ( var i=0;i<ret.length;i++ )
             {
-                ret[i].divStart = "";
-                // pop off back to the last section of that name
-                var pos = (ret[i].tag.length!=0)?stack.indexOf(ret[i].tag):-1;
-                // al la Java we count back from stack top=1
-                if ( pos > -1 )
-                    pos = stack.length-pos;
-                // unnamed sections terminate all divs
-                if ( ret[i].tag.length==0 )
-                    pos = stack.length;
-                while ( pos > 0 )
-                {
-                    ret[i].divStart += "</div>";
-                    stack.pop();
-                    pos--;
-                }
-                stack.push(ret[i].tag);
                 var sectionName = (ret[i].tag.length==0)?"section":ret[i].tag;
-                ret[i].divStart += "<div class=\""+sectionName+"\">";
+                ret[i].divStart = '<div class="'+sectionName+'">';
+                ret[i].divEnd = "";
+                if ( stack.length > 0 )
+                {
+                    // if anonymous pop everything off stack
+                    if ( ret[i].tag.length==0 )
+                    {
+                        while ( stack.length > 0 )
+                        {
+                            ret[i-1].divEnd += '</div>';
+                            stack.pop();
+                        }
+                    }
+                    else
+                    {
+                        // if already on the stack, pop back to it
+                        var index = stack.indexOf(sectionName);
+                        if ( index >= 0 )
+                        {
+                            var numToPop = stack.length-index;
+                            for ( var j=0;j<numToPop;j++ )
+                            {
+                                stack.pop();
+                                ret[i-1].divEnd += '</div>';
+                            }
+                        }
+                        // else it will nest
+                    }
+                }
+                stack.push(sectionName);                    
             }
-            // set last ret element .divEnd to the final HTML
-            while ( stack.length>0 )
+            // close open divs
+            while ( stack.length > 0 )
             {
+                ret[ret.length-1].divEnd += '</div>';
                 stack.pop();
-                ret[ret.length-1].divEnd = "</div>"; 
             }
         }
     };
@@ -1058,7 +1172,7 @@ function Formatter( dialect )
         }
     };
     /**
-     * preprocess the text by swapping all the global changes
+     * Preprocess the text by swapping all the global changes
      * @param first the first link
      * @param last the last link
      */
@@ -1082,6 +1196,73 @@ function Formatter( dialect )
         }
     };
     /**
+     * Split the text into sections of text bounded by 3 newlines
+     * @param text the text to split
+     * @return an array of sections, each containing non-whitespace
+     */
+    this.splitIntoSections = function(text) {
+        var sections = Array();
+        var current = "";   
+        var state = 0;
+        var pending = '';
+        for ( var i=0;i<text.length;i++ )
+        {
+            var token = text[i];
+            switch ( state )
+            {
+                case 0: // looking for non-whitespace
+                    if ( !/\s/.test(token) )
+                        state = 1;
+                    current += token;
+                    break;
+                case 1: // seen some non-whitespace
+                    if ( token == '\n')
+                    {
+                        state = 2;
+                        pending = '\n';
+                    }
+                    else
+                        current += token;
+                    break;
+                case 2: // seen one \n after non-whitespace
+                    if ( !/\s/.test(token) )
+                    {
+                        state = 1;
+                        pending += token;
+                        current += pending;
+                    }
+                    else 
+                    {
+                        if ( token == '\n' )
+                            state = 3;
+                        pending += token;
+                    }
+                    break;
+                case 3: // seen two \n's after non-whitespace
+                    if ( !/\s/.test(token) )
+                    {
+                        state = 1;
+                        pending += token;
+                        current += pending;
+                    }
+                    else 
+                    {
+                        if ( token == '\n' )
+                        {
+                            sections.push(current);
+                            current= '';
+                            state = 0;
+                        }
+                        pending += token;
+                    }
+                    break;
+            }
+        }
+        if ( current.length > 0 && !this.isWhitespaceString(current) )
+            sections.push( current );
+        return sections;
+    };
+    /**
      * Convert the MML text into HTML
      * @param text the MML text to convert
      * @return HTML
@@ -1096,29 +1277,34 @@ function Formatter( dialect )
         this.buildHeadLookup();
         this.buildCfmtLookup();
         this.buildCssMap();
-        var sections = text.split("\n\n\n");
+        var sections = this.splitIntoSections(text);
         if ( sections.length > 0 )
         {
             var additional_lines = 0;
             var ret = new Array(sections.length);
             for ( var i=0;i<sections.length;i++ )
                 ret[i] = this.readSectionName(sections[i]);
-            this.parseSectionNames( ret );
+            for ( var i=0;i<ret.length;i++ )
+                this.parseSectionNames(ret);
             first = null;
             var link = null;
             for ( var i=0;i<sections.length;i++ )
             {
                 var prev = link;
                 var prefix = (i==0)?"":"\n\n\n";
-                link = new Link(prefix+ret.mml,ret[i].divStart,
-                    sections[i].substr(ret[i].mml.length),null,prev);
+                link = new Link(sections[i].substr(ret[i].mml.length),null,prev);
+                link.prependMml(prefix+ret[i].mml);
+                // save original sections in array
+                sections[i] = link;
+                // html div now added below
                 if ( first == null )
                     first = link;
                 else
                     prev.next = link;
             }
-            // balance HTML
-            link.next = new Link("","","",null,link);
+            // we need this to close the final div
+            link.next = new Link("",null,link);
+            sections.push( link.next );
             // now process the list
             var temp = first;
             var last = null;
@@ -1136,8 +1322,16 @@ function Formatter( dialect )
                 last = temp;
                 temp = next;
             }
-            if ( last != null )
-                last.html += ret[ret.length-1].divEnd;
+            // now wrap the HTML safely in start and end divs
+            for ( var i=0;i<ret.length+1;i++ )
+            {
+                // last section is just a place-holder for end
+                if ( i < sections.length-1 )
+                    sections[i].prependHtml(ret[i].divStart);
+                // don't end first section; end last section
+                if ( i > 0 )
+                    sections[i].prependHtml(ret[i-1].divEnd);
+            }
         }
         this.computeCorrespondences(first);
         var endTime = new Date().getMilliseconds();

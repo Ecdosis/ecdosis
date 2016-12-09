@@ -11,6 +11,7 @@ function load_strings() {
         empty_description: '<span class="placeholder">Insert description</span>',
         empty_references: '<span class="placeholder">Insert references</span>',
         empty_title: 'Insert the title of the event',
+        empty_link: 'optional title link',
         month_names: ['','Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep',
             'Oct','Nov','Dec'],
         qualifiers: ['','start','end','from','perhaps','circa'],
