@@ -1,0 +1,4 @@
+name = Merger
+description = Manage stripping and merging
+core = 7.x
+configure = admin/config/content/merger

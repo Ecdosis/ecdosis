@@ -1,0 +1,34 @@
+<?php
+function merger_preprocess_page(&$vars)
+{
+    drupal_add_css(drupal_get_path('module','merger').'/css/merger.css','file');
+}
+function merger_block_info() {
+  $blocks['merger'] = array(
+    'info' => t('Manage strip and merge'),
+    'cache' => DRUPAL_CACHE_PER_ROLE,
+  );
+  return $blocks;
+}
+function merger_help($path, $arg) {
+    switch ($path)
+    {
+        case "admin/help#merger":
+            return '<p>' .
+                t("Strip and merge already split XML layers")
+                . '</p>';
+            break;
+    }
+}
+function merger_block_view($delta = '') {
+  switch ($delta) {
+    case 'merger':
+      $mod_path = drupal_get_path('module', 'merger');
+      $block['subject'] = t('Merger');
+      $block['content'] = '<script type="text/javascript" src="'.$mod_path
+        .'/js/merger.js?target=content&'
+        .'&modpath='.$mod_path.'"></script>';
+      return $block;
+  }
+}
+

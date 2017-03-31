@@ -1,0 +1,46 @@
+body {padding:0;margin:0}
+img {width:100%}
+body {overflow:hidden}
+#wrapper {width:100%;overflow:hidden;position:relative}
+#sides {height:100%;position:relative}
+#lhs {float:left;position:relative}
+#rhs {float:right;height:100%;}
+#sides {float:left;position:relative}
+#etoolbar {padding:0;margin:0;border-right:1px solid black;list-style-type:none;height:100%;width:2em;right:0;position:absolute;top:0;background-color:white;z-index:1}
+#etoolbar li {background-color: lightgrey;border-left:1px solid black;text-align:center;padding-top:0.2em;padding-bottom:0.2em;border-bottom:1px solid black}
+#etoolbar li:hover {cursor:pointer}
+#etoolbar li:first-child {border-top:1px solid black}
+.editbox-active,.editbox-inactive {margin:0;padding-left:1em;padding-right:0;width:100%;border:0;overflow:auto;position:relative}
+.editbox-active {display:block}
+.editbox-inactive {display:none}
+#tabs {height:2em}
+#imglist {position:relative;}
+#imglistcontainer {position:relative;overflow:hidden}
+#lhspanel {position:relative;height:2em;background-color: rgba(0, 0, 0, 0.063)}
+#tabs table {margin: 0;}
+.empty-tab {max-width:50%;border-right:1px solid black;border-bottom:1px solid black;opacity:0}
+.active-tab {background-color:white;max-width:50%;border-top:1px solid black;border-right:1px solid black}
+.inactive-tab, #plus-tab {max-width:50%;border-top:1px solid black;border-right:1px solid black;border-bottom:1px solid black;}
+#plus-tab {width:1em;text-align:center}
+#plus-tab:hover {cursor:pointer;background-color:lightblue}
+.inactive-tab:hover {cursor:pointer;background-color:lightblue}
+.dialog {visibility:hidden;position:absolute;left:0px;top:0px;width:100%;height:100%;text-align:center;z-index: 2000;}
+.dialog div {font-size: large;font-family: sans-serif;width:300px;padding: 1em 0;border:1px solid black;background-color: #fff;display:inline-block;border-radius:5px}
+div .buttons {text-align:center;border:0px;margin:0;padding:0}
+div .textboxes {text-align:center;border:0px;margin:0;padding:0}
+.buttons input, #opendialog input {margin:0 2em}
+.text-prompt {margin-right:1em;word-wrap:normal;overflow-wrap:normal;white-space:normal;font-size:medium}
+.textboxes input {display:inline;overflow-wrap:normal;width:50%}
+.textboxes {margin-bottom: 1em !important}
+.textboxes p {margin:0;padding:0}
+[id$="-select"] {display:block;margin-left:auto;margin-right:auto;margin-bottom:2em}
+.dialog div [id$="-fileinfo"] {width:80%;border:0px;margin-bottom:2em;margin-top:0;padding:0}
+.dialog div [id$="-fileinfo"] p {margin:0}
+#version-shortname {font-size:medium}
+#editoption {display:block;visibility:hidden;z-index:2000;background-color:white;padding:.3em;border:1px solid black}
+#editoption:hover {background:#b0b0b0;cursor:pointer}
+#templongname {width:80%}
+#tempok {width:20%}
+#versions {z-index: 2000;font-family:arial,sans-serif}
+#longnamecancel {margin-right:2em}
+.title {white-space:normal}

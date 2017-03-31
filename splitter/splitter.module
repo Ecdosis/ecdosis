@@ -1,0 +1,35 @@
+<?php
+function splitter_preprocess_page(&$vars)
+{
+    drupal_add_css(drupal_get_path('module','splitter').'/css/splitter.css','file');
+    drupal_add_css(drupal_get_path('module','splitter').'/css/font-awesome.min.css','file');
+}
+function splitter_block_info() {
+  $blocks['splitter'] = array(
+    'info' => t('Edit splitting config'),
+    'cache' => DRUPAL_CACHE_PER_ROLE,
+  );
+  return $blocks;
+}
+function splitter_help($path, $arg) {
+    switch ($path)
+    {
+        case "admin/help#splitter":
+            return '<p>' .
+                t("Edit configuration info for splitting TEI-XML files into layers.")
+                . '</p>';
+            break;
+    }
+}
+function splitter_block_view($delta = '') {
+  switch ($delta) {
+    case 'splitter':
+      $mod_path = drupal_get_path('module', 'splitter');
+      $block['subject'] = t('Edit splitting config');
+      $block['content'] = '<script type="text/javascript" src="'.$mod_path
+        .'/js/splitter.js?target=content&'
+        .'&modpath='.$mod_path.'"></script>';
+      return $block;
+  }
+}
+

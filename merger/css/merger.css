@@ -1,0 +1,4 @@
+#projid,#doc_prefix,#documents { margin-right: 1em;}
+#rebuild_button {padding-top:2px;padding-bottom:2px}
+#log {white-space:pre;padding:1em;border:1px solid black;overflow-y:auto}
+.error{color:red}

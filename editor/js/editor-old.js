@@ -1104,7 +1104,6 @@ function editor( docid, version1, target, udata )
                 jQuery("textarea").each(function(){
                     var text = jQuery(this).val();
                     var html = formatter.toHTML(text);
-                    console.log(html);
                     var layer = {};
                     layer.name = jQuery(this).attr("id");
                     layer.body = html;
@@ -2086,7 +2085,7 @@ function editor( docid, version1, target, udata )
     html += '<div id="rhs"><div id="tabs"></div></div></div>';
     html += '<ul id="etoolbar"><li id="delete-layer"><i title="delete current layer" ';
     html += 'class="fa fa-minus fa-1x"></i></li><li id="save"><i title="save" ';
-    html += 'class="fa fa-save fa-1x"></i></li><li id="openfile"><i title="Open file" ';
+    html += 'class="fa fa-save fa-1x"></i></li><li id="openfile"><i title="Open existing transcription" ';
     html += 'class="fa fa-folder-open-o fa-1x"></i></li><li id="newfile">';
     html += '<i title="New document" class="fa fa-file-o fa-1x"></i></li>';
     html += '<li id="preview"><img title="Preview" src="/main/sites/all/modules/editor/css/fa-preview.png" style="height:15px;"></li>';

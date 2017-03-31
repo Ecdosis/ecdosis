@@ -1,0 +1,21 @@
+#annotator {visibility: visible;
+    background-color:white;
+    position:fixed;
+    height:100%;
+    right:0px;
+    border-left:1px solid black;
+    white-space:normal;
+    overflow-y:auto;
+}
+#annotate-header {position:relative;background-color:#e0e0e0;color:#4a88df;text-align:center;padding:0.4em;font-weight:medium;font-family:sans;border-top:1px solid black;border-bottom:1px solid black;}
+#annotate-header p {margin-bottom:0}
+#annotate-close {float:left}
+#annotate-close:hover {cursor:pointer}
+.notetitle {margin:0.5em 0.5em 0 0.5em;padding:0.1em 0.3em 0.3em 0.3em;border-width:1px 1px 0 1px;broder-color:black;border-style:solid;background-color:#e0e0e0;border-radius: 5px 5px 0 0;}
+.notetitle p {margin-bottom:0;text-align:center;color:#4a88df;font-weight:bold;}
+.notetext {margin:0 0.5em 0.5em 0.5em;border:1px solid black;padding: 5px;white-space:normal;max-height:15em;overflow-y:auto}
+.notetext p {margin-bottom: 0.5em;white-space:normal;}
+.note-toolbar {height:1em;margin:0.5em 0.5em 1em 0.5em;}
+.note-toolbar i {border:1px solid black;background-color:#e0e0e0; border-radius: 4px;margin:0 0.2em 0 .2em; }
+.note-toolbar i:hover {cursor:pointer;background-color:lightcyan }
+.saved-note {display:none}

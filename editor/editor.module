@@ -7,9 +7,11 @@ function editor_preprocess_page(&$vars)
         drupal_add_css(drupal_get_path('module','editor').'/css/font-awesome.min.css','file');  
         drupal_add_css(drupal_get_path('module','editor').'/css/dropdown.css','file');  
         drupal_add_css(drupal_get_path('module','editor').'/css/swinxy.css','file');  
+        drupal_add_css(drupal_get_path('module','editor').'/css/annotator.css','file');  
         drupal_add_js(drupal_get_path('module','editor').'/js/formatter.js','file');  
         drupal_add_js(drupal_get_path('module','editor').'/js/rangyinputs-jquery-src.js','file');  
-        drupal_add_js(drupal_get_path('module','editor').'/js/dropdown.js','file');  
+        drupal_add_js(drupal_get_path('module','editor').'/js/dropdown.js','file'); 
+        drupal_add_js(drupal_get_path('module','editor').'/js/annotator.js','file');  
         drupal_add_js(drupal_get_path('module','editor').'/js/swinxy.js','file');  
     }
 }
@@ -43,7 +45,7 @@ function editor_help($path, $arg) {
 }
 function editor_block_view($delta = '') {
   switch ($delta) {
-    case 'tree':
+    case 'editor':
       $args = build_editor_args();
       $mod_path = drupal_get_path('module', 'editor');
       $block['content'] = '<script type="text/javascript" src="'.$mod_path

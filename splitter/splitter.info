@@ -1,0 +1,4 @@
+name = Spiitter
+description = Edit splitter config
+core = 7.x
+configure = admin/config/content/splitter

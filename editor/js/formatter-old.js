@@ -732,63 +732,6 @@ function Formatter( dialect )
         line.prependMml( lf.leftTag );
     };
     /**
-     * Count the number of leading spaces at teh rate of 4 per tab
-     * @param str the string to count
-     * @return the number of leading spaces or equivalent
-     */
-    this.countLeadingSpaces = function( str ) {
-        var nspaces = 0;
-        for ( var i=0;i<str.length;i++ )
-        {
-            if ( str[i] == '\t' )
-                nspaces += 4;
-            else if ( str[i] == ' ' )
-                nspaces++;
-            else
-                break;
-        }
-        return nspaces;
-    };
-    /**
-     * Are the lines of this para poetic?
-     * @param lines an array of lines
-     * @return true if the all contain at least one space
-     */
-    this.isPoetic = function( lines ) {
-        var isPoetry = true;
-        for ( var i=0;i<lines.length;i++ )
-        {
-            if ( lines[i].length == 0 )
-                isPoetry = false;
-            else if ( lines[i][0] != ' ' && lines[i][0] != '\t' )
-            {
-                if ( this.dialect.lineformats.length == 0 
-                    || this.dialect.lineformats[0].prop != 'page'
-                    || this.dialect.lineformats[0].leftTag != lines[i][0] )
-                    isPoetry = false;
-            }            
-        }
-        return isPoetry;
-    };
-    /**
-     * Ensure users aren't using spaces to move text right.
-     * Spaces are for poetic indenents only.
-     * @param line the line to check
-     * @param strip remove leading spaces that don'tomply
-     * @return the line with leading spaces removed or checked
-     */
-    this.checkLeadingSpaces = function( line, strip ) {
-        var nSpaces = this.countLeadingSpaces(line);
-        if ( nSpaces > this.maxLeadingSpaces || nSpaces % 4 != 0 )
-        {
-            if ( !strip )
-                nSpaces -= nSpaces % 4;
-            return line.substr(nSpaces);
-        }
-        else
-            return line;        
-    };
-    /**
      * Turn a paragraph into a linked list of lines
      * @param para the paragraph link
      * @param end the next paragraph link
@@ -800,12 +743,10 @@ function Formatter( dialect )
         {
             var prev = para;
             para.setText("");
-            var strip = !this.isPoetic(lines);
-            console.log("poetic:"+!strip);
             for ( var i=0;i<lines.length;i++ )
             {
                 this.num_lines++;
-                var text = this.checkLeadingSpaces(lines[i]+"\n",strip);
+                var text=lines[i]+"\n";
                 var line = new Link(text,null,prev);
                 var lf=line.isLineformat(lfs);
                 if ( lf )
@@ -1386,21 +1327,6 @@ function Formatter( dialect )
         return sections;
     };
     /**
-     * Examine the leading spaces in the dialect and 
-     * compute the maximum leading
-     */
-    this.computeMaxLeadingSpaces = function() {
-        var lfmts = this.dialect.lineformats;
-        var maxSpaces=0;
-        for ( var i=0;i<lfmts.length;i++ )
-        {
-            var nSpaces = this.countLeadingSpaces(lfmts[i].leftTag);
-            if ( nSpaces > maxSpaces)
-                maxSpaces = nSpaces;
-        }
-        this.maxLeadingSpaces = maxSpaces;
-    };
-    /**
      * Convert the MML text into HTML
      * @param text the MML text to convert
      * @return HTML
@@ -1415,7 +1341,6 @@ function Formatter( dialect )
         this.buildHeadLookup();
         this.buildCfmtLookup();
         this.buildCssMap();
-        this.computeMaxLeadingSpaces();
         var sections = this.splitIntoSections(text);
         if ( sections.length > 0 )
         {
